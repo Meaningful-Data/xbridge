@@ -14,12 +14,14 @@ from time import time
 from zipfile import ZipFile
 import argparse
 
+from lxml import etree
 from py7zr import SevenZipFile
 
 from xbridge.modules import Module
 
 MODULES_FOLDER = Path(__file__).parent / "modules"
-INDEX_PATH = Path(__file__).parent / "modules" / "index.json"
+INDEX_PATH = MODULES_FOLDER / "index.json"
+DIM_DOM_MAPPING_PATH = MODULES_FOLDER / "dim_dom_mapping.json"
 
 
 class Taxonomy:
@@ -40,6 +42,27 @@ class Taxonomy:
         """Saves a module to a JSON file"""
         with open(file_path, "w", encoding="UTF-8") as fl:
             json.dump(module.to_dict(), fl)
+
+    @staticmethod
+    def _get_dim_dom_mapping(root:etree) -> dict:
+        root = root.getroot()
+        ns = {
+            'link': 'http://www.xbrl.org/2003/linkbase',
+            'xlink': 'http://www.w3.org/1999/xlink'}
+        arcroles = root.xpath(
+                '//link:definitionArc[@xlink:arcrole="'
+                'http://xbrl.org/int/dim/arcrole/dimension-domain"]',
+            namespaces=ns)
+        map_dom_mapping = {}
+        for element in arcroles:
+            dim_locator = element.get('{http://www.w3.org/1999/xlink}from')
+            dim = root.xpath(f'//link:loc[@xlink:label = "{dim_locator}"]', namespaces=ns)[0]
+            dim = dim.get('{http://www.w3.org/1999/xlink}href').split("#")[1]
+            dom_locator = element.get('{http://www.w3.org/1999/xlink}to')
+            dom = root.xpath(f'//link:loc[@xlink:label = "{dom_locator}"]', namespaces=ns)[0]
+            dom = dom.get('{http://www.w3.org/1999/xlink}href').split("#")[1]
+            map_dom_mapping[dim] = dom
+        return map_dom_mapping
 
     def load_modules(self, input_path: str | Path = None):
         """loads the modules in the taxonomy"""
@@ -70,6 +93,15 @@ class Taxonomy:
         with ZipFile(input_path, mode="r") as zip_file:
             for file_path in zip_file.namelist():
                 file_path_obj = Path(file_path)
+                if str(file_path_obj) == \
+                    "www.eba.europa.eu\\eu\\fr\\xbrl\\crr\\dict\\dim\\dim-def.xml":
+                    bin_read = zip_file.read(file_path)
+                    root = etree.fromstring(bin_read.decode('utf-8'))
+                    root = etree.parse('input/taxonomy/dim-def.xml')
+                    dim_dom_mapping = self._get_dim_dom_mapping(root)
+                    with open(DIM_DOM_MAPPING_PATH, "w", encoding="UTF-8") as fl:
+                        json.dump(dim_dom_mapping, fl, indent=4)
+
                 if (
                     file_path_obj.suffix == ".json"
                     and file_path_obj.parent.name == "mod"
@@ -134,10 +166,11 @@ class Taxonomy:
         with TemporaryDirectory() as temp_folder:
             with SevenZipFile(input_path, mode="r") as seven_zip:
                 # Extract only the JSON files needed in other parts of code
-                json_files = [
-                    file for file in seven_zip.getnames() if file.endswith(".json")
+                target_files = [
+                    file for file in seven_zip.getnames() if \
+                        (file.endswith(".json") or file.endswith("dim-def.xml"))
                 ]
-                seven_zip.extract(path=temp_folder, targets=json_files)
+                seven_zip.extract(path=temp_folder, targets=target_files)
             extracted = time()
             elapsed = round(extracted - start, 3)
             print(f"7z file extracted in {elapsed} s")
