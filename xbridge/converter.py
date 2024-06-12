@@ -16,6 +16,7 @@ from xbridge.modules import Module
 from xbridge.xml_instance import Instance
 
 INDEX_FILE = Path(__file__).parent / "modules" / "index.json"
+MAPPING_FILE = Path(__file__).parent / "modules" / "dim_dom_mapping.json"
 
 if not INDEX_FILE.exists():
     raise ValueError(
@@ -97,7 +98,9 @@ class Converter:
             )
 
         self._convert_filing_indicator(report_dir)
-        self._convert_tables(report_dir)
+        with open(MAPPING_FILE, "r", encoding="utf-8") as fl:
+            mapping_dict = json.load(fl)
+        self._convert_tables(report_dir, mapping_dict)
         self._convert_parameters(report_dir)
 
         instance_path = self.instance.path
@@ -185,7 +188,7 @@ class Converter:
 
         return table_df
 
-    def _convert_tables(self, temp_dir_path):
+    def _convert_tables(self, temp_dir_path, mapping_dict):
         for table in self.module.tables:
             ##Workaround:
             # To calculate the table code for abstract tables, we look whether the name
@@ -193,7 +196,6 @@ class Converter:
             # Possible alternative: add metadata mapping abstract and concrete tables to
             # avoid doing this kind of corrections
             # Defining the output path and check if the table is reported
-
             normalised_table_code = table.code.replace("-", ".")
             if normalised_table_code[-1].isalpha():
                 normalised_table_code = normalised_table_code.rsplit(".", maxsplit=1)[0]
@@ -203,6 +205,15 @@ class Converter:
             datapoints = self._variable_generator(table)
             # Cleaning up the dataframe and sorting it
             datapoints = datapoints.rename(columns={"value": "factValue"})
+            #Workaround
+            #The enumerated key dimensions need to have a prefix like the one
+            #Defined by the EBA in the JSON files. We take them from the taxonomy
+            #Because EBA is using exactly those for the JSON files.
+            for open_key in table.open_keys:
+                dim_name = mapping_dict.get(open_key)
+                #For open keys, there are no dim_names (they are not mapped)
+                if dim_name:
+                    datapoints[open_key] = dim_name + ":" + datapoints[open_key].astype(str)
             datapoints = datapoints.sort_values(by=["datapoint"], ascending=True)
             output_path_table = temp_dir_path / table.url
             datapoints.to_csv(output_path_table, index=False)

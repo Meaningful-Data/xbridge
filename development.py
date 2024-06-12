@@ -76,13 +76,14 @@ def compare_with_baseline():
 TAXONOMY_PATH = Path(__file__).parent / "input" / "taxonomy" / "FullTaxonomy.7z"
 
 if __name__ == "__main__":
-    INPUT_PATH_3_2p3 = Path.cwd() / "Testing" / "test_files" / "sample_3_2_phase3"
-    INSTANCE_PATH = INPUT_PATH_3_2p3 / "test1_in.xbrl"
+    INPUT_PATH_3_3 = Path(__file__).parent / "xbridge"/ "Testing" / "test_files" / "sample_3_3"
+    INSTANCE_PATH = Path.cwd()  / "input" / "instances" / "scrambled_alm.xbrl"
+    INSTANCE_PATH = INPUT_PATH_3_3 / "test1_in.xbrl"
 
     start = time()
     converter = Converter(INSTANCE_PATH)
     initial = time()
-    print(converter.convert())
+    print(converter.convert(output_path="output/"))
     end = time()
     print(f"Time to initialize: {initial - start}")
     print(f"Time to convert: {end - initial}")

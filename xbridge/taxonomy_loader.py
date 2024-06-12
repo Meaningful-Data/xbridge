@@ -45,7 +45,6 @@ class Taxonomy:
 
     @staticmethod
     def _get_dim_dom_mapping(root:etree) -> dict:
-        root = root.getroot()
         ns = {
             'link': 'http://www.xbrl.org/2003/linkbase',
             'xlink': 'http://www.w3.org/1999/xlink'}
@@ -57,7 +56,9 @@ class Taxonomy:
         for element in arcroles:
             dim_locator = element.get('{http://www.w3.org/1999/xlink}from')
             dim = root.xpath(f'//link:loc[@xlink:label = "{dim_locator}"]', namespaces=ns)[0]
-            dim = dim.get('{http://www.w3.org/1999/xlink}href').split("#")[1]
+            dim = dim.get('{http://www.w3.org/1999/xlink}href').\
+                split("#")[1].\
+                split("_")[1]
             dom_locator = element.get('{http://www.w3.org/1999/xlink}to')
             dom = root.xpath(f'//link:loc[@xlink:label = "{dom_locator}"]', namespaces=ns)[0]
             dom = dom.get('{http://www.w3.org/1999/xlink}href').split("#")[1]
@@ -97,7 +98,6 @@ class Taxonomy:
                     "www.eba.europa.eu\\eu\\fr\\xbrl\\crr\\dict\\dim\\dim-def.xml":
                     bin_read = zip_file.read(file_path)
                     root = etree.fromstring(bin_read.decode('utf-8'))
-                    root = etree.parse('input/taxonomy/dim-def.xml')
                     dim_dom_mapping = self._get_dim_dom_mapping(root)
                     with open(DIM_DOM_MAPPING_PATH, "w", encoding="UTF-8") as fl:
                         json.dump(dim_dom_mapping, fl, indent=4)
