@@ -170,6 +170,9 @@ class Converter:
             datapoint_df = datapoint_df[datapoint_df[col].isnull()]
             del datapoint_df[col]
 
+        if len(intersect_cols) == 0:
+            return pd.DataFrame(columns=["datapoint", "value"])
+        
         # Join the dataframes on the datapoint_columns
         table_df = pd.merge(
             datapoint_df, instance_df, on=list(intersect_cols), how="inner"

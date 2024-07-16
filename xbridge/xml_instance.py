@@ -162,19 +162,21 @@ class Instance:
         """Extracts `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
         from the XML instance file."""
         facts = []
-        for child in self.root:
-            facts_prefixes = list(self.root.nsmap.keys())[
-                list(self.root.nsmap.values()).index(
-                    "http://www.eba.europa.eu/xbrl/crr/dict/met"
-                )
-            ]
-            if child.prefix == facts_prefixes:
-                fact = Fact(child)
-                if fact.unit == self._base_currency_unit:
-                    self._decimals_monetary_set.add(fact.decimals)
-                if fact.unit == self._pure_unit:
-                    self._decimals_percentage_set.add(fact.decimals)
-                facts.append(Fact(child))
+        if "http://www.eba.europa.eu/xbrl/crr/dict/met" in\
+                self.root.nsmap.values():
+            for child in self.root:
+                facts_prefixes = list(self.root.nsmap.keys())[
+                    list(self.root.nsmap.values()).index(
+                        "http://www.eba.europa.eu/xbrl/crr/dict/met"
+                    )
+                ]
+                if child.prefix == facts_prefixes:
+                    fact = Fact(child)
+                    if fact.unit == self._base_currency_unit:
+                        self._decimals_monetary_set.add(fact.decimals)
+                    if fact.unit == self._pure_unit:
+                        self._decimals_percentage_set.add(fact.decimals)
+                    facts.append(Fact(child))
 
         self._facts = facts
         self.get_facts_list_dict()

@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?><?instance-generator id="aaa" version="aaa" creationdate="2022-09-28T18:52Z"?>
+<xbrl xmlns="http://www.xbrl.org/2003/instance"
+    xmlns:find="http://www.eurofiling.info/xbrl/ext/filing-indicators"
+    xmlns:link="http://www.xbrl.org/2003/linkbase"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <link:schemaRef xlink:href="http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/gsii/its-005-2020/2022-03-01/mod/gsii.xsd" xlink:type="simple"/>
+    <context id="C1">
+        <entity>
+            <identifier scheme="https://eurofiling.info/eu/rs">AAAAAAAA</identifier>
+        </entity>
+        <period>
+            <instant>2023-06-30</instant>
+        </period>
+    </context>
+    <find:fIndicators>
+        <find:filingIndicator contextRef="C1" find:filed="true">G_01.00</find:filingIndicator>
+    </find:fIndicators>
+</xbrl>

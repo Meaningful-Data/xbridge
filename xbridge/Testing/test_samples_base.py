@@ -44,7 +44,8 @@ class TestInstanceConversionBasic(unittest.TestCase):
         self.no_filing_indicators = len(self.instance.filing_indicators)
 
         self.expected_output_zip = ZipFile(expected_output_path, mode="r")
-        self.expected_root_folder_name = self.expected_output_zip.namelist()[0]
+        self.expected_root_folder_name = \
+            self.expected_output_zip.namelist()[0].split("/")[0] + "/"
         self.expected_csv_files = [
             file
             for file in self.expected_output_zip.namelist()

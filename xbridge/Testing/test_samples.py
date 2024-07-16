@@ -11,6 +11,7 @@ from xbridge.Testing.test_samples_base import (TestInstanceConversionBasic,
 
 INPUT_PATH_3_2p3 = Path(__file__).parent / "test_files" / "sample_3_2_phase3"
 INPUT_PATH_3_3 = Path(__file__).parent / "test_files" / "sample_3_3"
+INPUT_PATH_OTHER = Path(__file__).parent / "test_files" / "other"
 
 
 class TestCase1(TestInstanceConversionFull):
@@ -63,6 +64,15 @@ class TestCase6(TestInstanceConversionBasic):
             instance_path=INPUT_PATH_3_3 / "test1_in.xbrl",
             expected_output_path=INPUT_PATH_3_3 / "test1_out.zip",
         )
+
+
+class TestCase7(TestInstanceConversionFull):
+    def setUp(self):
+        super().setUp(
+            instance_path=INPUT_PATH_OTHER / "no_data.xbrl",
+            expected_output_path=INPUT_PATH_OTHER / "no_data.zip",
+        )
+
 
 
 if __name__ == "__main__":
