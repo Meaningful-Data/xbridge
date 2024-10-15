@@ -12,27 +12,33 @@
 #
 import os
 import sys
+from pathlib import Path
 
-sys.path.insert(0, os.path.abspath("../.."))
+import tomlkit
+
+sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
-about = {}
-with open("../__version__.py", "r") as f:
-    exec(f.read(), about)
 
 # The EBA Taxonomy version
 rst_prolog = """
 .. |eba_version| replace:: 
- """ + about["eba_taxonomy_version"]
+ """ + "3.4"
+
+# Get project information from pyproject.toml
+version = "unknown"
+project = "eba-xbridge"
+description = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 3.4)"
+copyright = "2024 MeaningfulData"
+# adopt path to your pyproject.toml
+pyproject_toml_file = Path(__file__).parent / "pyproject.toml"
+if pyproject_toml_file.exists() and pyproject_toml_file.is_file():
+    data = tomlkit.load(pyproject_toml_file)
+    project = data["tool"]["poetry"]["name"]
+    version = data["tool"]["poetry"]["version"]
+    description = data["tool"]["poetry"]["description"]
 
 # Other project information
-project = about["project"]
-description = about["description"]
-url = about["url"]
-version = about["version"]
-author = about["author"]
-author_email = about["author_email"]
-copyright = about["copyright"]
 
 # -- General configuration ---------------------------------------------------
 
@@ -67,9 +73,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 html_theme = "sphinx_rtd_theme"
 html_theme_options = {
     "analytics_id": "",
-    "analytics_anonymize_ip": True,
     "logo_only": False,
-    "display_version": True,
     "prev_next_buttons_location": "",
     "style_external_links": True,
     "vcs_pageview_mode": "blob",

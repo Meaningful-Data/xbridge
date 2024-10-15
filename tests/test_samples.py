@@ -5,7 +5,7 @@ Test that EBA samples are transformed correctly
 import unittest
 from pathlib import Path
 
-from xbridge.Testing.test_samples_base import (TestInstanceConversionBasic,
+from test_samples_base import (TestInstanceConversionBasic,
                                                TestInstanceConversionFull)
 
 

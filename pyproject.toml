@@ -1,0 +1,45 @@
+[tool.poetry]
+name="eba-xbridge"
+version="1.0.2rc6"
+authors=[
+    "Antonio Olleros <antonio.olleros@meaningfuldata.eu>",
+    "Jesús Simon <jesus.simon@meaningfuldata.eu>",
+    "Javier Hernandez <javier.hernandez@meaningfuldata.eu>"
+]
+description="XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 3.4)"
+readme="README.rst"
+packages = [{ include = "xbridge"}]
+license='Apache 2.0'
+keywords=['xbrl', 'eba', 'taxonomy', 'csv', 'xml']
+repository='https://github.com/Meaningful-Data/xbridge'
+
+
+[project.urls]
+BugTracker='https://github.com/Meaningful-Data/xbridge/issues'
+Documentation='https://docs.xbridge.meaningfuldata.eu'
+SourceCode='https://github.com/Meaningful-Data/xbridge'
+
+
+classifiers=[
+    "Programming Language :: Python :: 3",
+]
+
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.1.4"
+lxml = "^5.2.1"
+py7zr = "^0.11.3"
+
+[tool.poetry.dev-dependencies]
+black = "*"
+flake8 = "*"
+pylint = "*"
+sphinx = "*"
+sphinx_rtd_theme = "*"
+twine = "*"
+toml = "^0.10.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
