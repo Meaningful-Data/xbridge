@@ -186,6 +186,9 @@ class Converter:
                 open_keys.remove(open_key_name)
         table_df.dropna(subset=list(open_keys), inplace=True)
 
+        if 'unit' in attributes:
+            table_df['unit'] = table_df['unit'].str.replace('u', 'iso4217:')
+
         return table_df
 
     def _convert_tables(self, temp_dir_path, mapping_dict):
