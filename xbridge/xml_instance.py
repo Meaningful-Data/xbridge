@@ -35,6 +35,7 @@ class Instance:
         self._decimals_percentage = None
         self._decimals_monetary_set = set()
         self._decimals_percentage_set = set()
+        self._identifier_prefix = None
 
         self.parse()
 
@@ -111,9 +112,20 @@ class Instance:
             del self._df["entity"]
 
     @property
+    def identifier_prefix(self):
+        """Returns the identifier prefix of the instance file."""
+        entity_prefix_mapping = {
+            "https://eurofiling.info/eu/rs": "rs",
+            "http://standards.iso.org/iso/17442": "lei"}
+
+        return entity_prefix_mapping[self._identifier_prefix]
+
+
+    @property
     def entity(self):
         """Returns the entity of the instance file."""
-        return self._entity
+        return f"{self.identifier_prefix}:{self._entity}"
+
 
     @property
     def period(self):
@@ -157,6 +169,12 @@ class Instance:
             contexts[context_object.id] = context_object
 
         self._contexts = contexts
+
+        self._identifier_prefix = self.root.find(
+            "{http://www.xbrl.org/2003/instance}context", self.namespaces
+        ).find("{http://www.xbrl.org/2003/instance}entity").\
+            find("{http://www.xbrl.org/2003/instance}identifier").\
+                attrib.get("scheme")
 
     def get_facts(self):
         """Extracts `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
