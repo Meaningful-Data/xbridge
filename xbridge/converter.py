@@ -187,7 +187,8 @@ class Converter:
         table_df.dropna(subset=list(open_keys), inplace=True)
 
         if 'unit' in attributes:
-            table_df['unit'] = table_df['unit'].str.replace('u', 'iso4217:')
+            table_df['unit'] = table_df['unit'].map(
+                lambda x: self.instance.units[x], na_action="ignore")
 
         return table_df
 
