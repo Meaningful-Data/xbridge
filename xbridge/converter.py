@@ -219,7 +219,9 @@ class Converter:
                 if dim_name and not datapoints.empty:
                     datapoints[open_key] = dim_name + ":" + datapoints[open_key].astype(str)
             datapoints = datapoints.sort_values(by=["datapoint"], ascending=True)
-            output_path_table = temp_dir_path / table.url
+            output_path_table = temp_dir_path / table.url           
+            if datapoints.empty:
+                continue
             datapoints.to_csv(output_path_table, index=False)
 
     def _convert_filing_indicator(self, temp_dir_path):
