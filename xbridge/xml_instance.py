@@ -144,13 +144,17 @@ class Instance:
 
     def parse(self):
         """Parses the XML file into the library objects."""
-
-        self.get_units()
-        self.get_contexts()
-        self.get_facts()
-        self.get_module_code()
-        self.get_filing_indicators()
-
+        try:
+            self.get_units()
+            self.get_contexts()
+            self.get_facts()
+            self.get_module_code()
+            self.get_filing_indicators()
+        except etree.XMLSyntaxError:
+            raise ValueError("Invalid XML format") 
+        except Exception as e:
+            raise ValueError(f"Error parsing instance: {str(e)}")
+    
         # TODO: Validate that all the assumptions about the EBA instances are correct
         # Should be an optional parameter (to avoid performance issues when it is known
         # that the assumptions are correct)

@@ -12,7 +12,7 @@ from zipfile import ZipFile
 
 import pandas as pd
 
-from xbridge.modules import Module
+from xbridge.modules import Module, Table
 from xbridge.xml_instance import Instance
 
 INDEX_FILE = Path(__file__).parent / "modules" / "index.json"
@@ -129,7 +129,7 @@ class Converter:
 
         return zip_file_path
 
-    def _variable_generator(self, table):
+    def _variable_generator(self, table: Table) -> pd.DataFrame:
         """Returns the dataframe with the CSV file for the table
 
         :param table: The table we use.
@@ -147,48 +147,51 @@ class Converter:
             return pd.DataFrame(columns=["datapoint", "value"] + list(open_keys))
 
         # Determine the not relevant dims
-        not_relevant_dims = instance_columns - variable_columns - open_keys - attributes
-        not_relevant_dims = not_relevant_dims - {"value", "unit", "decimals"}
+        not_relevant_dims = instance_columns - variable_columns - open_keys - \
+            attributes - {"value", "unit", "decimals"}
 
-        instance_df = copy.copy(self.instance.instance_df)
-        for col in ["unit", "decimals"]:
-            if col not in attributes and col in instance_df.columns:
-                del instance_df[col]
+        needed_columns = list(variable_columns | open_keys | attributes | {"value"} | not_relevant_dims)
+
+        instance_df = self.instance.instance_df[needed_columns].copy()
+
+        cols_to_drop = [col for col in ["unit", "decimals"] if col not in attributes and col in instance_df.columns]
+        if cols_to_drop:
+            instance_df.drop(columns=cols_to_drop, inplace=True)
 
         # Drop datapoints that have non-null values in not relevant dimensions
         # And drop the not relevant columns
-        instance_df = instance_df[
-            instance_df[list(not_relevant_dims)].isnull().all(axis=1)
-        ]
-        for dim in not_relevant_dims:
-            del instance_df[dim]
+        if not_relevant_dims:
+            mask = instance_df[list(not_relevant_dims)].isnull().all(axis=1)
+            instance_df = instance_df.loc[mask]
+            instance_df.drop(columns=list(not_relevant_dims), inplace=True)
+
 
         # Do the intersection and drop from datapoints the columns and records
-        intersect_cols = variable_columns & instance_columns
         datapoint_df = table.variable_df
-        for col in variable_columns - instance_columns:
-            datapoint_df = datapoint_df[datapoint_df[col].isnull()]
-            del datapoint_df[col]
+        missing_cols = variable_columns - instance_columns
+        if missing_cols:
+            mask = datapoint_df[list(missing_cols)].isnull().all(axis=1)
+            datapoint_df = datapoint_df.loc[mask]
+            datapoint_df.drop(columns=list(missing_cols), inplace=True)
 
         # Join the dataframes on the datapoint_columns
-        table_df = pd.merge(
-            datapoint_df, instance_df, on=list(intersect_cols), how="inner"
-        )
+        merge_cols = list(variable_columns & instance_columns)
+        table_df = pd.merge(datapoint_df, instance_df, on=merge_cols, how="inner")
 
         if len(table_df) == 0:
             return pd.DataFrame(columns=["datapoint", "value"])
 
-        for col in intersect_cols:
-            del table_df[col]
-        open_keys_copy = copy.copy(open_keys)
-        for open_key_name in open_keys_copy:
-            if open_key_name not in table_df.columns:
-                open_keys.remove(open_key_name)
-        table_df.dropna(subset=list(open_keys), inplace=True)
+        table_df.drop(columns=merge_cols, inplace=True)
+
+
+        # Drop the datapoints that have null values in the open keys
+        valid_open_keys = [key for key in open_keys if key in table_df.columns]
+        if valid_open_keys:
+            table_df.dropna(subset=valid_open_keys, inplace=True)
+
 
         if 'unit' in attributes:
-            table_df['unit'] = table_df['unit'].map(
-                lambda x: self.instance.units[x], na_action="ignore")
+            table_df['unit'] = table_df['unit'].map(self.instance.units, na_action="ignore")
 
         return table_df
 
