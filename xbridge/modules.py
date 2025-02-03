@@ -5,6 +5,7 @@ Module with the classes related to modules, containing the "instructions" for th
 import copy
 import json
 from pathlib import Path
+from urllib.parse import urljoin, urlparse
 from zipfile import ZipFile
 
 import pandas as pd
@@ -13,8 +14,8 @@ import pandas as pd
 class Module:
     """Class representing an XBRL Module.
 
-    It has attributes like code, url, taxonomy_code, date, tables
-    and input_path, whose main function is to operate with the module and return properties like a specific table from
+    It has attributes like code, url, and tables
+    whose main function is to operate with the module and return properties like a specific table from
     the JSON file used as input, an object, a dictionary using the attributes as keys, a module object from a part of
     preprocessed JSON file and the variables that are present in it.
 
@@ -24,50 +25,76 @@ class Module:
 
     :param url: The module reference within the taxonomy.
 
-    :param taxonomy_code: The code of the module within to the taxonomy.
-
-    :param date: Dates contained in the module.
-
     :param tables: The tables that form the module.
 
     """
 
-    def __init__(self, code=None, url=None, taxonomy_code=None, date=None, tables=None):
+    def __init__(self, code=None, url=None, tables=None):
         self.code = code
         self.url = url
-        self.taxonomy_code = taxonomy_code
-        self.date = date
         self._tables = tables if tables is not None else []
         self.taxonomy_module_path = None
+        self.module_json_setup = None
+
+        url_split = url.split("/")
+
+        if len(url_split) == 10:
+            self.taxonomy_architecture = '2.0'
+            self.framework_code = url_split[5]
+            self.framework_version = url_split[6]
+        elif len(url_split) == 11:
+            self.taxonomy_architecture = '1.0'
+            self.framework_code = url_split[6]
+            self.framework_version = f"{url_split[7]}_{url_split[8]}"
+
+        else:
+            raise ValueError(f"Invalid taxonomy architecture: {len(url_split)}")
 
     @property
     def tables(self):
         """Returns the :obj:`tables <xbridge.taxonomy.Table>` defined in the JSON file for the :obj:`module <xbridge.taxonomy.Module>`"""
         return self._tables
+    
+
+    @staticmethod
+    def is_relative_url(url):
+        parsed_url = urlparse(url)
+        # A URL is considered relative if it lacks a scheme and a netloc
+        return not parsed_url.scheme and not parsed_url.netloc
+
+
+    def _get_all_table_paths(self):
+        """Returns the path to the table in the taxonomy"""
+
+        tables_paths = []
+
+        original_path = self.taxonomy_module_path
+
+        for table in self.module_json_setup["documentInfo"]["extends"]:
+            if self.is_relative_url(table):
+                tables_paths.append(urljoin(original_path, table))
+            else:
+                tables_paths.append(table)
+
+        self.tables_paths = tables_paths
+
+
+    def get_module_setup(self, zip_file: ZipFile):
+        """Reads the json entry point for the module and extracts the setup"""
+        bin_read = zip_file.read(self.taxonomy_module_path)
+        self.module_json_setup = json.loads(bin_read.decode("utf-8"))
+
 
     def extract_tables(self, zip_file: ZipFile):
         """Extracts the :obj:`tables <xbridge.taxonomy.Table>` in the JSON files for the :obj:`modules <xbridge.taxonomy.Module>` in the taxonomy"""
 
         self._tables = []
-        bin_read = zip_file.read(self.taxonomy_module_path)
 
-        info = json.loads(bin_read.decode("utf-8"))
-
-        for table_code, table in info["tables"].items():
-            if table_code[1:] in ("FI", "FootNotes"):
+        for table_path in self.tables_paths:
+            if 'FilingIndicators.json'in table_path or 'FootNotes.json' in table_path:
                 continue
-
-            table_url = table["url"]
-            table_folder_name = table_code[1:].lower()
-            table_folder_name = table_folder_name.replace("-", ".")
-
-            path = self.taxonomy_module_path.split("/mod/")[0]
-
-            table_path = (
-                path + "/tab/" + table_folder_name + "/" + table_folder_name + ".json"
-            )
             table = Table.from_taxonomy(
-                zip_file, table_path, code=table_code[1:], url=table_url
+                zip_file, table_path, self.module_json_setup['tables']
             )
 
             self.tables.append(table)
@@ -84,8 +111,6 @@ class Module:
         return {
             "code": self.code,
             "url": self.url,
-            "taxonomy_code": self.taxonomy_code,
-            "date": self.date,
             "tables": [tab.to_dict() for tab in self.tables],
         }
 
@@ -93,17 +118,16 @@ class Module:
     def from_taxonomy(cls, zip_file: ZipFile, json_file_path: str):
         """Returns a :obj:`module <xbridge.taxonomy.Module>` object from a part of the JSON file"""
 
-        url_split = json_file_path.split("/")
-        taxonomy_code = url_split[7]
-        date = url_split[8]
+        module_code = Path(json_file_path).stem
 
-        code = Path(json_file_path).stem
-
-        obj = cls(code=code, url=json_file_path, taxonomy_code=taxonomy_code, date=date)
+        obj = cls(code=module_code, url=json_file_path)
 
         obj.taxonomy_module_path = json_file_path
-
+        
+        obj.get_module_setup(zip_file)
+        obj._get_all_table_paths()
         obj.extract_tables(zip_file)
+
 
         return obj
 
@@ -276,16 +300,40 @@ class Table:
             "attributes": self.attributes,
         }
 
+    def get_table_code(self):
+        """Returns the code of the table"""
+        return self.code
+
+
+
     @classmethod
-    def from_taxonomy(cls, zip_file: ZipFile, table_path: str, code: str, url: str):
+    def from_taxonomy(cls, zip_file: ZipFile, table_path: str, table_setup_json: dict):
+
         """Returns a :obj:`table <xbridge.taxonomy.Table>` object from a part of the preprocessed JSON file"""
-        obj = cls(code=code, url=url)
+        obj = cls()
         obj.table_zip_path = table_path
 
+        bin_read = zip_file.read(table_path)
+        obj.table_setup_json = json.loads(bin_read.decode("utf-8"))
+
+        templates = obj.table_setup_json["tableTemplates"]
+        if len(templates) > 1:
+            raise ValueError(f"More than one table template found in {table_path}")
+        obj.code = list(templates.keys())[0]
+
+        for table_setup in table_setup_json.values():
+            if table_setup["template"] == obj.code:
+                obj.url = table_setup["url"]
+
+
+
         obj.extract_open_keys(zip_file)
+
         obj.extract_variables(zip_file)
 
-        # obj.generate_datapoint_df()
+
+
+        
 
         return obj
 

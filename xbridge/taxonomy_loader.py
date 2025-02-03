@@ -120,7 +120,7 @@ class Taxonomy:
                     print(f"Loading module {file_path_obj.stem.upper()}")
                     start = time()
                     module = Module.from_taxonomy(zip_file, file_path)
-                    module_file_name = f"{module.code}_{module.date}.json"
+                    module_file_name = f"{module.code}_{module.framework_version}.json"
                     module_path = str(MODULES_FOLDER / module_file_name)
                     self.__save_module(module, module_path)
                     index_key = f"http://{module.url[:-4]}xsd"
