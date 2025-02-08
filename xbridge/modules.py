@@ -41,7 +41,7 @@ class Module:
         if len(url_split) == 10:
             self.taxonomy_architecture = '2.0'
             self.framework_code = url_split[5]
-            self.framework_version = url_split[6]
+            self.framework_version = f"{url_split[6]}_{url_split[7]}"
         elif len(url_split) == 11:
             self.taxonomy_architecture = '1.0'
             self.framework_code = url_split[6]
@@ -55,6 +55,9 @@ class Module:
         """Returns the :obj:`tables <xbridge.taxonomy.Table>` defined in the JSON file for the :obj:`module <xbridge.taxonomy.Module>`"""
         return self._tables
     
+    @property
+    def architecture(self):
+        return self.tables[0].architecture
 
     @staticmethod
     def is_relative_url(url):
@@ -111,6 +114,7 @@ class Module:
         return {
             "code": self.code,
             "url": self.url,
+            "architecture": self.architecture,
             "tables": [tab.to_dict() for tab in self.tables],
         }
 
@@ -295,6 +299,7 @@ class Table:
         return {
             "code": self.code,
             "url": self.url,
+            "architecture": self.architecture,
             "open_keys": self.open_keys,
             "variables": [var.to_dict() for var in self.variables],
             "attributes": self.attributes,
@@ -305,9 +310,25 @@ class Table:
         return self.code
 
 
+    @staticmethod
+    def check_taxonomy_architecture(table_dict):
+        """Checks the taxonomy architecture
+            Returns datapoints if the architecture of the CSV follows the pattern:
+                datapont,factValue
+            Returns headers if the architecture of the CSV follows the new DORA pattern:
+                0010,0020,...
+        """
+        table_template = table_dict["tableTemplates"]
+        if len(table_template) > 1:
+            raise ValueError(f"More than one table template found")
+        table_def = table_template[list(table_template.keys())[0]]
+        if "datapoint" in table_def['columns']:
+            return "datapoints"
+        else:
+            return "headers"      
 
     @classmethod
-    def from_taxonomy(cls, zip_file: ZipFile, table_path: str, table_setup_json: dict):
+    def from_taxonomy(cls, zip_file: ZipFile, table_path: str, module_setup_json: dict):
 
         """Returns a :obj:`table <xbridge.taxonomy.Table>` object from a part of the preprocessed JSON file"""
         obj = cls()
@@ -315,25 +336,25 @@ class Table:
 
         bin_read = zip_file.read(table_path)
         obj.table_setup_json = json.loads(bin_read.decode("utf-8"))
-
+        
         templates = obj.table_setup_json["tableTemplates"]
         if len(templates) > 1:
             raise ValueError(f"More than one table template found in {table_path}")
         obj.code = list(templates.keys())[0]
 
-        for table_setup in table_setup_json.values():
+        architecture = cls.check_taxonomy_architecture(obj.table_setup_json)
+
+        for table_setup in module_setup_json.values():
             if table_setup["template"] == obj.code:
                 obj.url = table_setup["url"]
 
+        if architecture == 'datapoints':
+            obj.extract_open_keys(zip_file)
+            obj.extract_variables(zip_file)
+        else:
+            print("Not extracted")
 
-
-        obj.extract_open_keys(zip_file)
-
-        obj.extract_variables(zip_file)
-
-
-
-        
+        obj.architecture = architecture
 
         return obj
 
