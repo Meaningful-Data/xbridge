@@ -144,6 +144,7 @@ class Module:
 
         tables = module_dict.pop("tables")
         tables = [Table.from_dict(table) for table in tables]
+        module_dict.pop("architecture")
 
         obj = cls(**module_dict, tables=tables)
 
@@ -207,6 +208,7 @@ class Table:
         variables=None,
         attributes=None,
         input_zip_path=None,
+        architecture=None
     ):
 
         self.table_zip_path = input_zip_path
@@ -216,6 +218,7 @@ class Table:
         self._variables = variables if variables is not None else []
         self._attributes = attributes if attributes is not None else []
         self._datapoint_df = None
+        self.architecture = architecture
 
     @property
     def open_keys(self):

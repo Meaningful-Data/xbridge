@@ -81,6 +81,8 @@ class Taxonomy:
         modules = []
         index = {}
 
+        dim_dom_mapping_loaded = False
+
         if not MODULES_FOLDER.exists():
             MODULES_FOLDER.mkdir()
 
@@ -112,6 +114,7 @@ class Taxonomy:
                     dim_dom_mapping = self._get_dim_dom_mapping(root)
                     with open(DIM_DOM_MAPPING_PATH, "w", encoding="UTF-8") as fl:
                         json.dump(dim_dom_mapping, fl, indent=4)
+                    dim_dom_mapping_loaded = True
 
                 if (
                         file_path_obj.suffix == ".json"
@@ -137,6 +140,10 @@ class Taxonomy:
                     "zip files within it"
                 )
             )
+
+
+        if not dim_dom_mapping_loaded:
+            raise ImportError("dim_dom_mapping file was not loaded")
 
         with open(INDEX_PATH, "w", encoding="UTF-8") as fl:
             json.dump(index, fl, indent=4)
