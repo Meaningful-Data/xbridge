@@ -218,6 +218,7 @@ class Table:
         self._variables = variables if variables is not None else []
         self._attributes = attributes if attributes is not None else []
         self._datapoint_df = None
+        self._open_keys_mapping = {}
         self.architecture = architecture
 
     @property
@@ -268,48 +269,78 @@ class Table:
             variables.append(copy.copy(variable_info))
         self._datapoint_df = pd.DataFrame(variables)
 
-    def extract_open_keys(self, zip_file: ZipFile):
+    def extract_open_keys(self):
         """Extracts the open keys for the :obj:`table <xbridge.taxonomy.Table>`"""
         self._open_keys = []
         self._attributes = []
 
-        bin_read = zip_file.read(self.table_zip_path)
+        table_template = self.table_setup_json["tableTemplates"][self.code]
 
-        table_json = json.loads(bin_read.decode("utf-8"))
-        table_template = table_json["tableTemplates"][self.code]
-        for column_name in table_template.get("columns", []):
-            if column_name == "unit":
-                self._attributes.append(column_name)
-            elif column_name not in ("datapoint", "factValue"):
-                self._open_keys.append(column_name)
+        if self.architecture == 'datapoints':
+            for column_name in table_template.get("columns", []):
+                if column_name == "unit":
+                    self._attributes.append(column_name)
 
-    def extract_variables(self, zip_file: ZipFile):
+                elif column_name not in ("datapoint", "factValue"):
+                    self._open_keys.append(column_name)
+        elif self.architecture == 'headers':
+            for dim_id, column_ref in table_template["dimensions"].items():
+                dim_code = dim_id.split(":")[1]
+                self._open_keys.append(dim_code)
+                self._open_keys_mapping[dim_code] = column_ref[2:]
+
+    def extract_variables(self):
         """Extract the :obj:`variable <xbridge.taxonomy.Variable>` for the :obj:`table <xbridge.taxonomy.Table>`"""
         self._variables = []
-        bin_read = zip_file.read(self.table_zip_path)
 
-        table_json = json.loads(bin_read.decode("utf-8"))
-        if self.code in table_json["tableTemplates"]:
-            variables_dict = table_json["tableTemplates"][self.code]["columns"][
+        if self.code in self.table_setup_json["tableTemplates"]:
+            variables_dict = self.table_setup_json["tableTemplates"][self.code]["columns"][
                 "datapoint"
             ]["propertyGroups"]
+
             for elto_k, elto_v in variables_dict.items():
                 datapoint = Variable.from_taxonomy(elto_k, elto_v)
                 self._variables.append(datapoint)
 
+    def extract_columns(self):
+        """Extract the columns for the :obj:`table <xbridge.taxonomy.Table>`"""
+        result = []
+        
+        for column_code, setup in self.table_setup_json["tableTemplates"][self.code]["columns"].items():
+            col_setup = {
+                "code": column_code,
+            }
+
+            if "dimensions" in setup:
+                col_setup["dimensions"] = setup["dimensions"]
+
+            result.append(col_setup)
+
+        return result
+
     def to_dict(self):
         """Returns a dictionary for the :obj:`table <xbridge.taxonomy.Table>`"""
-        return {
+
+        result = {
             "code": self.code,
             "url": self.url,
             "architecture": self.architecture,
             "open_keys": self.open_keys,
-            "variables": [var.to_dict() for var in self.variables],
-            "attributes": self.attributes,
         }
+
+        if self.architecture == 'datapoints':
+            result['variables'] = [var.to_dict() for var in self.variables]
+            result['attributes'] = self.attributes
+
+        elif self.architecture == 'headers':
+            result['open_keys_mapping'] = self._open_keys_mapping
+            result['columns'] = self.columns
+
+        return result
 
     def get_table_code(self):
         """Returns the code of the table"""
+
         return self.code
 
 
@@ -345,19 +376,19 @@ class Table:
             raise ValueError(f"More than one table template found in {table_path}")
         obj.code = list(templates.keys())[0]
 
-        architecture = cls.check_taxonomy_architecture(obj.table_setup_json)
+        architecture = cls.check_taxonomy_architecture(obj.table_setup_json)            
+        obj.architecture = architecture
 
         for table_setup in module_setup_json.values():
             if table_setup["template"] == obj.code:
                 obj.url = table_setup["url"]
 
-        if architecture == 'datapoints':
-            obj.extract_open_keys(zip_file)
-            obj.extract_variables(zip_file)
-        else:
-            print("Not extracted")
+        obj.extract_open_keys()
 
-        obj.architecture = architecture
+        if architecture == 'datapoints':
+            obj.extract_variables()
+        elif architecture == 'headers':
+            obj.columns = obj.extract_columns()
 
         return obj
 

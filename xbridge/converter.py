@@ -3,7 +3,6 @@ Module holding the Converter class, which converts from XBRL-XML to XBRL-CSV
 taking as input the taxonomy object and the instance object
 """
 
-import copy
 import csv
 import json
 from pathlib import Path
@@ -129,17 +128,15 @@ class Converter:
 
         return zip_file_path
 
-    def _variable_generator(self, table: Table) -> pd.DataFrame:
-        """Returns the dataframe with the CSV file for the table
-
-        :param table: The table we use.
-
+    def _get_instance_df(self, table: Table) -> pd.DataFrame:
         """
-
+        Returns the dataframe with the subset of instace facts applicable to the table
+        """
         variable_columns = set(table.variable_columns)
         open_keys = set(table.open_keys)
         attributes = set(table.attributes)
         instance_columns = set(self.instance.instance_df.columns)
+
 
         # If any open key is not in the instance, then the table cannot have
         # any datapoint
@@ -165,6 +162,22 @@ class Converter:
             instance_df = instance_df.loc[mask]
             instance_df.drop(columns=list(not_relevant_dims), inplace=True)
 
+        return instance_df
+
+
+    def _variable_generator(self, table: Table) -> pd.DataFrame:
+        """Returns the dataframe with the CSV file for the table
+
+        :param table: The table we use.
+
+        """
+
+        variable_columns = set(table.variable_columns)
+        open_keys = set(table.open_keys)
+        attributes = set(table.attributes)
+        instance_columns = set(self.instance.instance_df.columns)
+        
+        instance_df = self._get_instance_df(table)
 
         # Do the intersection and drop from datapoints the columns and records
         datapoint_df = table.variable_df
@@ -195,7 +208,7 @@ class Converter:
 
         return table_df
 
-    def _convert_tables(self, temp_dir_path, mapping_dict):
+    def _convert_tables(self, temp_dir_path, mapping_dict, architecture: str='datapoints'):
         for table in self.module.tables:
             ##Workaround:
             # To calculate the table code for abstract tables, we look whether the name
@@ -209,20 +222,25 @@ class Converter:
             if normalised_table_code not in self._reported_tables:
                 continue
 
-            datapoints = self._variable_generator(table)
-            # Cleaning up the dataframe and sorting it
-            datapoints = datapoints.rename(columns={"value": "factValue"})
-            #Workaround
-            #The enumerated key dimensions need to have a prefix like the one
-            #Defined by the EBA in the JSON files. We take them from the taxonomy
-            #Because EBA is using exactly those for the JSON files.
-            for open_key in table.open_keys:
-                dim_name = mapping_dict.get(open_key)
-                #For open keys, there are no dim_names (they are not mapped)
-                if dim_name and not datapoints.empty:
-                    datapoints[open_key] = dim_name + ":" + datapoints[open_key].astype(str)
-            datapoints = datapoints.sort_values(by=["datapoint"], ascending=True)
-            output_path_table = temp_dir_path / table.url           
+            if architecture == 'datapoints':
+
+                datapoints = self._variable_generator(table)
+                # Cleaning up the dataframe and sorting it
+                datapoints = datapoints.rename(columns={"value": "factValue"})
+                #Workaround
+                #The enumerated key dimensions need to have a prefix like the one
+                #Defined by the EBA in the JSON files. We take them from the taxonomy
+                #Because EBA is using exactly those for the JSON files.
+                for open_key in table.open_keys:
+                    dim_name = mapping_dict.get(open_key)
+                    #For open keys, there are no dim_names (they are not mapped)
+                    if dim_name and not datapoints.empty:
+                        datapoints[open_key] = dim_name + ":" + datapoints[open_key].astype(str)
+                datapoints = datapoints.sort_values(by=["datapoint"], ascending=True)
+                output_path_table = temp_dir_path / table.url           
+            elif architecture == 'headers':
+                pass
+
             if datapoints.empty:
                 continue
             datapoints.to_csv(output_path_table, index=False)
