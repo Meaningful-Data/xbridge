@@ -208,8 +208,11 @@ class Table:
         variables=None,
         attributes=None,
         input_zip_path=None,
-        architecture=None
+        architecture=None,
+        columns=None,
+        open_keys_mapping=None
     ):
+
 
         self.table_zip_path = input_zip_path
         self.code = code
@@ -217,8 +220,9 @@ class Table:
         self._open_keys = open_keys if open_keys is not None else []
         self._variables = variables if variables is not None else []
         self._attributes = attributes if attributes is not None else []
-        self._datapoint_df = None
-        self._open_keys_mapping = {}
+        self._variable_df = None
+        self._open_keys_mapping = open_keys_mapping if open_keys_mapping is not None else {}
+        self.columns = columns if columns is not None else []
         self.architecture = architecture
 
     @property
@@ -251,23 +255,37 @@ class Table:
         Returns a dataframe with the :obj:`variable <xbridge.taxonomy.Variable>` and extensional context
 
         """
-        return self._datapoint_df
+        return self._variable_df
 
     def generate_variable_df(self):
         """Returns a dataframe with the :obj:`variable <xbridge.taxonomy.Variable>` and extensional context"""
         variables = []
-        for variable in self.variables:
-            variable_info = {}
-            for dim_k, dim_v in variable.dimensions.items():
-                if dim_k not in ("unit", "decimals"):
-                    variable_info[dim_k] = dim_v.split(":")[1]
-            if "concept" in variable.dimensions:
-                variable_info["metric"] = variable.dimensions["concept"].split(":")[1]
-                del variable_info["concept"]
 
-            variable_info["datapoint"] = variable.code
-            variables.append(copy.copy(variable_info))
-        self._datapoint_df = pd.DataFrame(variables)
+        if self.architecture == 'datapoints':
+            for variable in self.variables:
+                variable_info = {}
+                for dim_k, dim_v in variable.dimensions.items():
+                    if dim_k not in ("unit", "decimals"):
+                        variable_info[dim_k] = dim_v.split(":")[1]
+                if "concept" in variable.dimensions:
+                    variable_info["metric"] = variable.dimensions["concept"].split(":")[1]
+                    del variable_info["concept"]
+
+                variable_info["datapoint"] = variable.code
+                variables.append(copy.copy(variable_info))
+        elif self.architecture == 'headers':
+            for column in self.columns:
+                variable_info = {"datapoint": column["variable_id"]}
+                if "dimensions" in column:
+                    for dim_k, dim_v in column["dimensions"].items():
+                        if dim_k == "concept":
+                            variable_info["metric"] = dim_v.split(":")[1]
+                        elif dim_k not in ("unit", "decimals"):
+                            variable_info[dim_k.split(":")[1]] = dim_v.split(":")[1]
+                variables.append(copy.copy(variable_info))
+
+        self._variable_df = pd.DataFrame(variables)
+
 
     def extract_open_keys(self):
         """Extracts the open keys for the :obj:`table <xbridge.taxonomy.Table>`"""
@@ -307,10 +325,13 @@ class Table:
         result = []
         
         for column_code, setup in self.table_setup_json["tableTemplates"][self.code]["columns"].items():
+            variable_id = setup["eba:documentation"]["KeyVariableID"] if \
+                "KeyVariableID" in setup["eba:documentation"] else \
+                    setup["eba:documentation"]["FactVariableID"]
             col_setup = {
                 "code": column_code,
+                "variable_id": variable_id,
             }
-
             if "dimensions" in setup:
                 col_setup["dimensions"] = setup["dimensions"]
 
@@ -395,11 +416,17 @@ class Table:
     @classmethod
     def from_dict(cls, table_dict):
         """Returns a :obj:`table <xbridge.taxonomy.Table>` object from a dictionary"""
-        variables = table_dict.pop("variables")
-        variables = [Variable.from_dict(variable) for variable in variables]
+        
+        if table_dict["architecture"] == 'datapoints':
 
-        obj = cls(**table_dict, variables=variables)
-        obj.generate_variable_df()
+            variables = table_dict.pop("variables")
+            variables = [Variable.from_dict(variable) for variable in variables]
+
+            obj = cls(**table_dict, variables=variables)
+            obj.generate_variable_df()
+        elif table_dict["architecture"] == 'headers':
+            obj = cls(**table_dict)
+            obj.generate_variable_df()
 
         return obj
 

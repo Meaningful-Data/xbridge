@@ -132,11 +132,11 @@ class Converter:
         """
         Returns the dataframe with the subset of instace facts applicable to the table
         """
+
+        instance_columns = set(self.instance.instance_df.columns)
         variable_columns = set(table.variable_columns)
         open_keys = set(table.open_keys)
         attributes = set(table.attributes)
-        instance_columns = set(self.instance.instance_df.columns)
-
 
         # If any open key is not in the instance, then the table cannot have
         # any datapoint
@@ -147,7 +147,8 @@ class Converter:
         not_relevant_dims = instance_columns - variable_columns - open_keys - \
             attributes - {"value", "unit", "decimals"}
 
-        needed_columns = list(variable_columns | open_keys | attributes | {"value"} | not_relevant_dims)
+        needed_columns = variable_columns | open_keys | attributes | {"value"} | not_relevant_dims
+        needed_columns = list(needed_columns.intersection(instance_columns))
 
         instance_df = self.instance.instance_df[needed_columns].copy()
 
@@ -171,13 +172,15 @@ class Converter:
         :param table: The table we use.
 
         """
+      
+        instance_df = self._get_instance_df(table)
+        if instance_df.empty:
+            return instance_df
 
         variable_columns = set(table.variable_columns)
         open_keys = set(table.open_keys)
         attributes = set(table.attributes)
         instance_columns = set(self.instance.instance_df.columns)
-        
-        instance_df = self._get_instance_df(table)
 
         # Do the intersection and drop from datapoints the columns and records
         datapoint_df = table.variable_df
@@ -191,8 +194,8 @@ class Converter:
         merge_cols = list(variable_columns & instance_columns)
         table_df = pd.merge(datapoint_df, instance_df, on=merge_cols, how="inner")
 
-        if len(table_df) == 0:
-            return pd.DataFrame(columns=["datapoint", "value"])
+        # if len(table_df) == 0:
+        #     return pd.DataFrame(columns=["datapoint", "value"])
 
         table_df.drop(columns=merge_cols, inplace=True)
 
@@ -208,7 +211,7 @@ class Converter:
 
         return table_df
 
-    def _convert_tables(self, temp_dir_path, mapping_dict, architecture: str='datapoints'):
+    def _convert_tables(self, temp_dir_path, mapping_dict, headers_as_datapoints: bool = False):
         for table in self.module.tables:
             ##Workaround:
             # To calculate the table code for abstract tables, we look whether the name
@@ -222,27 +225,43 @@ class Converter:
             if normalised_table_code not in self._reported_tables:
                 continue
 
-            if architecture == 'datapoints':
-
-                datapoints = self._variable_generator(table)
-                # Cleaning up the dataframe and sorting it
-                datapoints = datapoints.rename(columns={"value": "factValue"})
-                #Workaround
-                #The enumerated key dimensions need to have a prefix like the one
-                #Defined by the EBA in the JSON files. We take them from the taxonomy
-                #Because EBA is using exactly those for the JSON files.
-                for open_key in table.open_keys:
-                    dim_name = mapping_dict.get(open_key)
-                    #For open keys, there are no dim_names (they are not mapped)
-                    if dim_name and not datapoints.empty:
-                        datapoints[open_key] = dim_name + ":" + datapoints[open_key].astype(str)
-                datapoints = datapoints.sort_values(by=["datapoint"], ascending=True)
-                output_path_table = temp_dir_path / table.url           
-            elif architecture == 'headers':
-                pass
+            datapoints = self._variable_generator(table)
 
             if datapoints.empty:
                 continue
+
+            # if table.architecture == 'datapoints':
+
+            # Cleaning up the dataframe and sorting it
+            datapoints = datapoints.rename(columns={"value": "factValue"})
+            #Workaround
+            #The enumerated key dimensions need to have a prefix like the one
+            #Defined by the EBA in the JSON files. We take them from the taxonomy
+            #Because EBA is using exactly those for the JSON files.
+            
+            for open_key in table.open_keys:
+                dim_name = mapping_dict.get(open_key)
+                #For open keys, there are no dim_names (they are not mapped)
+                if dim_name and not datapoints.empty:
+                    datapoints[open_key] = dim_name + ":" + datapoints[open_key].astype(str)
+            datapoints = datapoints.sort_values(by=["datapoint"], ascending=True)
+            output_path_table = temp_dir_path / table.url           
+            # elif table.architecture == 'headers':
+            #     continue
+            if table.architecture == 'headers' and not headers_as_datapoints:
+                datapoint_column_df = pd.DataFrame(table.columns, columns=["code", "variable_id"])
+                datapoint_column_df.rename(columns={"variable_id": "datapoint", "code": "column_code"}, inplace=True)
+                datapoints.rename(columns=table._open_keys_mapping, inplace=True)
+                datapoints = pd.merge(datapoint_column_df, datapoints, on="datapoint", how="inner")
+                if not table.open_keys:
+                    datapoints["index"]	 = 0
+                    index = "index"
+                else:
+                    index = [v for v in table._open_keys_mapping.values()]
+                datapoints = datapoints.pivot(index=index, columns="column_code", values="factValue")
+
+                print("a")
+
             datapoints.to_csv(output_path_table, index=False)
 
     def _convert_filing_indicator(self, temp_dir_path):
