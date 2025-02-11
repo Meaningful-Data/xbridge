@@ -188,7 +188,7 @@ class Converter:
         if missing_cols:
             mask = datapoint_df[list(missing_cols)].isnull().all(axis=1)
             datapoint_df = datapoint_df.loc[mask]
-            datapoint_df.drop(columns=list(missing_cols), inplace=True)
+            datapoint_df = datapoint_df.drop(columns=list(missing_cols))
 
         # Join the dataframes on the datapoint_columns
         merge_cols = list(variable_columns & instance_columns)
@@ -246,23 +246,24 @@ class Converter:
                     datapoints[open_key] = dim_name + ":" + datapoints[open_key].astype(str)
             datapoints = datapoints.sort_values(by=["datapoint"], ascending=True)
             output_path_table = temp_dir_path / table.url           
-            # elif table.architecture == 'headers':
-            #     continue
+
+            export_index = False
+
             if table.architecture == 'headers' and not headers_as_datapoints:
                 datapoint_column_df = pd.DataFrame(table.columns, columns=["code", "variable_id"])
                 datapoint_column_df.rename(columns={"variable_id": "datapoint", "code": "column_code"}, inplace=True)
-                datapoints.rename(columns=table._open_keys_mapping, inplace=True)
+                open_keys_mapping = {k: f'c{v}' for k, v in table._open_keys_mapping.items()}
+                datapoints.rename(columns=open_keys_mapping, inplace=True)
                 datapoints = pd.merge(datapoint_column_df, datapoints, on="datapoint", how="inner")
                 if not table.open_keys:
                     datapoints["index"]	 = 0
                     index = "index"
                 else:
-                    index = [v for v in table._open_keys_mapping.values()]
+                    index = [v for v in open_keys_mapping.values()]
+                    export_index = True
                 datapoints = datapoints.pivot(index=index, columns="column_code", values="factValue")
 
-                print("a")
-
-            datapoints.to_csv(output_path_table, index=False)
+            datapoints.to_csv(output_path_table, index=export_index)
 
     def _convert_filing_indicator(self, temp_dir_path):
         # Workaround;
