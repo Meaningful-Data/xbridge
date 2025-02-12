@@ -7,6 +7,7 @@ import csv
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Union
 from zipfile import ZipFile
 
 import pandas as pd
@@ -40,7 +41,7 @@ class Converter:
 
     """
 
-    def __init__(self, instance_path: str | Path) -> None:
+    def __init__(self, instance_path: Union[str, Path]) -> None:
         self.instance = Instance(instance_path)
         module_ref = self.instance.module_ref
 
@@ -51,7 +52,7 @@ class Converter:
         self.module = Module.from_serialized(module_path)
         self._reported_tables = []
 
-    def convert(self, output_path: str | Path) -> Path:
+    def convert(self, output_path: Union[str, Path]) -> Path:
         """
         Convert the ``XML Instance`` to a CSV file
         """

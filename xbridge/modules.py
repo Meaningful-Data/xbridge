@@ -5,6 +5,7 @@ Module with the classes related to modules, containing the "instructions" for th
 import copy
 import json
 from pathlib import Path
+from typing import Union
 from urllib.parse import urljoin, urlparse
 from zipfile import ZipFile
 
@@ -136,7 +137,7 @@ class Module:
         return obj
 
     @classmethod
-    def from_serialized(cls, input_path: str | Path):
+    def from_serialized(cls, input_path: Union[str, Path]):
         """Returns a :obj:`module <xbridge.taxonomy.Module>` object from a JSON file"""
         input_path = input_path if isinstance(input_path, Path) else Path(input_path)
         with open(input_path, "r", encoding="UTF-8") as fl:

@@ -14,6 +14,7 @@ import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import time
+from typing import Union
 from zipfile import ZipFile
 
 from lxml import etree
@@ -49,7 +50,7 @@ class Taxonomy:
         return self._modules
 
     @staticmethod
-    def __save_module(module, file_path: str | Path = None):
+    def __save_module(module, file_path: Union[str, Path] = None):
         """Saves a module to a JSON file"""
         with open(file_path, "w", encoding="UTF-8") as fl:
             json.dump(module.to_dict(), fl)
@@ -76,7 +77,7 @@ class Taxonomy:
             map_dom_mapping[dim] = dom
         return map_dom_mapping
 
-    def load_modules(self, input_path: str | Path = None):
+    def load_modules(self, input_path: Union[str, Path] = None):
         """loads the modules in the taxonomy"""
         modules = []
         index = {}
@@ -164,7 +165,7 @@ class Taxonomy:
         return module.variables
 
     @classmethod
-    def from_taxonomy(cls, input_path: str | Path):
+    def from_taxonomy(cls, input_path: Union[str, Path]):
         """Returns a Taxonomy object from a JSON taxonomy file"""
         input_path = input_path if isinstance(input_path, Path) else Path(input_path)
         obj = cls()
