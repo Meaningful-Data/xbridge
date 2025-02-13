@@ -1,5 +1,4 @@
-"""
-Module with the classes related to modules, containing the "instructions" for the conversion.
+"""Module with the classes related to modules, containing the "instructions" for the conversion.
 """
 
 import copy
@@ -15,12 +14,13 @@ import pandas as pd
 class Module:
     """Class representing an XBRL Module.
 
-    It has attributes like code, url, and tables
-    whose main function is to operate with the module and return properties like a specific table from
-    the JSON file used as input, an object, a dictionary using the attributes as keys, a module object from a part of
+    It has attributes like code, url, and tables whose main function is to operate with the
+    module and return properties like a specific table from the JSON file used as input,
+    an object, a dictionary using the attributes as keys, a module object from a part of
     preprocessed JSON file and the variables that are present in it.
 
-    It is used when taxonomies are loaded to collect the information associated to the tables belonging to the module.
+    It is used when taxonomies are loaded to collect the information associated to the tables
+    belonging to the module.
 
     :param code: The code of the XBRL module.
 
@@ -68,7 +68,6 @@ class Module:
 
     def _get_all_table_paths(self):
         """Returns the path to the table in the taxonomy"""
-
         tables_paths = []
 
         original_path = self.taxonomy_module_path
@@ -88,7 +87,6 @@ class Module:
 
     def extract_tables(self, zip_file: ZipFile):
         """Extracts the :obj:`tables <xbridge.taxonomy.Table>` in the JSON files for the :obj:`modules <xbridge.taxonomy.Module>` in the taxonomy"""
-
         self._tables = []
 
         for table_path in self.tables_paths:
@@ -117,7 +115,6 @@ class Module:
     @classmethod
     def from_taxonomy(cls, zip_file: ZipFile, json_file_path: str):
         """Returns a :obj:`module <xbridge.taxonomy.Module>` object from a part of the JSON file"""
-
         module_code = Path(json_file_path).stem
 
         obj = cls(code=module_code, url=json_file_path)
@@ -148,7 +145,8 @@ class Module:
     @property
     def variables_location(self):
         """Returns a dictionary with the :obj:`variables <xbridge.taxonomy.Variable>`
-        and the :obj:`tables <xbridge.taxonomy.Table>` where they are present"""
+        and the :obj:`tables <xbridge.taxonomy.Table>` where they are present
+        """
         variables = {}
         for table in self.tables:
             for variable in table.variables:
@@ -161,7 +159,8 @@ class Module:
     @property
     def repeated_variables(self):
         """Returns a dictionary with the :obj:`variables <xbridge.taxonomy.Variable>` and the :obj:`tables <xbridge.taxonomy.Table>`
-        where they are present, if they are repeated"""
+        where they are present, if they are repeated
+        """
         result = {}
         for k, v in self.variables_location.items():
             if len(v) > 1:
@@ -196,16 +195,16 @@ class Table:
     """
 
     def __init__(
-        self,
-        code=None,
-        url=None,
-        open_keys=None,
-        variables=None,
-        attributes=None,
-        input_zip_path=None,
-        architecture=None,
-        columns=None,
-        open_keys_mapping=None,
+            self,
+            code=None,
+            url=None,
+            open_keys=None,
+            variables=None,
+            attributes=None,
+            input_zip_path=None,
+            architecture=None,
+            columns=None,
+            open_keys_mapping=None,
     ):
         self.table_zip_path = input_zip_path
         self.code = code
@@ -235,8 +234,7 @@ class Table:
 
     @property
     def variable_columns(self):
-        """
-        Returns the columns for the :obj:`variable <xbridge.taxonomy.Variable>` dataframe
+        """Returns the columns for the :obj:`variable <xbridge.taxonomy.Variable>` dataframe
         """
         cols = set(self.variable_df.columns)
         cols.remove("datapoint")
@@ -244,8 +242,7 @@ class Table:
 
     @property
     def variable_df(self):
-        """
-        Returns a dataframe with the :obj:`variable <xbridge.taxonomy.Variable>` and extensional context
+        """Returns a dataframe with the :obj:`variable <xbridge.taxonomy.Variable>` and extensional context
 
         """
         return self._variable_df
@@ -337,7 +334,6 @@ class Table:
 
     def to_dict(self):
         """Returns a dictionary for the :obj:`table <xbridge.taxonomy.Table>`"""
-
         result = {
             "code": self.code,
             "url": self.url,
@@ -357,7 +353,6 @@ class Table:
 
     def get_table_code(self):
         """Returns the code of the table"""
-
         return self.code
 
     @staticmethod
@@ -410,7 +405,6 @@ class Table:
     @classmethod
     def from_dict(cls, table_dict):
         """Returns a :obj:`table <xbridge.taxonomy.Table>` object from a dictionary"""
-
         if table_dict["architecture"] == "datapoints":
             variables = table_dict.pop("variables")
             variables = [Variable.from_dict(variable) for variable in variables]
@@ -467,7 +461,9 @@ class Variable:
 
     @classmethod
     def from_taxonomy(cls, variable_id, variable_dict):
-        """Returns a :obj:`variable <xbridge.taxonomy.Variable>` object from a part of the preprocessed JSON file"""
+        """Returns a :obj:`variable <xbridge.taxonomy.Variable>`
+        object from a part of the preprocessed JSON file
+        """
         obj = cls(code=variable_id)
         obj.extract_dimensions(variable_dict)
 

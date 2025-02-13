@@ -1,5 +1,4 @@
-"""
-Module with the classes related to XBRL-XML instance files.
+"""Module with the classes related to XBRL-XML instance files.
 """
 
 import pandas as pd
@@ -7,7 +6,8 @@ from lxml import etree
 
 
 class Instance:
-    """Class representing an XBRL XML instance file. Its attributes are the characters contained in the XBRL files.
+    """Class representing an XBRL XML instance file.
+    Its attributes are the characters contained in the XBRL files.
     Each property returns one of these attributes.
 
     :param path: File path to be used
@@ -41,7 +41,11 @@ class Instance:
 
     @property
     def namespaces(self):
-        """Returns the `namespaces <https://www.xbrl.org/guidance/xbrl-glossary/#2-other-terms-in-technical-or-common-use:~:text=calculation%20tree.-,Namespace,-A%20namespace%20>`_ is of the instance file."""
+        """Returns the `namespaces
+        <https://www.xbrl.org/guidance/xbrl-glossary/#2-other-terms-in-technical-or
+        -common-use:~:text=calculation%20tree.-,Namespace,-A%20namespace%20>`_
+        is of the instance file.
+        """
         return self.root.nsmap
 
     @property
@@ -57,7 +61,8 @@ class Instance:
     @property
     def facts_list_dict(self):
         """Returns a list of dictionaries with the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
-        of the instance file."""
+        of the instance file.
+        """
         return self._facts_list_dict
 
     @property
@@ -67,7 +72,8 @@ class Instance:
 
     def get_facts_list_dict(self):
         """Generates a list of dictionaries with the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
-        of the instance file."""
+        of the instance file.
+        """
         result = []
         for fact in self.facts:
             fact_dict = fact.__dict__()
@@ -95,12 +101,14 @@ class Instance:
     @property
     def instance_df(self):
         """Returns a pandas DataFrame with the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
-        of the instance file."""
+        of the instance file.
+        """
         return self._df
 
     def to_df(self):
         """Generates a pandas DataFrame with the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
-        of the instance file."""
+        of the instance file.
+        """
         self._df = pd.DataFrame.from_dict(self.facts_list_dict)
         df_columns = list(self._df.columns)
         ##Workaround
@@ -114,10 +122,8 @@ class Instance:
     @property
     def identifier_prefix(self):
         """Returns the identifier prefix of the instance file."""
-        entity_prefix_mapping = {
-            "https://eurofiling.info/eu/rs": "rs",
-            "http://standards.iso.org/iso/17442": "lei",
-        }
+        entity_prefix_mapping = {"https://eurofiling.info/eu/rs": "rs",
+            "http://standards.iso.org/iso/17442": "lei", }
 
         return entity_prefix_mapping[self._identifier_prefix]
 
@@ -154,43 +160,33 @@ class Instance:
         except Exception as e:
             raise ValueError(f"Error parsing instance: {str(e)}")
 
-        # TODO: Validate that all the assumptions about the EBA instances are correct
-        # Should be an optional parameter (to avoid performance issues when it is known
-        # that the assumptions are correct)
-        # - Validate that there is only one entity
-        # - Validate that there is only one period
-        # - Validate that all the facts have the same currency
+        # TODO: Validate that all the assumptions about the EBA instances are correct  # Should be an optional parameter (to avoid performance issues when it is known  # that the assumptions are correct)  # - Validate that there is only one entity  # - Validate that there is only one period  # - Validate that all the facts have the same currency
 
     def get_contexts(self):
         """Extracts :obj:`Context <xbridge.xml_instance.Context>` from the XML instance file."""
-
         contexts = {}
-        for context in self.root.findall(
-            "{http://www.xbrl.org/2003/instance}context", self.namespaces
-        ):
+        for context in self.root.findall("{http://www.xbrl.org/2003/instance}context",
+                self.namespaces):
             context_object = Context(context)
             contexts[context_object.id] = context_object
 
         self._contexts = contexts
 
         self._identifier_prefix = (
-            self.root.find("{http://www.xbrl.org/2003/instance}context", self.namespaces)
-            .find("{http://www.xbrl.org/2003/instance}entity")
-            .find("{http://www.xbrl.org/2003/instance}identifier")
-            .attrib.get("scheme")
-        )
+            self.root.find("{http://www.xbrl.org/2003/instance}context", self.namespaces).find(
+                "{http://www.xbrl.org/2003/instance}entity").find(
+                "{http://www.xbrl.org/2003/instance}identifier").attrib.get("scheme"))
 
     def get_facts(self):
         """Extracts `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
-        from the XML instance file."""
+        from the XML instance file.
+        """
         facts = []
         for child in self.root:
             facts_prefixes = []
             for prefix, ns in self.root.nsmap.items():
                 if (
-                    "http://www.eba.europa.eu/xbrl/crr/dict/met" in ns
-                    or "http://www.eba.europa.eu/xbrl/crr/dict/dim" in ns
-                ):
+                        "http://www.eba.europa.eu/xbrl/crr/dict/met" in ns or "http://www.eba.europa.eu/xbrl/crr/dict/dim" in ns):
                     facts_prefixes.append(prefix)
 
             if child.prefix in facts_prefixes:
@@ -207,7 +203,6 @@ class Instance:
 
     def get_module_code(self):
         """Extracts the module name from the XML instance file."""
-
         for child in self.root:
             if child.prefix == "link":
                 value = child.attrib["{http://www.w3.org/1999/xlink}href"]
@@ -218,11 +213,12 @@ class Instance:
 
     def get_filing_indicators(self):
         """Extracts `filing <https://www.xbrl.org/guidance/xbrl-glossary/#2-other-terms-in-technical-or-common-use:~:text=data%20point.-,Filing,-The%20file%20or>`_
-        indicators from the XML instance file."""
+        indicators from the XML instance file.
+        """
         filing_indicators = []
         for fil_ind in self.root.find(
-            "{http://www.eurofiling.info/xbrl/ext/filing-indicators}fIndicators"
-        ).findall("{http://www.eurofiling.info/xbrl/ext/filing-indicators}filingIndicator"):
+                "{http://www.eurofiling.info/xbrl/ext/filing-indicators}fIndicators").findall(
+            "{http://www.eurofiling.info/xbrl/ext/filing-indicators}filingIndicator"):
             filing_indicators.append(FilingIndicator(fil_ind))
 
         self._filing_indicators = filing_indicators
@@ -254,8 +250,10 @@ class Instance:
 
     # TODO: For this to be more efficient, check it once all contexts are loaded.
     def validate_entity(self, context):
-        """Validates that a certain :obj:`Context <xbridge.xml_instance.Context>` does not add a second entity
-        (i.e., the instance contains data only for one entity)."""
+        """Validates that a certain :obj:`Context <xbridge.xml_instance.Context>`
+        does not add a second entity
+        (i.e., the instance contains data only for one entity).
+        """
         if getattr(self, "_entity", None) is None:
             self._entity = context
         if self._entity != context:
@@ -265,17 +263,15 @@ class Instance:
     def decimals_percentage(self):
         """Returns the single value for percentage values in the instance."""
         return (
-            max(self._decimals_percentage_set) if len(self._decimals_percentage_set) > 0 else None
-        )
+            max(self._decimals_percentage_set) if len(self._decimals_percentage_set) > 0 else None)
 
     @property
     def decimals_monetary(self):
         """Returns the single value for monetary values in the instance."""
         max_reported = (
-            max(self._decimals_monetary_set) if len(self._decimals_monetary_set) > 0 else None
-        )
+            max(self._decimals_monetary_set) if len(self._decimals_monetary_set) > 0 else None)
         if max_reported:
-            ##Workaround
+            # Workaround
             # We are assuming that the maximum number of decimals for monetary values
             # is 2, in practice. We found cases with higher numbers for some values,
             # and that causes problems in the CSV output, because the maximum was
@@ -314,7 +310,8 @@ class Scenario:
     @staticmethod
     def get_value(child_scenario):
         """Gets the value for `dimension <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=a%20taxonomy.-,Dimension,-A%20qualifying%20characteristic>`_
-        from the XML node with the scenario."""
+        from the XML node with the scenario.
+        """
         if child_scenario.getchildren():
             value = child_scenario.getchildren()[0].text
         else:
@@ -365,27 +362,18 @@ class Context:
         """Parses the XML node with the :obj:`Context <xbridge.xml_instance.Context>`."""
         self._id = self.context_xml.attrib["id"]
 
-        self._entity = (
-            self.context_xml.find("{http://www.xbrl.org/2003/instance}entity")
-            .find("{http://www.xbrl.org/2003/instance}identifier")
-            .text
-        )
+        self._entity = (self.context_xml.find("{http://www.xbrl.org/2003/instance}entity").find(
+            "{http://www.xbrl.org/2003/instance}identifier").text)
 
-        self._period = (
-            self.context_xml.find("{http://www.xbrl.org/2003/instance}period")
-            .find("{http://www.xbrl.org/2003/instance}instant")
-            .text
-        )
+        self._period = (self.context_xml.find("{http://www.xbrl.org/2003/instance}period").find(
+            "{http://www.xbrl.org/2003/instance}instant").text)
 
         self._scenario = Scenario(
-            self.context_xml.find("{http://www.xbrl.org/2003/instance}scenario")
-        )
+            self.context_xml.find("{http://www.xbrl.org/2003/instance}scenario"))
 
     def __repr__(self) -> str:
-        return (
-            f"Context(id={self.id}, entity={self.entity}, "
-            f"period={self.period}, scenario={self.scenario})"
-        )
+        return (f"Context(id={self.id}, entity={self.entity}, "
+                f"period={self.period}, scenario={self.scenario})")
 
     def __dict__(self):
         result = {"entity": self.entity, "period": self.period}
@@ -420,20 +408,13 @@ class Fact:
         self.unit = self.fact_xml.attrib.get("unitRef")
 
     def __dict__(self):
-        return {
-            "metric": self.metric.split("}")[1],
-            "value": self.value,
-            "decimals": self.decimals,
-            "context": self.context,
-            "unit": self.unit,
-        }
+        return {"metric": self.metric.split("}")[1], "value": self.value, "decimals": self.decimals,
+            "context": self.context, "unit": self.unit, }
 
     def __repr__(self) -> str:
-        return (
-            f"Fact(metric={self.metric}, value={self.value}, "
-            f"decimals={self.decimals}, context={self.context}, "
-            f"unit={self.unit})"
-        )
+        return (f"Fact(metric={self.metric}, value={self.value}, "
+                f"decimals={self.decimals}, context={self.context}, "
+                f"unit={self.unit})")
 
 
 class FilingIndicator:
@@ -452,23 +433,17 @@ class FilingIndicator:
     def parse(self):
         """Parse the XML node with the filing indicator."""
         value = self.filing_indicator_xml.attrib.get(
-            "{http://www.eurofiling.info/xbrl/ext/filing-indicators}filed"
-        )
+            "{http://www.eurofiling.info/xbrl/ext/filing-indicators}filed")
         if value:
-            self.value = True if value == "true" else False
+            self.value = value == "true"
         else:
             self.value = True
         self.table = self.filing_indicator_xml.text
         self.context = self.filing_indicator_xml.attrib.get("contextRef")
 
     def __dict__(self):
-        return {
-            "value": self.value,
-            "table": self.table,
-            "context": self.context,
-        }
+        return {"value": self.value, "table": self.table, "context": self.context, }
 
     def __repr__(self) -> str:
         return (
-            f"FilingIndicator(value={self.value}, " f"table={self.table}, context={self.context})"
-        )
+            f"FilingIndicator(value={self.value}, " f"table={self.table}, context={self.context})")

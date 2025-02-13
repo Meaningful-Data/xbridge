@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # The EBA Taxonomy version
 rst_prolog = (
     """
-.. |eba_version| replace:: 
+.. |eba_version| replace::
  """
     + "4.0"
 )
@@ -51,6 +51,7 @@ if pyproject_toml_file.exists() and pyproject_toml_file.is_file():
 extensions = [
     "sphinx_rtd_theme",
     "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosectionlabel",
 ]

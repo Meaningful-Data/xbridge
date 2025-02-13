@@ -24,9 +24,9 @@ class TestFilingIndicator(unittest.TestCase):
         self.filing_indicator = FilingIndicator(element)
 
     def test_parse(self):
-        self.assertEqual(self.filing_indicator.value, True)
-        self.assertEqual(self.filing_indicator.table, "C_00.01")
-        self.assertEqual(self.filing_indicator.context, "ctx_header")
+        assert self.filing_indicator.value is True
+        assert self.filing_indicator.table == "C_00.01"
+        assert self.filing_indicator.context == "ctx_header"
 
     def test_dict(self):
         expected_dict = {"value": True, "table": "C_00.01", "context": "ctx_header"}
@@ -34,7 +34,7 @@ class TestFilingIndicator(unittest.TestCase):
 
     def test_repr(self):
         expected_repr = "FilingIndicator(value=True, table=C_00.01, context=ctx_header)"
-        self.assertEqual(repr(self.filing_indicator), expected_repr)
+        assert repr(self.filing_indicator) == expected_repr
 
 
 class TestFact(unittest.TestCase):
@@ -47,11 +47,11 @@ class TestFact(unittest.TestCase):
         self.fact = Fact(self.fact_xml)
 
     def test_parse(self):
-        self.assertEqual(self.fact.metric, "{http://www.xbrl.org/2003/instance}fact")
-        self.assertEqual(self.fact.value, "100")
-        self.assertEqual(self.fact.decimals, "2")
-        self.assertEqual(self.fact.context, "context1")
-        self.assertEqual(self.fact.unit, "unit1")
+        assert self.fact.metric == "{http://www.xbrl.org/2003/instance}fact"
+        assert self.fact.value == "100"
+        assert self.fact.decimals == "2"
+        assert self.fact.context == "context1"
+        assert self.fact.unit == "unit1"
 
     def test_dict(self):
         expected_dict = {
@@ -68,7 +68,7 @@ class TestFact(unittest.TestCase):
             f"Fact(metric={self.fact.metric}, value=100, "
             f"decimals=2, context=context1, unit=unit1)"
         )
-        self.assertEqual(repr(self.fact), expected_repr)
+        assert repr(self.fact) == expected_repr
 
 
 if __name__ == "__main__":
