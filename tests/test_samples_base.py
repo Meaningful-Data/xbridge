@@ -48,8 +48,7 @@ class TestInstanceConversionBasic(unittest.TestCase):
         self.expected_csv_files = [
             file
             for file in self.expected_output_zip.namelist()
-            if file.startswith(f"{self.expected_root_folder_name}reports")
-            and file.endswith(".csv")
+            if file.startswith(f"{self.expected_root_folder_name}reports") and file.endswith(".csv")
         ]
 
     def tearDown(self) -> None:

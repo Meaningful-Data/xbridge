@@ -3,8 +3,10 @@ Tests for xml_instance module
 """
 
 import unittest
+
 from lxml import etree
-from xbridge.xml_instance import FilingIndicator, Fact
+
+from xbridge.xml_instance import Fact, FilingIndicator
 
 
 class TestFilingIndicator(unittest.TestCase):

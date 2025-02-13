@@ -1,5 +1,5 @@
 """
-    Module with the classes related to XBRL-XML instance files.
+Module with the classes related to XBRL-XML instance files.
 """
 
 import pandas as pd
@@ -116,16 +116,15 @@ class Instance:
         """Returns the identifier prefix of the instance file."""
         entity_prefix_mapping = {
             "https://eurofiling.info/eu/rs": "rs",
-            "http://standards.iso.org/iso/17442": "lei"}
+            "http://standards.iso.org/iso/17442": "lei",
+        }
 
         return entity_prefix_mapping[self._identifier_prefix]
-
 
     @property
     def entity(self):
         """Returns the entity of the instance file."""
         return f"{self.identifier_prefix}:{self._entity}"
-
 
     @property
     def period(self):
@@ -151,10 +150,10 @@ class Instance:
             self.get_module_code()
             self.get_filing_indicators()
         except etree.XMLSyntaxError:
-            raise ValueError("Invalid XML format") 
+            raise ValueError("Invalid XML format")
         except Exception as e:
             raise ValueError(f"Error parsing instance: {str(e)}")
-    
+
         # TODO: Validate that all the assumptions about the EBA instances are correct
         # Should be an optional parameter (to avoid performance issues when it is known
         # that the assumptions are correct)
@@ -174,11 +173,12 @@ class Instance:
 
         self._contexts = contexts
 
-        self._identifier_prefix = self.root.find(
-            "{http://www.xbrl.org/2003/instance}context", self.namespaces
-        ).find("{http://www.xbrl.org/2003/instance}entity").\
-            find("{http://www.xbrl.org/2003/instance}identifier").\
-                attrib.get("scheme")
+        self._identifier_prefix = (
+            self.root.find("{http://www.xbrl.org/2003/instance}context", self.namespaces)
+            .find("{http://www.xbrl.org/2003/instance}entity")
+            .find("{http://www.xbrl.org/2003/instance}identifier")
+            .attrib.get("scheme")
+        )
 
     def get_facts(self):
         """Extracts `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
@@ -187,8 +187,10 @@ class Instance:
         for child in self.root:
             facts_prefixes = []
             for prefix, ns in self.root.nsmap.items():
-                if "http://www.eba.europa.eu/xbrl/crr/dict/met" in ns \
-                        or "http://www.eba.europa.eu/xbrl/crr/dict/dim" in ns:
+                if (
+                    "http://www.eba.europa.eu/xbrl/crr/dict/met" in ns
+                    or "http://www.eba.europa.eu/xbrl/crr/dict/dim" in ns
+                ):
                     facts_prefixes.append(prefix)
 
             if child.prefix in facts_prefixes:
@@ -220,9 +222,7 @@ class Instance:
         filing_indicators = []
         for fil_ind in self.root.find(
             "{http://www.eurofiling.info/xbrl/ext/filing-indicators}fIndicators"
-        ).findall(
-            "{http://www.eurofiling.info/xbrl/ext/filing-indicators}filingIndicator"
-        ):
+        ).findall("{http://www.eurofiling.info/xbrl/ext/filing-indicators}filingIndicator"):
             filing_indicators.append(FilingIndicator(fil_ind))
 
         self._filing_indicators = filing_indicators
@@ -263,20 +263,16 @@ class Instance:
 
     @property
     def decimals_percentage(self):
-        "Returns the single value for percentage values in the instance."
+        """Returns the single value for percentage values in the instance."""
         return (
-            max(self._decimals_percentage_set)
-            if len(self._decimals_percentage_set) > 0
-            else None
+            max(self._decimals_percentage_set) if len(self._decimals_percentage_set) > 0 else None
         )
 
     @property
     def decimals_monetary(self):
-        "Returns the single value for monetary values in the instance."
+        """Returns the single value for monetary values in the instance."""
         max_reported = (
-            max(self._decimals_monetary_set)
-            if len(self._decimals_monetary_set) > 0
-            else None
+            max(self._decimals_monetary_set) if len(self._decimals_monetary_set) > 0 else None
         )
         if max_reported:
             ##Workaround
@@ -474,6 +470,5 @@ class FilingIndicator:
 
     def __repr__(self) -> str:
         return (
-            f"FilingIndicator(value={self.value}, "
-            f"table={self.table}, context={self.context})"
+            f"FilingIndicator(value={self.value}, " f"table={self.table}, context={self.context})"
         )

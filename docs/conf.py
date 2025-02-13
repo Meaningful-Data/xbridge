@@ -21,9 +21,12 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 # The EBA Taxonomy version
-rst_prolog = """
+rst_prolog = (
+    """
 .. |eba_version| replace:: 
- """ + "4.0"
+ """
+    + "4.0"
+)
 
 # Get project information from pyproject.toml
 version = "unknown"

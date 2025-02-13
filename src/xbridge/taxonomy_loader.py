@@ -1,5 +1,5 @@
 """
-Module with the taxonomy class, that serves to create the 
+Module with the taxonomy class, that serves to create the
 JSON files with the conversion instructions.
 
 Each time the EBA releases a new taxonomy, the taxonomy_loader.py
@@ -27,10 +27,20 @@ DIM_DOM_MAPPING_PATH = MODULES_FOLDER / "dim_dom_mapping.json"
 
 
 def _extract_specific_files_7z(file_path: Path, target_path: Path):
-    cmd = [shutil.which('7z'), 'x', f'-o{target_path}', file_path, '*.json', '*dim-def.xml', '-r']
+    cmd = [
+        shutil.which("7z"),
+        "x",
+        f"-o{target_path}",
+        file_path,
+        "*.json",
+        "*dim-def.xml",
+        "-r",
+    ]
     if not cmd[0]:
-        raise FileNotFoundError("7z command not found, please install 7zip to be able to extract "
-                                "it and run the script again")
+        raise FileNotFoundError(
+            "7z command not found, please install 7zip to be able to extract "
+            "it and run the script again"
+        )
     process = subprocess.run(cmd, capture_output=True)
     if process.returncode != 0:
         raise ValueError(f"Error extracting 7z file {file_path}")
@@ -58,27 +68,27 @@ class Taxonomy:
     @staticmethod
     def _get_dim_dom_mapping(root: etree) -> dict:
         ns = {
-            'link': 'http://www.xbrl.org/2003/linkbase',
-            'xlink': 'http://www.w3.org/1999/xlink'}
+            "link": "http://www.xbrl.org/2003/linkbase",
+            "xlink": "http://www.w3.org/1999/xlink",
+        }
         arcroles = root.xpath(
             '//link:definitionArc[@xlink:arcrole="'
             'http://xbrl.org/int/dim/arcrole/dimension-domain"]',
-            namespaces=ns)
+            namespaces=ns,
+        )
         map_dom_mapping = {}
         for element in arcroles:
-            dim_locator = element.get('{http://www.w3.org/1999/xlink}from')
+            dim_locator = element.get("{http://www.w3.org/1999/xlink}from")
             dim = root.xpath(f'//link:loc[@xlink:label = "{dim_locator}"]', namespaces=ns)[0]
-            dim = dim.get('{http://www.w3.org/1999/xlink}href'). \
-                split("#")[1]. \
-                split("_")[1]
-            dom_locator = element.get('{http://www.w3.org/1999/xlink}to')
+            dim = dim.get("{http://www.w3.org/1999/xlink}href").split("#")[1].split("_")[1]
+            dom_locator = element.get("{http://www.w3.org/1999/xlink}to")
             dom = root.xpath(f'//link:loc[@xlink:label = "{dom_locator}"]', namespaces=ns)[0]
-            dom = dom.get('{http://www.w3.org/1999/xlink}href').split("#")[1]
+            dom = dom.get("{http://www.w3.org/1999/xlink}href").split("#")[1]
             map_dom_mapping[dim] = dom
         return map_dom_mapping
 
     def load_modules(self, input_path: Union[str, Path] = None):
-        """loads the modules in the taxonomy"""
+        """Loads the modules in the taxonomy"""
         modules = []
         index = {}
 
@@ -108,19 +118,18 @@ class Taxonomy:
         with ZipFile(input_path, mode="r") as zip_file:
             for file_path in zip_file.namelist():
                 file_path_obj = Path(file_path)
-                if str(file_path_obj) == \
-                        "www.eba.europa.eu\\eu\\fr\\xbrl\\crr\\dict\\dim\\dim-def.xml":
+                if (
+                    str(file_path_obj)
+                    == "www.eba.europa.eu\\eu\\fr\\xbrl\\crr\\dict\\dim\\dim-def.xml"
+                ):
                     bin_read = zip_file.read(file_path)
-                    root = etree.fromstring(bin_read.decode('utf-8'))
+                    root = etree.fromstring(bin_read.decode("utf-8"))
                     dim_dom_mapping = self._get_dim_dom_mapping(root)
                     with open(DIM_DOM_MAPPING_PATH, "w", encoding="UTF-8") as fl:
                         json.dump(dim_dom_mapping, fl, indent=4)
                     dim_dom_mapping_loaded = True
 
-                if (
-                        file_path_obj.suffix == ".json"
-                        and file_path_obj.parent.name == "mod"
-                ):
+                if file_path_obj.suffix == ".json" and file_path_obj.parent.name == "mod":
                     print(f"Loading module {file_path_obj.stem.upper()}")
                     start = time()
                     module = Module.from_taxonomy(zip_file, file_path)
@@ -141,7 +150,6 @@ class Taxonomy:
                     "zip files within it"
                 )
             )
-
 
         if not dim_dom_mapping_loaded:
             raise ImportError("dim_dom_mapping file was not loaded")
@@ -180,7 +188,6 @@ class Taxonomy:
 
     @staticmethod
     def _convert_7z_to_zip(input_path):
-
         """Converts a 7z file to a zip file"""
         start = time()
         with TemporaryDirectory() as temp_folder:
@@ -191,9 +198,7 @@ class Taxonomy:
                 for root, _, files in os.walk(temp_folder):
                     for file in files:
                         # Compute the relative file path to the root of the temporary directory
-                        relative_path = os.path.relpath(
-                            os.path.join(root, file), temp_folder
-                        )
+                        relative_path = os.path.relpath(os.path.join(root, file), temp_folder)
                         # Add the file to the zip file with its relative path
                         zip_file.write(os.path.join(root, file), arcname=relative_path)
         end = time()

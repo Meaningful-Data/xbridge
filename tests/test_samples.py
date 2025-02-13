@@ -5,9 +5,7 @@ Test that EBA samples are transformed correctly
 import unittest
 from pathlib import Path
 
-from test_samples_base import (TestInstanceConversionBasic,
-                                               TestInstanceConversionFull)
-
+from test_samples_base import TestInstanceConversionBasic, TestInstanceConversionFull
 
 INPUT_PATH_3_2p1 = Path(__file__).parent / "test_files" / "sample_3_2_phase1"
 INPUT_PATH_3_2p3 = Path(__file__).parent / "test_files" / "sample_3_2_phase3"
@@ -65,12 +63,14 @@ class TestCase6(TestInstanceConversionBasic):
             expected_output_path=INPUT_PATH_3_3 / "test1_out.zip",
         )
 
+
 class TestCase7(TestInstanceConversionBasic):
     def setUp(self):
         super().setUp(
             instance_path=INPUT_PATH_3_2p1 / "test1_in.xbrl",
             expected_output_path=INPUT_PATH_3_2p1 / "test1_out.zip",
         )
+
 
 if __name__ == "__main__":
     unittest.main()

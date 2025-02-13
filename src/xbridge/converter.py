@@ -78,11 +78,7 @@ class Converter:
 
         with open(meta_inf_dir / "reports.json", "w", encoding="UTF-8") as fl:
             json.dump(
-                {
-                    "documentInfo": {
-                        "documentType": "http://xbrl.org/PWD/2020-12-09/report-package"
-                    }
-                },
+                {"documentInfo": {"documentType": "http://xbrl.org/PWD/2020-12-09/report-package"}},
                 fl,
             )
 
@@ -145,15 +141,24 @@ class Converter:
             return pd.DataFrame(columns=["datapoint", "value"] + list(open_keys))
 
         # Determine the not relevant dims
-        not_relevant_dims = instance_columns - variable_columns - open_keys - \
-            attributes - {"value", "unit", "decimals"}
+        not_relevant_dims = (
+            instance_columns
+            - variable_columns
+            - open_keys
+            - attributes
+            - {"value", "unit", "decimals"}
+        )
 
         needed_columns = variable_columns | open_keys | attributes | {"value"} | not_relevant_dims
         needed_columns = list(needed_columns.intersection(instance_columns))
 
         instance_df = self.instance.instance_df[needed_columns].copy()
 
-        cols_to_drop = [col for col in ["unit", "decimals"] if col not in attributes and col in instance_df.columns]
+        cols_to_drop = [
+            col
+            for col in ["unit", "decimals"]
+            if col not in attributes and col in instance_df.columns
+        ]
         if cols_to_drop:
             instance_df.drop(columns=cols_to_drop, inplace=True)
 
@@ -166,14 +171,13 @@ class Converter:
 
         return instance_df
 
-
     def _variable_generator(self, table: Table) -> pd.DataFrame:
         """Returns the dataframe with the CSV file for the table
 
         :param table: The table we use.
 
         """
-      
+
         instance_df = self._get_instance_df(table)
         if instance_df.empty:
             return instance_df
@@ -200,15 +204,13 @@ class Converter:
 
         table_df.drop(columns=merge_cols, inplace=True)
 
-
         # Drop the datapoints that have null values in the open keys
         valid_open_keys = [key for key in open_keys if key in table_df.columns]
         if valid_open_keys:
             table_df.dropna(subset=valid_open_keys, inplace=True)
 
-
-        if 'unit' in attributes:
-            table_df['unit'] = table_df['unit'].map(self.instance.units, na_action="ignore")
+        if "unit" in attributes:
+            table_df["unit"] = table_df["unit"].map(self.instance.units, na_action="ignore")
 
         return table_df
 
@@ -235,34 +237,39 @@ class Converter:
 
             # Cleaning up the dataframe and sorting it
             datapoints = datapoints.rename(columns={"value": "factValue"})
-            #Workaround
-            #The enumerated key dimensions need to have a prefix like the one
-            #Defined by the EBA in the JSON files. We take them from the taxonomy
-            #Because EBA is using exactly those for the JSON files.
-            
+            # Workaround
+            # The enumerated key dimensions need to have a prefix like the one
+            # Defined by the EBA in the JSON files. We take them from the taxonomy
+            # Because EBA is using exactly those for the JSON files.
+
             for open_key in table.open_keys:
                 dim_name = mapping_dict.get(open_key)
-                #For open keys, there are no dim_names (they are not mapped)
+                # For open keys, there are no dim_names (they are not mapped)
                 if dim_name and not datapoints.empty:
                     datapoints[open_key] = dim_name + ":" + datapoints[open_key].astype(str)
             datapoints = datapoints.sort_values(by=["datapoint"], ascending=True)
-            output_path_table = temp_dir_path / table.url           
+            output_path_table = temp_dir_path / table.url
 
             export_index = False
 
-            if table.architecture == 'headers' and not headers_as_datapoints:
+            if table.architecture == "headers" and not headers_as_datapoints:
                 datapoint_column_df = pd.DataFrame(table.columns, columns=["code", "variable_id"])
-                datapoint_column_df.rename(columns={"variable_id": "datapoint", "code": "column_code"}, inplace=True)
-                open_keys_mapping = {k: f'c{v}' for k, v in table._open_keys_mapping.items()}
+                datapoint_column_df.rename(
+                    columns={"variable_id": "datapoint", "code": "column_code"},
+                    inplace=True,
+                )
+                open_keys_mapping = {k: f"c{v}" for k, v in table._open_keys_mapping.items()}
                 datapoints.rename(columns=open_keys_mapping, inplace=True)
                 datapoints = pd.merge(datapoint_column_df, datapoints, on="datapoint", how="inner")
                 if not table.open_keys:
-                    datapoints["index"]	 = 0
+                    datapoints["index"] = 0
                     index = "index"
                 else:
                     index = [v for v in open_keys_mapping.values()]
                     export_index = True
-                datapoints = datapoints.pivot(index=index, columns="column_code", values="factValue")
+                datapoints = datapoints.pivot(
+                    index=index, columns="column_code", values="factValue"
+                )
 
             datapoints.to_csv(output_path_table, index=export_index)
 
@@ -291,14 +298,10 @@ class Converter:
             "baseCurrency": self.instance.base_currency,
             "decimalsInteger": 0,
             "decimalsMonetary": (
-                self.instance.decimals_monetary
-                if self.instance.decimals_monetary
-                else 0
+                self.instance.decimals_monetary if self.instance.decimals_monetary else 0
             ),
             "decimalsPercentage": (
-                self.instance.decimals_percentage
-                if self.instance.decimals_percentage
-                else 4
+                self.instance.decimals_percentage if self.instance.decimals_percentage else 4
             ),
         }
         with open(output_path_parameters, "w", newline="", encoding="utf-8") as fl:
