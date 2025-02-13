@@ -31,5 +31,11 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: poetry install
+    - name: Run lint checks
+      run: poetry run ruff check src tests
+    - name: Run type checks
+      run: poetry run mypy
     - name: Run tests
-      run: poetry run python -m unittest discover tests
+      run: poetry run pytest --cov
+    - name: Check coverage
+      run: poetry run coverage report --fail-under=85
