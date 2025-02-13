@@ -1,5 +1,4 @@
-"""
-Module with the taxonomy class, that serves to create the
+"""Module with the taxonomy class, that serves to create the
 JSON files with the conversion instructions.
 
 Each time the EBA releases a new taxonomy, the taxonomy_loader.py
@@ -47,8 +46,7 @@ def _extract_specific_files_7z(file_path: Path, target_path: Path):
 
 
 class Taxonomy:
-    """
-    Class representing an XBRL taxonomy
+    """Class representing an XBRL taxonomy
     """
 
     def __init__(self):
@@ -89,7 +87,7 @@ class Taxonomy:
 
     def load_modules(self, input_path: Union[str, Path] = None):
         """Loads the modules in the taxonomy"""
-        modules = []
+        is_there_a_module = False
         index = {}
 
         dim_dom_mapping_loaded = False
@@ -106,6 +104,7 @@ class Taxonomy:
         if input_path.suffix not in [".zip", ".7z"]:
             raise ValueError("Input file must be a zip or 7z file")
 
+
         if input_path.suffix == ".7z":
             print("Converting 7z to zip")
             start = time()
@@ -114,13 +113,13 @@ class Taxonomy:
             end = time()
             elapsed = round(end - start, 3)
             print(f"Conversion done in {elapsed} s")
-
+        start = time()
         with ZipFile(input_path, mode="r") as zip_file:
             for file_path in zip_file.namelist():
                 file_path_obj = Path(file_path)
                 if (
-                    str(file_path_obj)
-                    == "www.eba.europa.eu\\eu\\fr\\xbrl\\crr\\dict\\dim\\dim-def.xml"
+                        str(file_path_obj)
+                        == "www.eba.europa.eu\\eu\\fr\\xbrl\\crr\\dict\\dim\\dim-def.xml"
                 ):
                     bin_read = zip_file.read(file_path)
                     root = etree.fromstring(bin_read.decode("utf-8"))
@@ -130,6 +129,7 @@ class Taxonomy:
                     dim_dom_mapping_loaded = True
 
                 if file_path_obj.suffix == ".json" and file_path_obj.parent.name == "mod":
+                    is_there_a_module = True
                     print(f"Loading module {file_path_obj.stem.upper()}")
                     start = time()
                     module = Module.from_taxonomy(zip_file, file_path)
@@ -138,11 +138,11 @@ class Taxonomy:
                     self.__save_module(module, module_path)
                     index_key = f"http://{module.url[:-4]}xsd"
                     index[index_key] = module_file_name
-                    modules.append(module)
+                    # modules.append(module)
                     end = time()
                     elapsed = round(end - start, 3)
                     print(f"Module {module.code.upper()} loaded in {elapsed} s")
-        if not modules:
+        if not is_there_a_module:
             raise TypeError(
                 (
                     "No modules found in the taxonomy. "
@@ -156,7 +156,9 @@ class Taxonomy:
 
         with open(INDEX_PATH, "w", encoding="UTF-8") as fl:
             json.dump(index, fl, indent=4)
-        self._modules = modules
+        # self._modules = modules
+        end = time()
+        print(f"Time to extract modules: {end - start}")
 
     def get_module(self, code: str):
         """Returns the module with the given code"""
@@ -167,7 +169,6 @@ class Taxonomy:
 
     def get_variables_from_module(self, code: str) -> list:
         """Returns the variables from the module with the given code"""
-
         module = self.get_module(code)
 
         return module.variables
@@ -210,7 +211,6 @@ class Taxonomy:
 
 def main():
     """Main function to generate the json files from the taxonomy"""
-
     parser = argparse.ArgumentParser(description="Xbridge taxonomy loader")
 
     parser.add_argument(
