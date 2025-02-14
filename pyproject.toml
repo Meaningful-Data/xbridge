@@ -1,36 +1,37 @@
 [tool.poetry]
 name="eba-xbridge"
-version="1.0.4"
+version="1.1rc1"
 authors=[
     "Antonio Olleros <antonio.olleros@meaningfuldata.eu>",
     "Jesús Simon <jesus.simon@meaningfuldata.eu>",
     "Javier Hernandez <javier.hernandez@meaningfuldata.eu>"
 ]
-description="XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 3.4)"
+description="XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.0)"
 readme="README.rst"
 packages = [{ include = "xbridge"}]
 license='Apache 2.0'
 keywords=['xbrl', 'eba', 'taxonomy', 'csv', 'xml']
 repository='https://github.com/Meaningful-Data/xbridge'
+classifiers=[
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+]
 
-
-[project.urls]
+[tool.poetry.urls]
 BugTracker='https://github.com/Meaningful-Data/xbridge/issues'
 Documentation='https://docs.xbridge.meaningfuldata.eu'
 SourceCode='https://github.com/Meaningful-Data/xbridge'
 
 
-classifiers=[
-    "Programming Language :: Python :: 3",
-]
-
-
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.9"
 pandas = "^2.1.4"
 lxml = "^5.2.1"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 black = "*"
 flake8 = "*"
 pylint = "*"

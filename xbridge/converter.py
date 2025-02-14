@@ -3,11 +3,11 @@ Module holding the Converter class, which converts from XBRL-XML to XBRL-CSV
 taking as input the taxonomy object and the instance object
 """
 
-import copy
 import csv
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Union
 from zipfile import ZipFile
 
 import pandas as pd
@@ -41,7 +41,7 @@ class Converter:
 
     """
 
-    def __init__(self, instance_path: str | Path) -> None:
+    def __init__(self, instance_path: Union[str, Path]) -> None:
         self.instance = Instance(instance_path)
         module_ref = self.instance.module_ref
 
@@ -52,7 +52,7 @@ class Converter:
         self.module = Module.from_serialized(module_path)
         self._reported_tables = []
 
-    def convert(self, output_path: str | Path) -> Path:
+    def convert(self, output_path: Union[str, Path]) -> Path:
         """
         Convert the ``XML Instance`` to a CSV file
         """
@@ -129,17 +129,15 @@ class Converter:
 
         return zip_file_path
 
-    def _variable_generator(self, table: Table) -> pd.DataFrame:
-        """Returns the dataframe with the CSV file for the table
-
-        :param table: The table we use.
-
+    def _get_instance_df(self, table: Table) -> pd.DataFrame:
+        """
+        Returns the dataframe with the subset of instace facts applicable to the table
         """
 
+        instance_columns = set(self.instance.instance_df.columns)
         variable_columns = set(table.variable_columns)
         open_keys = set(table.open_keys)
         attributes = set(table.attributes)
-        instance_columns = set(self.instance.instance_df.columns)
 
         # If any open key is not in the instance, then the table cannot have
         # any datapoint
@@ -150,7 +148,8 @@ class Converter:
         not_relevant_dims = instance_columns - variable_columns - open_keys - \
             attributes - {"value", "unit", "decimals"}
 
-        needed_columns = list(variable_columns | open_keys | attributes | {"value"} | not_relevant_dims)
+        needed_columns = variable_columns | open_keys | attributes | {"value"} | not_relevant_dims
+        needed_columns = list(needed_columns.intersection(instance_columns))
 
         instance_df = self.instance.instance_df[needed_columns].copy()
 
@@ -165,6 +164,24 @@ class Converter:
             instance_df = instance_df.loc[mask]
             instance_df.drop(columns=list(not_relevant_dims), inplace=True)
 
+        return instance_df
+
+
+    def _variable_generator(self, table: Table) -> pd.DataFrame:
+        """Returns the dataframe with the CSV file for the table
+
+        :param table: The table we use.
+
+        """
+      
+        instance_df = self._get_instance_df(table)
+        if instance_df.empty:
+            return instance_df
+
+        variable_columns = set(table.variable_columns)
+        open_keys = set(table.open_keys)
+        attributes = set(table.attributes)
+        instance_columns = set(self.instance.instance_df.columns)
 
         # Do the intersection and drop from datapoints the columns and records
         datapoint_df = table.variable_df
@@ -172,14 +189,14 @@ class Converter:
         if missing_cols:
             mask = datapoint_df[list(missing_cols)].isnull().all(axis=1)
             datapoint_df = datapoint_df.loc[mask]
-            datapoint_df.drop(columns=list(missing_cols), inplace=True)
+            datapoint_df = datapoint_df.drop(columns=list(missing_cols))
 
         # Join the dataframes on the datapoint_columns
         merge_cols = list(variable_columns & instance_columns)
         table_df = pd.merge(datapoint_df, instance_df, on=merge_cols, how="inner")
 
-        if len(table_df) == 0:
-            return pd.DataFrame(columns=["datapoint", "value"])
+        # if len(table_df) == 0:
+        #     return pd.DataFrame(columns=["datapoint", "value"])
 
         table_df.drop(columns=merge_cols, inplace=True)
 
@@ -195,7 +212,7 @@ class Converter:
 
         return table_df
 
-    def _convert_tables(self, temp_dir_path, mapping_dict):
+    def _convert_tables(self, temp_dir_path, mapping_dict, headers_as_datapoints: bool = False):
         for table in self.module.tables:
             ##Workaround:
             # To calculate the table code for abstract tables, we look whether the name
@@ -210,12 +227,19 @@ class Converter:
                 continue
 
             datapoints = self._variable_generator(table)
+
+            if datapoints.empty:
+                continue
+
+            # if table.architecture == 'datapoints':
+
             # Cleaning up the dataframe and sorting it
             datapoints = datapoints.rename(columns={"value": "factValue"})
             #Workaround
             #The enumerated key dimensions need to have a prefix like the one
             #Defined by the EBA in the JSON files. We take them from the taxonomy
             #Because EBA is using exactly those for the JSON files.
+            
             for open_key in table.open_keys:
                 dim_name = mapping_dict.get(open_key)
                 #For open keys, there are no dim_names (they are not mapped)
@@ -223,9 +247,24 @@ class Converter:
                     datapoints[open_key] = dim_name + ":" + datapoints[open_key].astype(str)
             datapoints = datapoints.sort_values(by=["datapoint"], ascending=True)
             output_path_table = temp_dir_path / table.url           
-            if datapoints.empty:
-                continue
-            datapoints.to_csv(output_path_table, index=False)
+
+            export_index = False
+
+            if table.architecture == 'headers' and not headers_as_datapoints:
+                datapoint_column_df = pd.DataFrame(table.columns, columns=["code", "variable_id"])
+                datapoint_column_df.rename(columns={"variable_id": "datapoint", "code": "column_code"}, inplace=True)
+                open_keys_mapping = {k: f'c{v}' for k, v in table._open_keys_mapping.items()}
+                datapoints.rename(columns=open_keys_mapping, inplace=True)
+                datapoints = pd.merge(datapoint_column_df, datapoints, on="datapoint", how="inner")
+                if not table.open_keys:
+                    datapoints["index"]	 = 0
+                    index = "index"
+                else:
+                    index = [v for v in open_keys_mapping.values()]
+                    export_index = True
+                datapoints = datapoints.pivot(index=index, columns="column_code", values="factValue")
+
+            datapoints.to_csv(output_path_table, index=export_index)
 
     def _convert_filing_indicator(self, temp_dir_path):
         # Workaround;

@@ -14,6 +14,7 @@ import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import time
+from typing import Union
 from zipfile import ZipFile
 
 from lxml import etree
@@ -49,7 +50,7 @@ class Taxonomy:
         return self._modules
 
     @staticmethod
-    def __save_module(module, file_path: str | Path = None):
+    def __save_module(module, file_path: Union[str, Path] = None):
         """Saves a module to a JSON file"""
         with open(file_path, "w", encoding="UTF-8") as fl:
             json.dump(module.to_dict(), fl)
@@ -76,10 +77,12 @@ class Taxonomy:
             map_dom_mapping[dim] = dom
         return map_dom_mapping
 
-    def load_modules(self, input_path: str | Path = None):
+    def load_modules(self, input_path: Union[str, Path] = None):
         """loads the modules in the taxonomy"""
         modules = []
         index = {}
+
+        dim_dom_mapping_loaded = False
 
         if not MODULES_FOLDER.exists():
             MODULES_FOLDER.mkdir()
@@ -112,6 +115,7 @@ class Taxonomy:
                     dim_dom_mapping = self._get_dim_dom_mapping(root)
                     with open(DIM_DOM_MAPPING_PATH, "w", encoding="UTF-8") as fl:
                         json.dump(dim_dom_mapping, fl, indent=4)
+                    dim_dom_mapping_loaded = True
 
                 if (
                         file_path_obj.suffix == ".json"
@@ -120,7 +124,7 @@ class Taxonomy:
                     print(f"Loading module {file_path_obj.stem.upper()}")
                     start = time()
                     module = Module.from_taxonomy(zip_file, file_path)
-                    module_file_name = f"{module.code}_{module.date}.json"
+                    module_file_name = f"{module.code}_{module.framework_version}.json"
                     module_path = str(MODULES_FOLDER / module_file_name)
                     self.__save_module(module, module_path)
                     index_key = f"http://{module.url[:-4]}xsd"
@@ -137,6 +141,10 @@ class Taxonomy:
                     "zip files within it"
                 )
             )
+
+
+        if not dim_dom_mapping_loaded:
+            raise ImportError("dim_dom_mapping file was not loaded")
 
         with open(INDEX_PATH, "w", encoding="UTF-8") as fl:
             json.dump(index, fl, indent=4)
@@ -157,7 +165,7 @@ class Taxonomy:
         return module.variables
 
     @classmethod
-    def from_taxonomy(cls, input_path: str | Path):
+    def from_taxonomy(cls, input_path: Union[str, Path]):
         """Returns a Taxonomy object from a JSON taxonomy file"""
         input_path = input_path if isinstance(input_path, Path) else Path(input_path)
         obj = cls()
