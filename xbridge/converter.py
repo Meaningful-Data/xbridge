@@ -52,7 +52,7 @@ class Converter:
         self.module = Module.from_serialized(module_path)
         self._reported_tables = []
 
-    def convert(self, output_path: Union[str, Path]) -> Path:
+    def convert(self, output_path: Union[str, Path], headers_as_datapoints: bool = False) -> Path:
         """
         Convert the ``XML Instance`` to a CSV file
         """
@@ -100,7 +100,7 @@ class Converter:
         self._convert_filing_indicator(report_dir)
         with open(MAPPING_FILE, "r", encoding="utf-8") as fl:
             mapping_dict = json.load(fl)
-        self._convert_tables(report_dir, mapping_dict)
+        self._convert_tables(report_dir, mapping_dict, headers_as_datapoints)
         self._convert_parameters(report_dir)
 
         instance_path = self.instance.path
@@ -212,7 +212,7 @@ class Converter:
 
         return table_df
 
-    def _convert_tables(self, temp_dir_path, mapping_dict, headers_as_datapoints: bool = False):
+    def _convert_tables(self, temp_dir_path, mapping_dict, headers_as_datapoints):
         for table in self.module.tables:
             ##Workaround:
             # To calculate the table code for abstract tables, we look whether the name
@@ -263,6 +263,8 @@ class Converter:
                     index = [v for v in open_keys_mapping.values()]
                     export_index = True
                 datapoints = datapoints.pivot(index=index, columns="column_code", values="factValue")
+            elif table.architecture == 'headers' and headers_as_datapoints:
+                datapoints["datapoint"] = 'dp' + datapoints["datapoint"].astype(str)
 
             datapoints.to_csv(output_path_table, index=export_index)
 
