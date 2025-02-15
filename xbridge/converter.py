@@ -13,7 +13,7 @@ from zipfile import ZipFile
 import pandas as pd
 
 from xbridge.modules import Module, Table
-from xbridge.xml_instance import Instance
+from xbridge.instance import Instance
 
 INDEX_FILE = Path(__file__).parent / "modules" / "index.json"
 MAPPING_FILE = Path(__file__).parent / "modules" / "dim_dom_mapping.json"
@@ -42,7 +42,7 @@ class Converter:
     """
 
     def __init__(self, instance_path: Union[str, Path]) -> None:
-        self.instance = Instance(instance_path)
+        self.instance = Instance.from_path(instance_path)
         module_ref = self.instance.module_ref
 
         if module_ref not in index:

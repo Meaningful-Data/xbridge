@@ -4,10 +4,11 @@ from pathlib import Path
 from typing import Union
 
 from xbridge.converter import Converter
-from xbridge.xml_instance import Instance
+from xbridge.instance import Instance
 
 
-def convert_instance(instance_path: str, output_path: Union[str, Path] = None, headers_as_datapoints: bool = False):
+def convert_instance(instance_path: str, output_path: Union[str, Path] = None, 
+                     headers_as_datapoints: bool = False):
     """
     Convert one single instance of XBRL-XML file to a CSV file
 
@@ -32,4 +33,4 @@ def load_instance(instance_path: Union[str, Path]) -> Instance:
     :return: An instance object may be return
     """
 
-    return Instance(instance_path)
+    return Instance.from_path(instance_path)

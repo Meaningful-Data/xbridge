@@ -2,26 +2,29 @@
     Module with the classes related to XBRL-XML instance files.
 """
 
+from pathlib import Path
+
 import pandas as pd
 from lxml import etree
 
 
 class Instance:
-    """Class representing an XBRL XML instance file. Its attributes are the characters contained in the XBRL files.
-    Each property returns one of these attributes.
+    """Abstract class representing an XBRL instance file. Its attributes are the characters contained in the XBRL files.	"""
 
-    :param path: File path to be used
+    @classmethod
+    def from_path(cls, path: str = None):
+        path = Path(path)
 
-    """
-
+        if path.suffix in [".xml", ".xbrl"]:
+            return XmlInstance(path)
+        elif path.suffix == ".zip":
+            pass
+        else:
+            raise ValueError(f"Unsupported file extension: {path.suffix}")
+        
     def __init__(self, path: str = None):
-        self.path = path
-        self.root = etree.parse(self.path).getroot()
-
-        self._facts_list_dict = None
+        self.path = Path(path)
         self._df = None
-        self._facts = None
-        self._contexts = None
         self._module_code = None
         self._module_ref = None
         self._entity = None
@@ -37,51 +40,11 @@ class Instance:
         self._decimals_percentage_set = set()
         self._identifier_prefix = None
 
-        self.parse()
-
-    @property
-    def namespaces(self):
-        """Returns the `namespaces <https://www.xbrl.org/guidance/xbrl-glossary/#2-other-terms-in-technical-or-common-use:~:text=calculation%20tree.-,Namespace,-A%20namespace%20>`_ is of the instance file."""
-        return self.root.nsmap
-
-    @property
-    def contexts(self):
-        """Returns the :obj:`Context <xbridge.xml_instance.Context>` of the instance file."""
-        return self._contexts
-
-    @property
-    def facts(self):
-        """Returns the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_ of the instance file."""
-        return self._facts
-
-    @property
-    def facts_list_dict(self):
-        """Returns a list of dictionaries with the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
-        of the instance file."""
-        return self._facts_list_dict
-
     @property
     def filing_indicators(self):
         """Returns the filing indicators of the instance file."""
         return self._filing_indicators
-
-    def get_facts_list_dict(self):
-        """Generates a list of dictionaries with the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
-        of the instance file."""
-        result = []
-        for fact in self.facts:
-            fact_dict = fact.__dict__()
-
-            context_id = fact_dict.pop("context")
-
-            if context_id is not None:
-                context = self.contexts[context_id].__dict__()
-                fact_dict.update(context)
-
-            result.append(fact_dict)
-
-        self._facts_list_dict = result
-
+    
     @property
     def module_code(self):
         """Returns the module name of the instance file."""
@@ -98,18 +61,6 @@ class Instance:
         of the instance file."""
         return self._df
 
-    def to_df(self):
-        """Generates a pandas DataFrame with the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
-        of the instance file."""
-        self._df = pd.DataFrame.from_dict(self.facts_list_dict)
-        df_columns = list(self._df.columns)
-        ##Workaround
-        # Dropping period an entity columns because in current EBA architecture,
-        # they have to be the same for all the facts. (Performance reasons)
-        if "period" in df_columns:
-            del self._df["period"]
-        if "entity" in df_columns:
-            del self._df["entity"]
 
     @property
     def identifier_prefix(self):
@@ -141,6 +92,125 @@ class Instance:
     def base_currency(self):
         """Returns the base currency of the instance file"""
         return self._base_currency
+
+    @property
+    def decimals_percentage(self):
+        "Returns the single value for percentage values in the instance."
+        return (
+            max(self._decimals_percentage_set)
+            if len(self._decimals_percentage_set) > 0
+            else None
+        )
+
+    @property
+    def decimals_monetary(self):
+        "Returns the single value for monetary values in the instance."
+        max_reported = (
+            max(self._decimals_monetary_set)
+            if len(self._decimals_monetary_set) > 0
+            else None
+        )
+        if max_reported:
+            ##Workaround
+            # We are assuming that the maximum number of decimals for monetary values
+            # is 2, in practice. We found cases with higher numbers for some values,
+            # and that causes problems in the CSV output, because the maximum was
+            # applying.
+            return min(int(max_reported), 2)
+        return None
+
+
+
+    def parse(self):
+        """Parses the instance file into the library objects."""
+        raise NotImplementedError("Subclasses must implement this method")
+    
+    def to_df(self):
+        """Converts the instance file into a pandas DataFrame."""
+        raise NotImplementedError("Subclasses must implement this method")
+
+
+class CsvInstance(Instance):
+    """Class representing an XBRL CSVinstance file. Its attributes are the characters contained in the XBRL files.
+    Each property returns one of these attributes.
+
+    :param path: File path to be used
+
+    """
+
+
+
+class XmlInstance(Instance):
+    """Class representing an XBRL XML instance file. Its attributes are the characters contained in the XBRL files.
+    Each property returns one of these attributes.
+
+    :param path: File path to be used
+
+    """
+
+    def __init__(self, path: str = None):
+        super().__init__(path)
+
+        self._facts_list_dict = None
+        self._facts = None
+        self._contexts = None
+
+        self.root = etree.parse(self.path).getroot()           
+        self.parse()
+
+    @property
+    def namespaces(self):
+        """Returns the `namespaces <https://www.xbrl.org/guidance/xbrl-glossary/#2-other-terms-in-technical-or-common-use:~:text=calculation%20tree.-,Namespace,-A%20namespace%20>`_ is of the instance file."""
+        return self.root.nsmap
+
+    @property
+    def contexts(self):
+        """Returns the :obj:`Context <xbridge.xml_instance.Context>` of the instance file."""
+        return self._contexts
+
+    @property
+    def facts(self):
+        """Returns the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_ of the instance file."""
+        return self._facts
+
+    @property
+    def facts_list_dict(self):
+        """Returns a list of dictionaries with the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
+        of the instance file."""
+        return self._facts_list_dict
+
+
+    def get_facts_list_dict(self):
+        """Generates a list of dictionaries with the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
+        of the instance file."""
+        result = []
+        for fact in self.facts:
+            fact_dict = fact.__dict__()
+
+            context_id = fact_dict.pop("context")
+
+            if context_id is not None:
+                context = self.contexts[context_id].__dict__()
+                fact_dict.update(context)
+
+            result.append(fact_dict)
+
+        self._facts_list_dict = result
+
+   
+    def to_df(self):
+        """Generates a pandas DataFrame with the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
+        of the instance file."""
+        self._df = pd.DataFrame.from_dict(self.facts_list_dict)
+        df_columns = list(self._df.columns)
+        ##Workaround
+        # Dropping period an entity columns because in current EBA architecture,
+        # they have to be the same for all the facts. (Performance reasons)
+        if "period" in df_columns:
+            del self._df["period"]
+        if "entity" in df_columns:
+            del self._df["entity"]
+
 
     def parse(self):
         """Parses the XML file into the library objects."""
@@ -260,33 +330,7 @@ class Instance:
             self._entity = context
         if self._entity != context:
             raise ValueError("The instance has more than one entity")
-
-    @property
-    def decimals_percentage(self):
-        "Returns the single value for percentage values in the instance."
-        return (
-            max(self._decimals_percentage_set)
-            if len(self._decimals_percentage_set) > 0
-            else None
-        )
-
-    @property
-    def decimals_monetary(self):
-        "Returns the single value for monetary values in the instance."
-        max_reported = (
-            max(self._decimals_monetary_set)
-            if len(self._decimals_monetary_set) > 0
-            else None
-        )
-        if max_reported:
-            ##Workaround
-            # We are assuming that the maximum number of decimals for monetary values
-            # is 2, in practice. We found cases with higher numbers for some values,
-            # and that causes problems in the CSV output, because the maximum was
-            # applying.
-            return min(int(max_reported), 2)
-        return None
-
+        
 
 class Scenario:
     """Class for the scenario of a :obj:`Context <xbridge.xml_instance.Context>`. It parses the XML node with the
