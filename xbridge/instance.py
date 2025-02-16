@@ -3,6 +3,10 @@
 """
 
 from pathlib import Path
+from zipfile import ZipFile
+from tempfile import mkdtemp
+import json
+
 
 import pandas as pd
 from lxml import etree
@@ -18,14 +22,12 @@ class Instance:
         if path.suffix in [".xml", ".xbrl"]:
             return XmlInstance(path)
         elif path.suffix == ".zip":
-            pass
+            return CsvInstance(path)
         else:
             raise ValueError(f"Unsupported file extension: {path.suffix}")
         
     def __init__(self, path: str = None):
         self.path = Path(path)
-        self._df = None
-        self._module_code = None
         self._module_ref = None
         self._entity = None
         self._period = None
@@ -48,18 +50,17 @@ class Instance:
     @property
     def module_code(self):
         """Returns the module name of the instance file."""
-        return self._module_code
+        if ".xsd" in self._module_ref:
+            return self._module_ref.split("/mod/")[1].split(".xsd")[0]
+        elif ".json" in self._module_ref:
+            return self._module_ref.split("/mod/")[1].split(".json")[0]
+        else:
+            raise ValueError("Invalid module reference")
 
     @property
     def module_ref(self):
         """Returns the module reference of the instance file."""
         return self._module_ref
-
-    @property
-    def instance_df(self):
-        """Returns a pandas DataFrame with the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
-        of the instance file."""
-        return self._df
 
 
     @property
@@ -125,10 +126,6 @@ class Instance:
         """Parses the instance file into the library objects."""
         raise NotImplementedError("Subclasses must implement this method")
     
-    def to_df(self):
-        """Converts the instance file into a pandas DataFrame."""
-        raise NotImplementedError("Subclasses must implement this method")
-
 
 class CsvInstance(Instance):
     """Class representing an XBRL CSVinstance file. Its attributes are the characters contained in the XBRL files.
@@ -138,6 +135,57 @@ class CsvInstance(Instance):
 
     """
 
+    def __init__(self, path: str = None):
+        super().__init__(path)
+
+        self._temp_dir_path = None
+        self._parameters_file = None
+        self._filing_indicators_file = None
+        self._table_files = None
+
+        self.parse()
+
+
+    @property
+    def parameters_file(self):
+        """Returns the parameters file."""
+        return self._parameters_file
+
+    @property
+    def filing_indicators_file(self):
+        """Returns the filing indicators file."""
+        return self._filing_indicators_file
+
+    @property
+    def temp_dir_path(self):
+        """Returns the temporary directory path."""
+        return self._temp_dir_path
+    
+    @property
+    def table_files(self):
+        """Returns the table files."""
+        return self._table_files
+
+    def parse(self):
+        """Parses the XBRL-CSV into the library objects."""
+        temp_dir = mkdtemp()
+    
+        self._temp_dir_path = Path(temp_dir)
+        with ZipFile(self.path, "r") as zip_ref:
+            zip_ref.extractall(self._temp_dir_path)
+        
+        self._report_file = self._temp_dir_path / "reports" / "report.json"
+        with open(self._report_file, "r") as f:
+            extends = json.load(f)["documentInfo"]["extends"]
+            if len(extends) > 1:
+                raise ValueError("More than one extension in the report.json file")
+            self._module_ref = 'http://' + extends[0].replace(".json", ".xsd")
+
+        self._parameters_file = self._temp_dir_path / "reports" / "parameters.csv"
+        self._filing_indicators_file = self._temp_dir_path / "reports" / "filingIndicators.csv"
+        self._table_files = set(self._temp_dir_path.rglob("*.csv")) - {self._parameters_file, self._filing_indicators_file}
+
+        
 
 
 class XmlInstance(Instance):
@@ -150,13 +198,15 @@ class XmlInstance(Instance):
 
     def __init__(self, path: str = None):
         super().__init__(path)
-
+       
         self._facts_list_dict = None
         self._facts = None
         self._contexts = None
+        self._df = None
 
         self.root = etree.parse(self.path).getroot()           
         self.parse()
+
 
     @property
     def namespaces(self):
@@ -179,6 +229,11 @@ class XmlInstance(Instance):
         of the instance file."""
         return self._facts_list_dict
 
+    @property
+    def instance_df(self):
+        """Returns a pandas DataFrame with the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
+        of the instance file."""
+        return self._df
 
     def get_facts_list_dict(self):
         """Generates a list of dictionaries with the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
@@ -280,8 +335,6 @@ class XmlInstance(Instance):
             if child.prefix == "link":
                 value = child.attrib["{http://www.w3.org/1999/xlink}href"]
                 self._module_ref = value
-                value = value.split("/mod/")[1].split(".xsd")[0]
-                self._module_code = value
                 break
 
     def get_filing_indicators(self):

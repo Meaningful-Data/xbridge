@@ -19,7 +19,7 @@ if __name__ == "__main__":
     start = time()
     converter = Converter(INSTANCE_PATH)
     initial = time()
-    print(converter.convert(output_path="output/", headers_as_datapoints=False, headers_to_datapoints=True))
+    print(converter.convert(output_path="output/", headers_as_datapoints=False))
     end = time()
     print(f"Time to initialize: {initial - start}")
     print(f"Time to convert: {end - initial}")
