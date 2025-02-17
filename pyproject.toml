@@ -1,6 +1,6 @@
 [project]
 name = "eba-xbridge"
-version = "1.1rc3"
+version = "1.1rc4"
 description = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.0)"
 license = 'Apache 2.0'
 readme = "README.rst"
@@ -24,8 +24,9 @@ classifiers = [
 keywords = ['xbrl', 'eba', 'taxonomy', 'csv', 'xml']
 
 dependencies = [
-    "pandas>=2.1.4,<3.0",
+    "pandas>=2.1,<2.2",
     "lxml>=5.2.1,<6.0",
+    "numpy>=1.21,<2.0",
 ]
 
 [project.urls]
@@ -35,7 +36,7 @@ MeaningfulData = 'https://www.meaningfuldata.eu/'
 IssueTracker = 'https://github.com/Meaningful-Data/xbridge/issues'
 
 [tool.poetry]
-packages = [{ include = "src/xbridge" }]
+packages = [{ include = "xbridge", from = "src" }]
 
 [tool.poetry.group.dev.dependencies]
 mypy = "1.14.1"
