@@ -1,10 +1,10 @@
 [project]
 name = "eba-xbridge"
-version = "1.1rc2"
+version = "1.1rc3"
 description = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.0)"
 license = 'Apache 2.0'
 readme = "README.rst"
-requires-python = ">=3.9,<4"
+requires-python = ">=3.9"
 authors = [
     { name = "MeaningfulData", email = "info@meaningfuldata.eu" },
 ]
