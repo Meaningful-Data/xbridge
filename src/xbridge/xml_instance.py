@@ -55,7 +55,9 @@ class Instance:
 
     @property
     def facts(self):
-        """Returns the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_ of the instance file."""
+        """Returns the `facts
+        <https://www.xbrl.org/guidance/xbrl-glossary/#:
+        ~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_ of the instance file."""
         return self._facts
 
     @property
@@ -185,8 +187,8 @@ class Instance:
         for child in self.root:
             facts_prefixes = []
             for prefix, ns in self.root.nsmap.items():
-                if (
-                        "http://www.eba.europa.eu/xbrl/crr/dict/met" in ns or "http://www.eba.europa.eu/xbrl/crr/dict/dim" in ns):
+                if ("http://www.eba.europa.eu/xbrl/crr/dict/met" in ns
+                        or "http://www.eba.europa.eu/xbrl/crr/dict/dim" in ns):
                     facts_prefixes.append(prefix)
 
             if child.prefix in facts_prefixes:
@@ -281,7 +283,8 @@ class Instance:
 
 
 class Scenario:
-    """Class for the scenario of a :obj:`Context <xbridge.xml_instance.Context>`. It parses the XML node with the
+    """Class for the scenario of a :obj:`Context <xbridge.xml_instance.Context>`.
+    It parses the XML node with the
     scenario created and gets a value that fits with the scenario created from the XML node.
     """
 
@@ -324,8 +327,10 @@ class Scenario:
 
 
 class Context:
-    """Class for the context of a `fact <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_.
-    Its attributes are id, entity, period and scenario. Returns a dictionary which has as keys the entity and the period.
+    """Class for the context of a `fact
+     <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_.
+    Its attributes are id, entity, period and scenario.
+    Returns a dictionary which has as keys the entity and the period.
     """
 
     def __init__(self, context_xml):
@@ -385,8 +390,10 @@ class Context:
 
 
 class Fact:
-    """Class for the `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
-    of an instance. Returns the facts of the instance with information such as the value, its decimals, :obj:`Context <xbridge.xml_instance.Context>` and units.
+    """Class for the `facts
+    <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
+    of an instance. Returns the facts of the instance with information such as the value,
+    its decimals, :obj:`Context <xbridge.xml_instance.Context>` and units.
     """
 
     def __init__(self, fact_xml):
@@ -418,7 +425,10 @@ class Fact:
 
 
 class FilingIndicator:
-    """Class for the `filing <https://www.xbrl.org/guidance/xbrl-glossary/#2-other-terms-in-technical-or-common-use:~:text=data%20point.-,Filing,-The%20file%20or>`_ indicator of an instance. Returns the filing Indicator value and also a table with a
+    """Class for the `filing
+    <https://www.xbrl.org/guidance/xbrl-glossary/#2-other-terms-in-technical-or-common-use:~:
+    text=data%20point.-,Filing,-The%20file%20or>`_ indicator of an instance.
+    Returns the filing Indicator value and also a table with a
     :obj:`Context <xbridge.xml_instance.Context>`
     """
 

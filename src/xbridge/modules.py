@@ -53,7 +53,8 @@ class Module:
 
     @property
     def tables(self):
-        """Returns the :obj:`tables <xbridge.taxonomy.Table>` defined in the JSON file for the :obj:`module <xbridge.taxonomy.Module>`"""
+        """Returns the :obj:`tables <xbridge.taxonomy.Table>` defined in the JSON file for the
+        :obj:`module <xbridge.taxonomy.Module>`"""
         return self._tables
 
     @property
@@ -86,7 +87,8 @@ class Module:
         self.module_json_setup = json.loads(bin_read.decode("utf-8"))
 
     def extract_tables(self, zip_file: ZipFile):
-        """Extracts the :obj:`tables <xbridge.taxonomy.Table>` in the JSON files for the :obj:`modules <xbridge.taxonomy.Module>` in the taxonomy"""
+        """Extracts the :obj:`tables <xbridge.taxonomy.Table>` in the JSON files for the
+        :obj:`modules <xbridge.taxonomy.Module>` in the taxonomy"""
         self._tables = []
 
         for table_path in self.tables_paths:
@@ -158,8 +160,8 @@ class Module:
 
     @property
     def repeated_variables(self):
-        """Returns a dictionary with the :obj:`variables <xbridge.taxonomy.Variable>` and the :obj:`tables <xbridge.taxonomy.Table>`
-        where they are present, if they are repeated
+        """Returns a dictionary with the :obj:`variables <xbridge.taxonomy.Variable>` and the
+        :obj:`tables <xbridge.taxonomy.Table>` where they are present, if they are repeated
         """
         result = {}
         for k, v in self.variables_location.items():
@@ -174,12 +176,15 @@ class Module:
 class Table:
     """Class representing an XBRL :obj:`table <xbridge.taxonomy.Table>` as defined in the JSON file.
 
-    Its properties allow to return open keys, variables and attributes from the :obj:`table <xbridge.taxonomy.Table>`. It can also generate a
+    Its properties allow to return open keys, variables and attributes
+    from the :obj:`table <xbridge.taxonomy.Table>`.
+    It can also generate a
     variable dataframe or work with one already created.
-    Finally, it can return a dictionary using its attributes or a :obj:`Table <xbridge.taxonomy.Table>` object from the preprocessed JSON file.
+    Finally, it can return a dictionary using its attributes or a
+    :obj:`Table <xbridge.taxonomy.Table>` object from the preprocessed JSON file.
 
-    It is used when module is loaded to collect the information associated to the variables and open keys
-    belonging to the table.
+    It is used when module is loaded to collect the information associated
+    to the variables and open keys belonging to the table.
 
     :param code: The code of the table.
 
@@ -224,7 +229,8 @@ class Table:
 
     @property
     def variables(self):
-        """Returns the :obj:`variable <xbridge.taxonomy.Variable>` for the :obj:`table <xbridge.taxonomy.Table>`"""
+        """Returns the :obj:`variable <xbridge.taxonomy.Variable>` for the
+        :obj:`table <xbridge.taxonomy.Table>`"""
         return self._variables
 
     @property
@@ -242,13 +248,15 @@ class Table:
 
     @property
     def variable_df(self):
-        """Returns a dataframe with the :obj:`variable <xbridge.taxonomy.Variable>` and extensional context
+        """Returns a dataframe with the :obj:`variable <xbridge.taxonomy.Variable>`
+        and extensional context
 
         """
         return self._variable_df
 
     def generate_variable_df(self):
-        """Returns a dataframe with the :obj:`variable <xbridge.taxonomy.Variable>` and extensional context"""
+        """Returns a dataframe with the :obj:`variable <xbridge.taxonomy.Variable>`
+        and extensional context"""
         variables = []
 
         if self.architecture == "datapoints":
@@ -297,7 +305,8 @@ class Table:
                 self._open_keys_mapping[dim_code] = column_ref[2:]
 
     def extract_variables(self):
-        """Extract the :obj:`variable <xbridge.taxonomy.Variable>` for the :obj:`table <xbridge.taxonomy.Table>`"""
+        """Extract the :obj:`variable <xbridge.taxonomy.Variable>` for the
+        :obj:`table <xbridge.taxonomy.Table>`"""
         self._variables = []
 
         if self.code in self.table_setup_json["tableTemplates"]:
@@ -374,7 +383,8 @@ class Table:
 
     @classmethod
     def from_taxonomy(cls, zip_file: ZipFile, table_path: str, module_setup_json: dict):
-        """Returns a :obj:`table <xbridge.taxonomy.Table>` object from a part of the preprocessed JSON file"""
+        """Returns a :obj:`table <xbridge.taxonomy.Table>`
+        object from a part of the preprocessed JSON file"""
         obj = cls()
         obj.table_zip_path = table_path
 
@@ -422,14 +432,19 @@ class Table:
 
 
 class Variable:
-    """Class representing a variable as represented in the JSON files. Can return or extract the `dimension <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=a%20taxonomy.-,Dimension,-A%20qualifying%20characteristic>`_
-    of the :obj:`variable <xbridge.taxonomy.Variable>`, create a dictionary using its attributes as keys or return a variable object from the
+    """Class representing a variable as represented in the JSON files.
+    Can return or extract the
+    `dimension <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=a%20taxonomy.-,Dimension,-A%20qualifying%20characteristic>`_
+    of the :obj:`variable <xbridge.taxonomy.Variable>`,
+    create a dictionary using its attributes as keys or return a variable object from the
     preprocessed JSON file.
 
 
     :param code: The code of the variable.
 
-    :param dimensions: the `dimensions <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=a%20taxonomy.-,Dimension,-A%20qualifying%20characteristic>`_ of the variable.
+    :param dimensions: the `dimensions
+    <https://www.xbrl.org/guidance/xbrl-glossary/#:~:
+    text=a%20taxonomy.-,Dimension,-A%20qualifying%20characteristic>`_ of the variable.
 
     :param attributes: The attributes related to the variable.
 
@@ -442,11 +457,15 @@ class Variable:
 
     @property
     def dimensions(self):
-        """Returns the `dimensions <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=a%20taxonomy.-,Dimension,-A%20qualifying%20characteristic>`_ of a variable"""
+        """Returns the `dimensions
+        <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=a%20taxonomy.
+        -,Dimension,-A%20qualifying%20characteristic>`_ of a variable"""
         return self._dimensions
 
     def extract_dimensions(self, datapoint_dict):
-        """Extracts the `dimensions <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=a%20taxonomy.-,Dimension,-A%20qualifying%20characteristic>`_ for the variable"""
+        """Extracts the `dimensions
+        <https://www.xbrl.org/guidance/xbrl-glossary/#:~:
+        text=a%20taxonomy.-,Dimension,-A%20qualifying%20characteristic>`_ for the variable"""
         self._dimensions = datapoint_dict["dimensions"]
         if "decimals" in datapoint_dict:
             self._attributes = datapoint_dict["decimals"]
