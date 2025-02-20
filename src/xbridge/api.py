@@ -21,6 +21,8 @@ def convert_instance(
 
     :param output_path: Path to the output CSV file
 
+    :param headers_as_datapoints: If True, the headers will be treated as datapoints.
+
     :return: Converted CSV file.
 
     """

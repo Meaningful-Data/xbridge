@@ -248,12 +248,12 @@ class Instance:
         """Extracts `filing <https://www.xbrl.org/guidance/xbrl-glossary/#2-other-terms-in-technical-or-common-use:~:text=data%20point.-,Filing,-The%20file%20or>`_
         indicators from the XML instance file.
         """
-        node_fIndicators = self.root.find(
+        node_f_indicators = self.root.find(
             "{http://www.eurofiling.info/xbrl/ext/filing-indicators}fIndicators"
         )
-        if node_fIndicators is None:
+        if node_f_indicators is None:
             return
-        all_ind = node_fIndicators.findall(
+        all_ind = node_f_indicators.findall(
             "{http://www.eurofiling.info/xbrl/ext/filing-indicators}filingIndicator"
         )
         filing_indicators: List[FilingIndicator] = []
