@@ -1,5 +1,4 @@
-"""Module with the classes related to XBRL-XML instance files.
-"""
+"""Module with the classes related to XBRL-XML instance files."""
 
 from __future__ import annotations
 
@@ -124,7 +123,7 @@ class Instance:
         """
         if self.facts_list_dict is None:
             return
-        df = pd.DataFrame.from_dict(self.facts_list_dict) # type: ignore[call-overload]
+        df = pd.DataFrame.from_dict(self.facts_list_dict)  # type: ignore[call-overload]
         df_columns = list(df.columns)
         ##Workaround
         # Dropping period an entity columns because in current EBA architecture,
@@ -192,8 +191,10 @@ class Instance:
     def get_contexts(self) -> None:
         """Extracts :obj:`Context <xbridge.xml_instance.Context>` from the XML instance file."""
         contexts: Dict[str, Context] = {}
-        for context in self.root.findall("{http://www.xbrl.org/2003/instance}context",
-                                         self.namespaces):  # type: ignore[arg-type]
+        for context in self.root.findall(
+            "{http://www.xbrl.org/2003/instance}context",
+            self.namespaces,  # type: ignore[arg-type]
+        ):
             context_object = Context(context)
             contexts[context_object.id] = context_object
 
@@ -215,8 +216,10 @@ class Instance:
         for child in self.root:
             facts_prefixes = []
             for prefix, ns in self.root.nsmap.items():
-                if ("http://www.eba.europa.eu/xbrl/crr/dict/met" in ns
-                        or "http://www.eba.europa.eu/xbrl/crr/dict/dim" in ns):
+                if (
+                    "http://www.eba.europa.eu/xbrl/crr/dict/met" in ns
+                    or "http://www.eba.europa.eu/xbrl/crr/dict/dim" in ns
+                ):
                     facts_prefixes.append(prefix)
 
             if child.prefix in facts_prefixes:
@@ -306,9 +309,11 @@ class Instance:
         """Returns the single value for percentage values in the instance."""
         if not self._decimals_percentage_set:
             return None
-        max_val = max(
-            int(d) for d in self._decimals_percentage_set if d and d.isdigit()
-        ) if any(d and d.isdigit() for d in self._decimals_percentage_set) else None
+        max_val = (
+            max(int(d) for d in self._decimals_percentage_set if d and d.isdigit())
+            if any(d and d.isdigit() for d in self._decimals_percentage_set)
+            else None
+        )
         return max_val
 
     @property
@@ -438,8 +443,10 @@ class Context:
         self._scenario = Scenario(scenario_elem)
 
     def __repr__(self) -> str:
-        return (f"Context(id={self.id}, entity={self.entity}, "
-                f"period={self.period}, scenario={self.scenario})")
+        return (
+            f"Context(id={self.id}, entity={self.entity}, "
+            f"period={self.period}, scenario={self.scenario})"
+        )
 
     def __dict__(self) -> Dict[str, Any]:  # type: ignore[override]
         result = {"entity": self.entity, "period": self.period}
@@ -475,7 +482,7 @@ class Fact:
         self.context = self.fact_xml.attrib.get("contextRef")
         self.unit = self.fact_xml.attrib.get("unitRef")
 
-    def __dict__(self) -> Dict[str, Any]: # type: ignore[override]
+    def __dict__(self) -> Dict[str, Any]:  # type: ignore[override]
         metric_clean = ""
         if self.metric:
             metric_clean = self.metric.split("}")[1] if "}" in self.metric else self.metric
@@ -489,9 +496,11 @@ class Fact:
         }
 
     def __repr__(self) -> str:
-        return (f"Fact(metric={self.metric}, value={self.value}, "
-                f"decimals={self.decimals}, context={self.context}, "
-                f"unit={self.unit})")
+        return (
+            f"Fact(metric={self.metric}, value={self.value}, "
+            f"decimals={self.decimals}, context={self.context}, "
+            f"unit={self.unit})"
+        )
 
 
 class FilingIndicator:
@@ -513,7 +522,8 @@ class FilingIndicator:
     def parse(self) -> None:
         """Parse the XML node with the filing indicator."""
         value = self.filing_indicator_xml.attrib.get(
-            "{http://www.eurofiling.info/xbrl/ext/filing-indicators}filed")
+            "{http://www.eurofiling.info/xbrl/ext/filing-indicators}filed"
+        )
         if value:
             self.value = value == "true"
         else:
@@ -521,9 +531,12 @@ class FilingIndicator:
         self.table = self.filing_indicator_xml.text
         self.context = self.filing_indicator_xml.attrib.get("contextRef")
 
-    def __dict__(self) -> Dict[str, Any]: # type: ignore[override]
-        return {"value": self.value, "table": self.table, "context": self.context, }
+    def __dict__(self) -> Dict[str, Any]:  # type: ignore[override]
+        return {
+            "value": self.value,
+            "table": self.table,
+            "context": self.context,
+        }
 
     def __repr__(self) -> str:
-        return (
-            f"FilingIndicator(value={self.value}, " f"table={self.table}, context={self.context})")
+        return f"FilingIndicator(value={self.value}, table={self.table}, context={self.context})"

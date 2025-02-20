@@ -12,7 +12,7 @@ from xbridge.xml_instance import Instance
 def convert_instance(
     instance_path: Union[str, Path],
     output_path: Optional[Union[str, Path]] = None,
-    headers_as_datapoints: bool = False
+    headers_as_datapoints: bool = False,
 ) -> Path:
     """
     Convert one single instance of XBRL-XML file to a CSV file

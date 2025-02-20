@@ -200,7 +200,6 @@ class Converter:
         variable_columns = set(table.variable_columns or [])
 
         open_keys = set(table.open_keys)
-        attributes = set(table.attributes)
         instance_columns = (
             set(self.instance.instance_df.columns)
             if self.instance.instance_df is not None
@@ -213,7 +212,7 @@ class Converter:
         if missing_cols:
             mask = datapoint_df[missing_cols].isnull().all(axis=1)
             datapoint_df = datapoint_df.loc[mask]
-            datapoint_df = datapoint_df.drop(columns=missing_cols, inplace=True)
+            datapoint_df.drop(columns=missing_cols, inplace=True)
 
         # Join the dataframes on the datapoint_columns
         merge_cols = list(variable_columns & instance_columns)
@@ -292,7 +291,7 @@ class Converter:
                     datapoints["index"] = 0
                     index = "index"
                 else:
-                    index = list(open_keys_mapping.values())
+                    index = list(open_keys_mapping.values())  # type: ignore[assignment]
                     export_index = True
                 datapoints = datapoints.pivot(
                     index=index, columns="column_code", values="factValue"

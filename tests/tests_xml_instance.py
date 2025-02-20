@@ -63,8 +63,7 @@ class TestFact:
 
     def test_repr(self):
         expected_repr = (
-            f"Fact(metric={self.fact.metric}, value=100, "
-            f"decimals=2, context=context1, unit=unit1)"
+            f"Fact(metric={self.fact.metric}, value=100, decimals=2, context=context1, unit=unit1)"
         )
         assert repr(self.fact) == expected_repr
 

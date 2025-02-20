@@ -62,7 +62,3 @@ class TestCase7(TestInstanceConversionBasic):
         self.instance_path = INPUT_PATH_3_2p1 / "test1_in.xbrl"
         self.expected_output_path = INPUT_PATH_3_2p1 / "test1_out.zip"
         super().setup_method(method)
-
-
-if __name__ == "__main__":
-    pass

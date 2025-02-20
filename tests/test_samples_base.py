@@ -93,7 +93,10 @@ class TestInstanceConversionBasic:
                 except pd.errors.EmptyDataError:
                     pass
         print(f"Generated: {no_generated_facts}; xml_facts: {self.no_xml_facts}")
-        assert no_generated_facts >= self.no_xml_facts, f"Number of facts inconsistent for {self.input_path}: Expected: " f"{self.no_xml_facts} Generated: {no_generated_facts} "
+        assert no_generated_facts >= self.no_xml_facts, (
+            f"Number of facts inconsistent for {self.input_path}: Expected: "
+            f"{self.no_xml_facts} Generated: {no_generated_facts} "
+        )
 
     def test_files_same_structure(self):
         """
@@ -107,7 +110,9 @@ class TestInstanceConversionBasic:
             with self.generated_output_zip.open(f"reports/{file_name}") as fl:
                 generated_df = pd.read_csv(fl)
 
-            assert set(expected_df.columns) == set(generated_df.columns), f"Expected: {set(expected_df.columns)} " f"Generated: {set(generated_df.columns)}"
+            assert set(expected_df.columns) == set(generated_df.columns), (
+                f"Expected: {set(expected_df.columns)} Generated: {set(generated_df.columns)}"
+            )
 
 
 class TestInstanceConversionFull(TestInstanceConversionBasic):
@@ -143,7 +148,9 @@ class TestInstanceConversionFull(TestInstanceConversionBasic):
         Tests that the number and name of csv files contained
         in both the input and output files are the same
         """
-        assert {Path(file).name for file in self.expected_csv_files} == {Path(file).name for file in self.generated_csv_files}
+        assert {Path(file).name for file in self.expected_csv_files} == {
+            Path(file).name for file in self.generated_csv_files
+        }
 
     def test_files_same_size(self):
         """
@@ -158,7 +165,10 @@ class TestInstanceConversionFull(TestInstanceConversionBasic):
                 generated_df = pd.read_csv(fl)
 
             if file_name != "parameters.csv":
-                assert len(expected_df) == len(generated_df), f"Length of {file_name} inconsistent: Expected: " f"{len(expected_df)} Generated: {len(generated_df)}"
+                assert len(expected_df) == len(generated_df), (
+                    f"Length of {file_name} inconsistent: Expected: "
+                    f"{len(expected_df)} Generated: {len(generated_df)}"
+                )
 
     def test_number_filing_indicators(self):
         """

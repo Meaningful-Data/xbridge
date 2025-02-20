@@ -4,6 +4,7 @@ JSON files with the conversion instructions.
 Each time the EBA releases a new taxonomy, the taxonomy_loader.py
 module must be run to reflect the changes in the taxonomy.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -41,14 +42,13 @@ def _extract_specific_files_7z(file_path: Path, target_path: Path) -> None:
             "7z command not found, please install 7zip to be able to extract "
             "it and run the script again"
         )
-    process = subprocess.run(cmd, capture_output=True) # noqa: S603
+    process = subprocess.run(cmd, capture_output=True)  # noqa: S603
     if process.returncode != 0:
         raise ValueError(f"Error extracting 7z file {file_path}")
 
 
 class Taxonomy:
-    """Class representing an XBRL taxonomy
-    """
+    """Class representing an XBRL taxonomy"""
 
     def __init__(self) -> None:
         self._modules: List[Module] = []
@@ -105,7 +105,6 @@ class Taxonomy:
         if input_path.suffix not in [".zip", ".7z"]:
             raise ValueError("Input file must be a zip or 7z file")
 
-
         if input_path.suffix == ".7z":
             print("Converting 7z to zip")
             start = time()
@@ -119,8 +118,8 @@ class Taxonomy:
             for file_path in zip_file.namelist():
                 file_path_obj = Path(file_path)
                 if (
-                        str(file_path_obj)
-                        == "www.eba.europa.eu\\eu\\fr\\xbrl\\crr\\dict\\dim\\dim-def.xml"
+                    str(file_path_obj)
+                    == "www.eba.europa.eu\\eu\\fr\\xbrl\\crr\\dict\\dim\\dim-def.xml"
                 ):
                     bin_read = zip_file.read(file_path)
                     root = etree.fromstring(bin_read.decode("utf-8"))

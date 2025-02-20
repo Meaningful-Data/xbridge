@@ -1,5 +1,5 @@
-"""Module with the classes related to modules, containing the "instructions" for the conversion.
-"""
+"""Module with the classes related to modules, containing the "instructions" for the conversion."""
+
 from __future__ import annotations
 
 import copy
@@ -31,11 +31,12 @@ class Module:
 
     """
 
-    def __init__(self,
+    def __init__(
+        self,
         code: Optional[str] = None,
         url: Optional[str] = None,
-        tables: Optional[List[Table]] = None) -> None:
-
+        tables: Optional[List[Table]] = None,
+    ) -> None:
         self.code: Optional[str] = code
         self.url: Optional[str] = url
         self._tables: List[Table] = tables if tables is not None else []
@@ -108,7 +109,7 @@ class Module:
         for table_path in self.tables_paths:
             if "FilingIndicators.json" in table_path or "FootNotes.json" in table_path:
                 continue
-            table = Table.from_taxonomy(zip_file, table_path, self.module_json_setup["tables"]) # type: ignore[index]
+            table = Table.from_taxonomy(zip_file, table_path, self.module_json_setup["tables"])  # type: ignore[index]
 
             self.tables.append(table)
 
@@ -218,16 +219,16 @@ class Table:
     """
 
     def __init__(
-            self,
-            code: Optional[str] = None,
-            url: Optional[str] = None,
-            open_keys: Optional[List[str]] = None,
-            variables: Optional[List[Variable]] = None,
-            attributes: Optional[List[str]] = None,
-            input_zip_path: Optional[str] = None,
-            architecture: Optional[str] = None,
-            columns: Optional[List[dict[str, Any]]] = None,
-            open_keys_mapping: Optional[Dict[str, str]] = None,
+        self,
+        code: Optional[str] = None,
+        url: Optional[str] = None,
+        open_keys: Optional[List[str]] = None,
+        variables: Optional[List[Variable]] = None,
+        attributes: Optional[List[str]] = None,
+        input_zip_path: Optional[str] = None,
+        architecture: Optional[str] = None,
+        columns: Optional[List[dict[str, Any]]] = None,
+        open_keys_mapping: Optional[Dict[str, str]] = None,
     ) -> None:
         self.table_zip_path: Optional[str] = input_zip_path
         self.code: Optional[str] = code
@@ -240,7 +241,6 @@ class Table:
         self.columns: List[dict[str, Any]] = columns if columns else []
         self.architecture: str = architecture if architecture else "datapoints"
         self.table_setup_json: Dict[str, Any] = {}
-
 
     @property
     def open_keys(self) -> List[str]:
@@ -260,8 +260,7 @@ class Table:
 
     @property
     def variable_columns(self) -> Set[str]:
-        """Returns the columns for the :obj:`variable <xbridge.taxonomy.Variable>` dataframe
-        """
+        """Returns the columns for the :obj:`variable <xbridge.taxonomy.Variable>` dataframe"""
         if self.variable_df is None:
             return set()
         cols = set(self.variable_df.columns)
@@ -376,12 +375,12 @@ class Table:
         }
 
         if self.architecture == "datapoints":
-            result["variables"] = [var.to_dict() for var in self.variables] # type: ignore[misc]
+            result["variables"] = [var.to_dict() for var in self.variables]  # type: ignore[misc]
             result["attributes"] = self.attributes
 
         elif self.architecture == "headers":
             result["open_keys_mapping"] = self._open_keys_mapping  # type: ignore[assignment]
-            result["columns"] = self.columns # type: ignore[assignment]
+            result["columns"] = self.columns  # type: ignore[assignment]
 
         return result
 
@@ -407,8 +406,9 @@ class Table:
             return "headers"
 
     @classmethod
-    def from_taxonomy(cls, zip_file: ZipFile, table_path: str,
-                      module_setup_json: dict[str, Any]) -> Table:
+    def from_taxonomy(
+        cls, zip_file: ZipFile, table_path: str, module_setup_json: dict[str, Any]
+    ) -> Table:
         """Returns a :obj:`table <xbridge.taxonomy.Table>`
         object from a part of the preprocessed JSON file"""
         obj = cls()
