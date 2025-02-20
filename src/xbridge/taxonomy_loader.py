@@ -4,6 +4,7 @@ JSON files with the conversion instructions.
 Each time the EBA releases a new taxonomy, the taxonomy_loader.py
 module must be run to reflect the changes in the taxonomy.
 """
+from __future__ import annotations
 
 import argparse
 import json
@@ -25,7 +26,7 @@ INDEX_PATH = MODULES_FOLDER / "index.json"
 DIM_DOM_MAPPING_PATH = MODULES_FOLDER / "dim_dom_mapping.json"
 
 
-def _extract_specific_files_7z(file_path: Path, target_path: Path):
+def _extract_specific_files_7z(file_path: Path, target_path: Path) -> None:
     cmd = [
         shutil.which("7z"),
         "x",
@@ -49,8 +50,8 @@ class Taxonomy:
     """Class representing an XBRL taxonomy
     """
 
-    def __init__(self):
-        self._modules = []
+    def __init__(self) -> None:
+        self._modules: list[Module] = []
 
     @property
     def modules(self):
@@ -58,7 +59,7 @@ class Taxonomy:
         return self._modules
 
     @staticmethod
-    def __save_module(module, file_path: Union[str, Path] = None):
+    def __save_module(module: Module, file_path: Union[str, Path]) -> None:
         """Saves a module to a JSON file"""
         with open(file_path, "w", encoding="UTF-8") as fl:
             json.dump(module.to_dict(), fl)
@@ -85,7 +86,7 @@ class Taxonomy:
             map_dom_mapping[dim] = dom
         return map_dom_mapping
 
-    def load_modules(self, input_path: Union[str, Path] = None):
+    def load_modules(self, input_path: Union[str, Path]) -> None:
         """Loads the modules in the taxonomy"""
         is_there_a_module = False
         index = {}
@@ -160,7 +161,7 @@ class Taxonomy:
         end = time()
         print(f"Time to extract modules: {end - start}")
 
-    def get_module(self, code: str):
+    def get_module(self, code: str) -> Module:
         """Returns the module with the given code"""
         for module in self.modules:
             if module.code == code:
@@ -188,7 +189,7 @@ class Taxonomy:
         #       the key values in the scenarios
 
     @staticmethod
-    def _convert_7z_to_zip(input_path):
+    def _convert_7z_to_zip(input_path: Path) -> None:
         """Converts a 7z file to a zip file"""
         start = time()
         with TemporaryDirectory() as temp_folder:
@@ -209,7 +210,7 @@ class Taxonomy:
         print(f"7z to zip conversion done in {elapsed} s")
 
 
-def main():
+def main() -> None:
     """Main function to generate the json files from the taxonomy"""
     parser = argparse.ArgumentParser(description="Xbridge taxonomy loader")
 
