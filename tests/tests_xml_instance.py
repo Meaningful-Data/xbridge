@@ -2,15 +2,13 @@
 Tests for xml_instance module
 """
 
-import unittest
-
 from lxml import etree
 
 from xbridge.xml_instance import Fact, FilingIndicator
 
 
-class TestFilingIndicator(unittest.TestCase):
-    def setUp(self):
+class TestFilingIndicator:
+    def setup_method(self, method):
         element = etree.Element(
             "{http://www.eurofiling.info/xbrl/ext/filing-indicators}filingIndicator",
             attrib={
@@ -30,15 +28,15 @@ class TestFilingIndicator(unittest.TestCase):
 
     def test_dict(self):
         expected_dict = {"value": True, "table": "C_00.01", "context": "ctx_header"}
-        self.assertDictEqual(self.filing_indicator.__dict__(), expected_dict)
+        assert self.filing_indicator.__dict__() == expected_dict
 
     def test_repr(self):
         expected_repr = "FilingIndicator(value=True, table=C_00.01, context=ctx_header)"
         assert repr(self.filing_indicator) == expected_repr
 
 
-class TestFact(unittest.TestCase):
-    def setUp(self):
+class TestFact:
+    def setup_method(self, method):
         self.fact_xml = etree.Element(
             "{http://www.xbrl.org/2003/instance}fact",
             attrib={"decimals": "2", "contextRef": "context1", "unitRef": "unit1"},
@@ -61,7 +59,7 @@ class TestFact(unittest.TestCase):
             "context": "context1",
             "unit": "unit1",
         }
-        self.assertDictEqual(self.fact.__dict__(), expected_dict)
+        assert self.fact.__dict__() == expected_dict
 
     def test_repr(self):
         expected_repr = (
@@ -72,4 +70,4 @@ class TestFact(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    pass

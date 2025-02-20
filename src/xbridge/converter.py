@@ -1,6 +1,7 @@
 """Module holding the Converter class, which converts from XBRL-XML to XBRL-CSV
 taking as input the taxonomy object and the instance object
 """
+
 from __future__ import annotations
 
 import csv
@@ -26,7 +27,7 @@ if not INDEX_FILE.exists():
     )
 
 with open(INDEX_FILE, "r", encoding="utf-8") as fl:
-    index = json.load(fl)
+    index: Dict[str, str] = json.load(fl)
 
 
 class Converter:
@@ -64,8 +65,7 @@ class Converter:
         self._reported_tables: list[str] = []
 
     def convert(self, output_path: Union[str, Path], headers_as_datapoints: bool = False) -> Path:
-        """Convert the ``XML Instance`` to a CSV file
-        """
+        """Convert the ``XML Instance`` to a CSV file"""
         if not output_path:
             raise ValueError("Output path not provided")
 
@@ -105,7 +105,7 @@ class Converter:
 
         self._convert_filing_indicator(report_dir)
         with open(MAPPING_FILE, "r", encoding="utf-8") as fl:
-            mapping_dict = json.load(fl)
+            mapping_dict: Dict[str, str] = json.load(fl)
         self._convert_tables(report_dir, mapping_dict, headers_as_datapoints)
         self._convert_parameters(report_dir)
 
@@ -136,12 +136,11 @@ class Converter:
         return zip_file_path
 
     def _get_instance_df(self, table: Table) -> pd.DataFrame:
-        """Returns the dataframe with the subset of instace facts applicable to the table
-        """
+        """Returns the dataframe with the subset of instace facts applicable to the table"""
         if self.instance.instance_df is None:
             return pd.DataFrame(columns=["datapoint", "value"])
         instance_columns = set(self.instance.instance_df.columns)
-        variable_columns = set(table.variable_columns)
+        variable_columns = set(table.variable_columns or [])
         open_keys = set(table.open_keys)
         attributes = set(table.attributes)
 
@@ -152,15 +151,20 @@ class Converter:
 
         # Determine the not relevant dims
         not_relevant_dims = (
-                instance_columns
-                - variable_columns
-                - open_keys
-                - attributes
-                - {"value", "unit", "decimals"}
+            instance_columns
+            - variable_columns
+            - open_keys
+            - attributes
+            - {"value", "unit", "decimals"}
         )
 
-        needed_columns = variable_columns | open_keys | attributes | {"value"} | not_relevant_dims
-        needed_columns = needed_columns.intersection(instance_columns)
+        # Convert to list so Pandas won't complain
+        needed_columns = list(
+            variable_columns | open_keys | attributes | {"value"} | not_relevant_dims
+        )
+
+        # Intersect with instance_columns as a list
+        needed_columns = list(set(needed_columns).intersection(instance_columns))
 
         instance_df = self.instance.instance_df[needed_columns].copy()
 
@@ -175,9 +179,11 @@ class Converter:
         # Drop datapoints that have non-null values in not relevant dimensions
         # And drop the not relevant columns
         if not_relevant_dims:
-            mask = instance_df[list(not_relevant_dims)].isnull().all(axis=1)
+            # Convert to list
+            nrd_list = list(not_relevant_dims)
+            mask = instance_df[nrd_list].isnull().all(axis=1)
             instance_df = instance_df.loc[mask]
-            instance_df.drop(columns=list(not_relevant_dims), inplace=True)
+            instance_df.drop(columns=nrd_list, inplace=True)
 
         return instance_df
 
@@ -195,16 +201,19 @@ class Converter:
 
         open_keys = set(table.open_keys)
         attributes = set(table.attributes)
-        instance_columns = set(self.instance.instance_df.columns) \
-            if self.instance.instance_df is not None else set()
+        instance_columns = (
+            set(self.instance.instance_df.columns)
+            if self.instance.instance_df is not None
+            else set()
+        )
 
         # Do the intersection and drop from datapoints the columns and records
         datapoint_df = table.variable_df
-        missing_cols = variable_columns - instance_columns
+        missing_cols = list(variable_columns - instance_columns)
         if missing_cols:
-            mask = datapoint_df[list(missing_cols)].isnull().all(axis=1)
+            mask = datapoint_df[missing_cols].isnull().all(axis=1)
             datapoint_df = datapoint_df.loc[mask]
-            datapoint_df = datapoint_df.drop(columns=list(missing_cols))
+            datapoint_df = datapoint_df.drop(columns=missing_cols, inplace=True)
 
         # Join the dataframes on the datapoint_columns
         merge_cols = list(variable_columns & instance_columns)
@@ -289,8 +298,8 @@ class Converter:
                     index=index, columns="column_code", values="factValue"
                 )
 
-            elif table.architecture == 'headers' and headers_as_datapoints:
-                datapoints["datapoint"] = 'dp' + datapoints["datapoint"].astype(str)
+            elif table.architecture == "headers" and headers_as_datapoints:
+                datapoints["datapoint"] = "dp" + datapoints["datapoint"].astype(str)
 
             datapoints.to_csv(output_path_table, index=export_index)
 

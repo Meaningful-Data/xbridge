@@ -3,28 +3,34 @@ Test that EBA samples are transformed correctly
 """
 
 import json
-import unittest
 from pathlib import Path
 from zipfile import ZipFile
 
 import pandas as pd
+import pytest
 
 from xbridge.api import convert_instance, load_instance
 
 OUTPUT_PATH = Path(__file__).parent / "conversions"
 
 
-class TestInstanceConversionBasic(unittest.TestCase):
+class TestInstanceConversionBasic:
     """
     Tests for the cases where only input xml is provided
     """
 
-    def setUp(self, instance_path=None, expected_output_path=None):
+    def setup_method(self, method):
         """
         Sets up the test case
         """
+        self.instance_path = getattr(self, "instance_path", None)
+        self.expected_output_path = getattr(self, "expected_output_path", None)
+
+        instance_path = self.instance_path
+        expected_output_path = self.expected_output_path
+
         if instance_path is None:
-            self.skipTest("Abstract test class")
+            pytest.skip("Abstract test class (instance_path not set)")
 
         self.instance = load_instance(instance_path)
 
@@ -51,7 +57,7 @@ class TestInstanceConversionBasic(unittest.TestCase):
             if file.startswith(f"{self.expected_root_folder_name}reports") and file.endswith(".csv")
         ]
 
-    def tearDown(self) -> None:
+    def teardown_method(self, method) -> None:
         """
         Removes the generated zip file
         """
@@ -110,16 +116,14 @@ class TestInstanceConversionFull(TestInstanceConversionBasic):
     csv files are provided
     """
 
-    def setUp(self, instance_path=None, expected_output_path=None):
+    def setup_method(self, method):
         """
         Sets up the test case
-        :param instance_path: Path to the input xml file
-        :param expected_output_path: Path to the expected output zip file
         """
-        super().setUp(instance_path, expected_output_path)
+        super().setup_method(method)
 
-    def tearDown(self) -> None:
-        super().tearDown()
+    def teardown_method(self, method) -> None:
+        super().teardown_method(method)
 
     def test_reports_file(self):
         """
