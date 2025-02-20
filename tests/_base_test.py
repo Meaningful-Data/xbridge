@@ -14,7 +14,7 @@ from xbridge.api import convert_instance, load_instance
 OUTPUT_PATH = Path(__file__).parent / "conversions"
 
 
-class TestInstanceConversionBasic:
+class BasicConversionTest:
     """
     Tests for the cases where only input xml is provided
     """
@@ -115,7 +115,7 @@ class TestInstanceConversionBasic:
             )
 
 
-class TestInstanceConversionFull(TestInstanceConversionBasic):
+class FullConversionTest(BasicConversionTest):
     """
     Tests for the cases where input xml and expected output
     csv files are provided
