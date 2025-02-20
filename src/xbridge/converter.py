@@ -161,6 +161,7 @@ class Converter:
 
         needed_columns = variable_columns | open_keys | attributes | {"value"} | not_relevant_dims
         needed_columns = needed_columns.intersection(instance_columns)
+        needed_columns = list(needed_columns)
 
         instance_df = self.instance.instance_df[needed_columns].copy()
 
@@ -194,7 +195,6 @@ class Converter:
         variable_columns = set(table.variable_columns or [])
 
         open_keys = set(table.open_keys)
-        attributes = set(table.attributes)
         instance_columns = set(self.instance.instance_df.columns) \
             if self.instance.instance_df is not None else set()
 
@@ -283,7 +283,9 @@ class Converter:
                     datapoints["index"] = 0
                     index = "index"
                 else:
-                    index = list(open_keys_mapping.values())
+                    # TODO: Check why do we have a string or a list at pivot,
+                    #  should be only the str?
+                    index = list(open_keys_mapping.values()) # type: ignore[assignment]
                     export_index = True
                 datapoints = datapoints.pivot(
                     index=index, columns="column_code", values="factValue"

@@ -124,7 +124,7 @@ class Instance:
         """
         if self.facts_list_dict is None:
             return
-        df = pd.DataFrame.from_dict(self.facts_list_dict)
+        df = pd.DataFrame.from_dict(self.facts_list_dict) # type: ignore[call-overload]
         df_columns = list(df.columns)
         ##Workaround
         # Dropping period an entity columns because in current EBA architecture,
@@ -182,19 +182,24 @@ class Instance:
         except Exception as e:
             raise ValueError(f"Error parsing instance: {str(e)}")
 
-        # TODO: Validate that all the assumptions about the EBA instances are correct  # Should be an optional parameter (to avoid performance issues when it is known  # that the assumptions are correct)  # - Validate that there is only one entity  # - Validate that there is only one period  # - Validate that all the facts have the same currency
+        # TODO: Validate that all the assumptions about the EBA instances are correct
+        # Should be an optional parameter (to avoid performance issues when it is known
+        # that the assumptions are correct)
+        # - Validate that there is only one entity
+        # - Validate that there is only one period
+        # - Validate that all the facts have the same currency
 
     def get_contexts(self) -> None:
         """Extracts :obj:`Context <xbridge.xml_instance.Context>` from the XML instance file."""
         contexts: Dict[str, Context] = {}
         for context in self.root.findall("{http://www.xbrl.org/2003/instance}context",
-                self.namespaces):
+                                         self.namespaces):  # type: ignore[arg-type]
             context_object = Context(context)
             contexts[context_object.id] = context_object
 
         self._contexts = contexts
 
-        first_ctx = self.root.find("{http://www.xbrl.org/2003/instance}context", self.namespaces)
+        first_ctx = self.root.find("{http://www.xbrl.org/2003/instance}context", self.namespaces)  # type: ignore[arg-type]
         if first_ctx is not None:
             entity_elem = first_ctx.find("{http://www.xbrl.org/2003/instance}entity")
             if entity_elem is not None:
@@ -230,10 +235,10 @@ class Instance:
         """Extracts the module name from the XML instance file."""
         for child in self.root:
             if child.prefix == "link":
-                value = child.attrib["{http://www.w3.org/1999/xlink}href"]
+                value: str = child.attrib["{http://www.w3.org/1999/xlink}href"]  # type: ignore[assignment]
                 self._module_ref = value
-                value = value.split("/mod/")[1].split(".xsd")[0]
-                self._module_code = value
+                split_value = value.split("/mod/")[1].split(".xsd")[0]
+                self._module_code = split_value
                 break
 
     def get_filing_indicators(self) -> None:
@@ -264,11 +269,11 @@ class Instance:
         """Extracts the base currency of the instance"""
         units: Dict[str, str] = {}
         for unit in self.root.findall("{http://www.xbrl.org/2003/instance}unit"):
-            unit_name = unit.attrib["id"]
+            unit_name: str = unit.attrib["id"]  # type: ignore[assignment]
             measure = unit.find("{http://www.xbrl.org/2003/instance}measure")
             if measure is None or measure.text is None:
                 continue
-            unit_value = measure.text
+            unit_value: str = measure.text
             ##Workaround
             # We are assuming that currencies always start as iso4217
             if unit_value[:8].lower() == "iso4217:":  # noqa: SIM102
@@ -309,10 +314,10 @@ class Instance:
     @property
     def decimals_monetary(self) -> Optional[int]:
         """Returns the single value for monetary values in the instance."""
-        if not self._decimals_monetary_set:
+        if len(self._decimals_monetary_set) == 0:
             return None
-        max_reported = (
-            max(self._decimals_monetary_set) if len(self._decimals_monetary_set) > 0 else None)
+        decimal_values = [d for d in self._decimals_monetary_set if d]
+        max_reported = max(decimal_values)
         if max_reported:
             # Workaround
             # We are assuming that the maximum number of decimals for monetary values
@@ -331,7 +336,7 @@ class Scenario:
 
     def __init__(self, scenario_xml: etree._Element | None = None) -> None:
         self.scenario_xml = scenario_xml
-        self.dimensions = {}
+        self.dimensions: Dict[str, str] = {}
 
         self.parse()
 
@@ -378,10 +383,10 @@ class Context:
     def __init__(self, context_xml: etree._Element) -> None:
         self.context_xml = context_xml
 
-        self._id: str | None = None
-        self._entity: str | None = None
-        self._period: str | None = None
-        self._scenario: Scenario | None = None
+        self._id: Optional[str] = None
+        self._entity: Optional[str] = None
+        self._period: Optional[str] = None
+        self._scenario: Optional[Scenario] = None
 
         self.parse()
 
@@ -415,7 +420,7 @@ class Context:
 
     def parse(self) -> None:
         """Parses the XML node with the :obj:`Context <xbridge.xml_instance.Context>`."""
-        self._id = self.context_xml.attrib["id"]
+        self._id = self.context_xml.attrib["id"]  # type: ignore[assignment]
 
         entity_elem = self.context_xml.find("{http://www.xbrl.org/2003/instance}entity")
         if entity_elem is not None:
@@ -436,7 +441,7 @@ class Context:
         return (f"Context(id={self.id}, entity={self.entity}, "
                 f"period={self.period}, scenario={self.scenario})")
 
-    def __dict__(self) -> dict[str, str]:
+    def __dict__(self) -> Dict[str, Any]:  # type: ignore[override]
         result = {"entity": self.entity, "period": self.period}
 
         for key, value in self.scenario.dimensions.items():
@@ -470,7 +475,7 @@ class Fact:
         self.context = self.fact_xml.attrib.get("contextRef")
         self.unit = self.fact_xml.attrib.get("unitRef")
 
-    def __dict__(self) -> dict[str, str | None]:
+    def __dict__(self) -> Dict[str, Any]: # type: ignore[override]
         metric_clean = ""
         if self.metric:
             metric_clean = self.metric.split("}")[1] if "}" in self.metric else self.metric
@@ -516,7 +521,7 @@ class FilingIndicator:
         self.table = self.filing_indicator_xml.text
         self.context = self.filing_indicator_xml.attrib.get("contextRef")
 
-    def __dict__(self) -> dict[str, bool | str | None]:
+    def __dict__(self) -> Dict[str, Any]: # type: ignore[override]
         return {"value": self.value, "table": self.table, "context": self.context, }
 
     def __repr__(self) -> str:
