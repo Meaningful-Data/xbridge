@@ -1,10 +1,11 @@
 """Module with the classes related to modules, containing the "instructions" for the conversion.
 """
+from __future__ import annotations
 
 import copy
 import json
 from pathlib import Path
-from typing import Union
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urljoin, urlparse
 from zipfile import ZipFile
 
@@ -30,12 +31,16 @@ class Module:
 
     """
 
-    def __init__(self, code=None, url=None, tables=None):
-        self.code = code
-        self.url = url
-        self._tables = tables if tables is not None else []
-        self.taxonomy_module_path = None
-        self.module_json_setup = None
+    def __init__(self,
+        code: Optional[str] = None,
+        url: Optional[str] = None,
+        tables: Optional[List[Table]] = None) -> None:
+
+        self.code: Optional[str] = code
+        self.url: str = url
+        self._tables: List[Table] = tables if tables is not None else []
+        self.taxonomy_module_path: Optional[str] = None
+        self.module_json_setup: Optional[Dict[str, Any]] = None
 
         url_split = url.split("/")
 
@@ -52,41 +57,47 @@ class Module:
             raise ValueError(f"Invalid taxonomy architecture: {len(url_split)}")
 
     @property
-    def tables(self):
+    def tables(self) -> List[Table]:
         """Returns the :obj:`tables <xbridge.taxonomy.Table>` defined in the JSON file for the
         :obj:`module <xbridge.taxonomy.Module>`"""
         return self._tables
 
     @property
-    def architecture(self):
+    def architecture(self) -> str:
         return self.tables[0].architecture
 
     @staticmethod
-    def is_relative_url(url):
+    def is_relative_url(url: str) -> bool:
         parsed_url = urlparse(url)
         # A URL is considered relative if it lacks a scheme and a netloc
         return not parsed_url.scheme and not parsed_url.netloc
 
-    def _get_all_table_paths(self):
+    def _get_all_table_paths(self) -> None:
         """Returns the path to the table in the taxonomy"""
+        if not self.module_json_setup:
+            return
         tables_paths = []
 
         original_path = self.taxonomy_module_path
 
-        for table in self.module_json_setup["documentInfo"]["extends"]:
-            if self.is_relative_url(table):
+        extends = self.module_json_setup["documentInfo"].get("extends", [])
+
+        for table in extends:
+            if self.is_relative_url(table) and original_path is not None:
                 tables_paths.append(urljoin(original_path, table))
             else:
                 tables_paths.append(table)
 
         self.tables_paths = tables_paths
 
-    def get_module_setup(self, zip_file: ZipFile):
+    def get_module_setup(self, zip_file: ZipFile) -> None:
         """Reads the json entry point for the module and extracts the setup"""
+        if not self.taxonomy_module_path:
+            return
         bin_read = zip_file.read(self.taxonomy_module_path)
         self.module_json_setup = json.loads(bin_read.decode("utf-8"))
 
-    def extract_tables(self, zip_file: ZipFile):
+    def extract_tables(self, zip_file: ZipFile) -> None:
         """Extracts the :obj:`tables <xbridge.taxonomy.Table>` in the JSON files for the
         :obj:`modules <xbridge.taxonomy.Module>` in the taxonomy"""
         self._tables = []
@@ -98,14 +109,14 @@ class Module:
 
             self.tables.append(table)
 
-    def get_table(self, table_code: str):
+    def get_table(self, table_code: str) -> Table:
         """Returns a :obj:`table <xbridge.taxonomy.Table>` object with the given code"""
         for table in self.tables:
-            if table.code_name == table_code:
+            if getattr(table, "code_name", "") == table_code:
                 return table
         raise ValueError(f"Table {table_code} not found in module {self.code}")
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """Returns a dictionary"""
         return {
             "code": self.code,
@@ -115,7 +126,7 @@ class Module:
         }
 
     @classmethod
-    def from_taxonomy(cls, zip_file: ZipFile, json_file_path: str):
+    def from_taxonomy(cls, zip_file: ZipFile, json_file_path: str) -> Module:
         """Returns a :obj:`module <xbridge.taxonomy.Module>` object from a part of the JSON file"""
         module_code = Path(json_file_path).stem
 
@@ -130,7 +141,7 @@ class Module:
         return obj
 
     @classmethod
-    def from_serialized(cls, input_path: Union[str, Path]):
+    def from_serialized(cls, input_path: Union[str, Path]) -> Module:
         """Returns a :obj:`module <xbridge.taxonomy.Module>` object from a JSON file"""
         input_path = input_path if isinstance(input_path, Path) else Path(input_path)
         with open(input_path, "r", encoding="UTF-8") as fl:
@@ -145,7 +156,7 @@ class Module:
         return obj
 
     @property
-    def variables_location(self):
+    def variables_location(self) -> Dict[str, List[str]]:
         """Returns a dictionary with the :obj:`variables <xbridge.taxonomy.Variable>`
         and the :obj:`tables <xbridge.taxonomy.Table>` where they are present
         """
@@ -159,11 +170,11 @@ class Module:
         return variables
 
     @property
-    def repeated_variables(self):
+    def repeated_variables(self) -> Dict[str, List[str]]:
         """Returns a dictionary with the :obj:`variables <xbridge.taxonomy.Variable>` and the
         :obj:`tables <xbridge.taxonomy.Table>` where they are present, if they are repeated
         """
-        result = {}
+        result: Dict[str, List[str]] = {}
         for k, v in self.variables_location.items():
             if len(v) > 1:
                 result[k] = v
@@ -201,45 +212,47 @@ class Table:
 
     def __init__(
             self,
-            code=None,
-            url=None,
-            open_keys=None,
-            variables=None,
-            attributes=None,
-            input_zip_path=None,
-            architecture=None,
-            columns=None,
-            open_keys_mapping=None,
-    ):
-        self.table_zip_path = input_zip_path
-        self.code = code
-        self.url = url
-        self._open_keys = open_keys if open_keys is not None else []
-        self._variables = variables if variables is not None else []
-        self._attributes = attributes if attributes is not None else []
-        self._variable_df = None
-        self._open_keys_mapping = open_keys_mapping if open_keys_mapping is not None else {}
-        self.columns = columns if columns is not None else []
-        self.architecture = architecture
+            code: Optional[str] = None,
+            url: Optional[str] = None,
+            open_keys: Optional[List[str]] = None,
+            variables: Optional[List[Variable]] = None,
+            attributes: Optional[List[str]] = None,
+            input_zip_path: Optional[str] = None,
+            architecture: Optional[str] = None,
+            columns: Optional[List[dict[str, Any]]] = None,
+            open_keys_mapping: Optional[Dict[str, str]] = None,
+    ) -> None:
+        self.table_zip_path: Optional[str] = input_zip_path
+        self.code: Optional[str] = code
+        self.url: Optional[str] = url
+        self._open_keys: List[str] = open_keys if open_keys else []
+        self._variables: List[Variable] = variables if variables else []
+        self._attributes: List[str] = attributes if attributes else []
+        self._variable_df: Optional[pd.DataFrame] = None
+        self._open_keys_mapping: Dict[str, str] = open_keys_mapping if open_keys_mapping else {}
+        self.columns: List[dict[str, Any]] = columns if columns else []
+        self.architecture: str = architecture if architecture else "datapoints"
+        self.table_setup_json: Dict[str, Any] = {}
+
 
     @property
-    def open_keys(self):
+    def open_keys(self) -> List[str]:
         """Returns the open keys for the :obj:`table <xbridge.taxonomy.Table>`"""
         return self._open_keys
 
     @property
-    def variables(self):
+    def variables(self) -> List[Variable]:
         """Returns the :obj:`variable <xbridge.taxonomy.Variable>` for the
         :obj:`table <xbridge.taxonomy.Table>`"""
         return self._variables
 
     @property
-    def attributes(self):
+    def attributes(self) -> List[str]:
         """Returns the attributes for the :obj:`table <xbridge.taxonomy.Table>`"""
         return self._attributes
 
     @property
-    def variable_columns(self):
+    def variable_columns(self) -> List[str]:
         """Returns the columns for the :obj:`variable <xbridge.taxonomy.Variable>` dataframe
         """
         cols = set(self.variable_df.columns)
@@ -247,14 +260,14 @@ class Table:
         return cols
 
     @property
-    def variable_df(self):
+    def variable_df(self) -> Optional[pd.DataFrame]:
         """Returns a dataframe with the :obj:`variable <xbridge.taxonomy.Variable>`
         and extensional context
 
         """
         return self._variable_df
 
-    def generate_variable_df(self):
+    def generate_variable_df(self) -> None:
         """Returns a dataframe with the :obj:`variable <xbridge.taxonomy.Variable>`
         and extensional context"""
         variables = []
@@ -284,7 +297,7 @@ class Table:
 
         self._variable_df = pd.DataFrame(variables)
 
-    def extract_open_keys(self):
+    def extract_open_keys(self) -> None:
         """Extracts the open keys for the :obj:`table <xbridge.taxonomy.Table>`"""
         self._open_keys = []
         self._attributes = []
@@ -304,7 +317,7 @@ class Table:
                 self._open_keys.append(dim_code)
                 self._open_keys_mapping[dim_code] = column_ref[2:]
 
-    def extract_variables(self):
+    def extract_variables(self) -> None:
         """Extract the :obj:`variable <xbridge.taxonomy.Variable>` for the
         :obj:`table <xbridge.taxonomy.Table>`"""
         self._variables = []
@@ -318,7 +331,7 @@ class Table:
                 datapoint = Variable.from_taxonomy(elto_k, elto_v)
                 self._variables.append(datapoint)
 
-    def extract_columns(self):
+    def extract_columns(self) -> List[dict[str, Any]]:
         """Extract the columns for the :obj:`table <xbridge.taxonomy.Table>`"""
         result = []
 
@@ -341,7 +354,7 @@ class Table:
 
         return result
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         """Returns a dictionary for the :obj:`table <xbridge.taxonomy.Table>`"""
         result = {
             "code": self.code,
@@ -360,12 +373,12 @@ class Table:
 
         return result
 
-    def get_table_code(self):
+    def get_table_code(self) -> Optional[str]:
         """Returns the code of the table"""
         return self.code
 
     @staticmethod
-    def check_taxonomy_architecture(table_dict):
+    def check_taxonomy_architecture(table_dict: dict[str, Any]) -> str:
         """Checks the taxonomy architecture
         Returns datapoints if the architecture of the CSV follows the pattern:
             datapont,factValue
@@ -382,7 +395,8 @@ class Table:
             return "headers"
 
     @classmethod
-    def from_taxonomy(cls, zip_file: ZipFile, table_path: str, module_setup_json: dict):
+    def from_taxonomy(cls, zip_file: ZipFile, table_path: str,
+                      module_setup_json: dict[str, Any]) -> Table:
         """Returns a :obj:`table <xbridge.taxonomy.Table>`
         object from a part of the preprocessed JSON file"""
         obj = cls()
@@ -413,7 +427,7 @@ class Table:
         return obj
 
     @classmethod
-    def from_dict(cls, table_dict):
+    def from_dict(cls, table_dict: dict[str, Any]) -> Table:
         """Returns a :obj:`table <xbridge.taxonomy.Table>` object from a dictionary"""
         if table_dict["architecture"] == "datapoints":
             variables = table_dict.pop("variables")
@@ -450,27 +464,32 @@ class Variable:
 
     """
 
-    def __init__(self, code=None, dimensions=None, attributes=None):
-        self.code = code
-        self._dimensions = dimensions
+    def __init__(
+        self,
+        code: Optional[str] = None,
+        dimensions: Optional[dict[str, str]] = None,
+        attributes: Any = None,
+    ) -> None:
+        self.code: Optional[str] = code
+        self._dimensions: dict[str, str] = dimensions if dimensions else {}
         self._attributes = attributes
 
     @property
-    def dimensions(self):
+    def dimensions(self) -> dict[str, str]:
         """Returns the `dimensions
         <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=a%20taxonomy.
         -,Dimension,-A%20qualifying%20characteristic>`_ of a variable"""
         return self._dimensions
 
-    def extract_dimensions(self, datapoint_dict):
+    def extract_dimensions(self, datapoint_dict: dict[str, Any]) -> None:
         """Extracts the `dimensions
         <https://www.xbrl.org/guidance/xbrl-glossary/#:~:
         text=a%20taxonomy.-,Dimension,-A%20qualifying%20characteristic>`_ for the variable"""
-        self._dimensions = datapoint_dict["dimensions"]
+        self._dimensions = datapoint_dict.get("dimensions", {})
         if "decimals" in datapoint_dict:
             self._attributes = datapoint_dict["decimals"]
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         """Returns a dictionary with the attributes"""
         return {
             "code": self.code,
@@ -479,7 +498,7 @@ class Variable:
         }
 
     @classmethod
-    def from_taxonomy(cls, variable_id, variable_dict):
+    def from_taxonomy(cls, variable_id: str, variable_dict: dict[str, Any]) -> Variable:
         """Returns a :obj:`variable <xbridge.taxonomy.Variable>`
         object from a part of the preprocessed JSON file
         """
@@ -489,7 +508,7 @@ class Variable:
         return obj
 
     @classmethod
-    def from_dict(cls, variable_dict):
+    def from_dict(cls, variable_dict: dict[str, Any]) -> Variable:
         """Returns a :obj:`variable <xbridge.taxonomy.Variable>` object from a dictionary"""
         modified_dimensions = {}
         for k, v in variable_dict["dimensions"].items():
@@ -501,7 +520,6 @@ class Variable:
         modified_dict = variable_dict.copy()
         modified_dict["dimensions"] = modified_dimensions
         obj = cls(**modified_dict)
-        # print(modified_dict)
         return obj
 
     def __repr__(self) -> str:
