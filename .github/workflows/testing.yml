@@ -36,6 +36,6 @@ jobs:
     - name: Run type checks
       run: poetry run mypy
     - name: Run tests
-      run: poetry run pytest --cov
+      run: poetry run pytest --cov=xbridge
     - name: Check coverage
       run: poetry run coverage report --fail-under=60
