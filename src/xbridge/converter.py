@@ -1,12 +1,13 @@
 """Module holding the Converter class, which converts from XBRL-XML to XBRL-CSV
 taking as input the taxonomy object and the instance object
 """
+from __future__ import annotations
 
 import csv
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Union
+from typing import Dict, Union
 from zipfile import ZipFile
 
 import pandas as pd
@@ -50,15 +51,17 @@ class Converter:
     """
 
     def __init__(self, instance_path: Union[str, Path]) -> None:
-        self.instance = Instance(instance_path)
+        path_str = str(instance_path)
+        self.instance: Instance = Instance(path_str)
         module_ref = self.instance.module_ref
-
+        if not module_ref:
+            raise ValueError("No module_ref found in the instance.")
         if module_ref not in index:
             raise ValueError(f"Module {module_ref} not found in the taxonomy index")
 
         module_path = Path(__file__).parent / "modules" / index[module_ref]
         self.module = Module.from_serialized(module_path)
-        self._reported_tables = []
+        self._reported_tables: list[str] = []
 
     def convert(self, output_path: Union[str, Path], headers_as_datapoints: bool = False) -> Path:
         """Convert the ``XML Instance`` to a CSV file
@@ -68,7 +71,7 @@ class Converter:
 
         if isinstance(output_path, str):
             output_path = Path(output_path)
-        if not self.instance:
+        if self.instance is None:
             raise ValueError("Instance not provided")
 
         if self.module is None:
@@ -135,6 +138,8 @@ class Converter:
     def _get_instance_df(self, table: Table) -> pd.DataFrame:
         """Returns the dataframe with the subset of instace facts applicable to the table
         """
+        if self.instance.instance_df is None:
+            return pd.DataFrame(columns=["datapoint", "value"])
         instance_columns = set(self.instance.instance_df.columns)
         variable_columns = set(table.variable_columns)
         open_keys = set(table.open_keys)
@@ -155,7 +160,7 @@ class Converter:
         )
 
         needed_columns = variable_columns | open_keys | attributes | {"value"} | not_relevant_dims
-        needed_columns = list(needed_columns.intersection(instance_columns))
+        needed_columns = needed_columns.intersection(instance_columns)
 
         instance_df = self.instance.instance_df[needed_columns].copy()
 
@@ -183,13 +188,15 @@ class Converter:
 
         """
         instance_df = self._get_instance_df(table)
-        if instance_df.empty:
+        if instance_df.empty or table.variable_df is None:
             return instance_df
 
-        variable_columns = set(table.variable_columns)
+        variable_columns = set(table.variable_columns or [])
+
         open_keys = set(table.open_keys)
         attributes = set(table.attributes)
-        instance_columns = set(self.instance.instance_df.columns)
+        instance_columns = set(self.instance.instance_df.columns) \
+            if self.instance.instance_df is not None else set()
 
         # Do the intersection and drop from datapoints the columns and records
         datapoint_df = table.variable_df
@@ -213,12 +220,17 @@ class Converter:
         if valid_open_keys:
             table_df.dropna(subset=valid_open_keys, inplace=True)
 
-        if "unit" in attributes:
+        if "unit" in table.attributes and "unit" in table_df.columns and self.instance.units:
             table_df["unit"] = table_df["unit"].map(self.instance.units, na_action="ignore")
 
         return table_df
 
-    def _convert_tables(self, temp_dir_path, mapping_dict, headers_as_datapoints):
+    def _convert_tables(
+        self,
+        temp_dir_path: Path,
+        mapping_dict: Dict[str, str],
+        headers_as_datapoints: bool,
+    ) -> None:
         for table in self.module.tables:
             ##Workaround:
             # To calculate the table code for abstract tables, we look whether the name
@@ -226,8 +238,8 @@ class Converter:
             # Possible alternative: add metadata mapping abstract and concrete tables to
             # avoid doing this kind of corrections
             # Defining the output path and check if the table is reported
-            normalised_table_code = table.code.replace("-", ".")
-            if normalised_table_code[-1].isalpha():
+            normalised_table_code = table.code.replace("-", ".") if table.code else ""
+            if normalised_table_code and normalised_table_code[-1].isalpha():
                 normalised_table_code = normalised_table_code.rsplit(".", maxsplit=1)[0]
             if normalised_table_code not in self._reported_tables:
                 continue
@@ -247,12 +259,14 @@ class Converter:
             # Because EBA is using exactly those for the JSON files.
 
             for open_key in table.open_keys:
-                dim_name = mapping_dict.get(open_key)
-                # For open keys, there are no dim_names (they are not mapped)
-                if dim_name and not datapoints.empty:
-                    datapoints[open_key] = dim_name + ":" + datapoints[open_key].astype(str)
-            datapoints = datapoints.sort_values(by=["datapoint"], ascending=True)
-            output_path_table = temp_dir_path / table.url
+                if open_key in datapoints.columns:
+                    dim_name = mapping_dict.get(open_key)
+                    # For open keys, there are no dim_names (they are not mapped)
+                    if dim_name and not datapoints.empty:
+                        datapoints[open_key] = dim_name + ":" + datapoints[open_key].astype(str)
+
+            datapoints.sort_values(by=["datapoint"], ascending=True, inplace=True)
+            output_path_table = temp_dir_path / (table.url or "table.csv")
 
             export_index = False
 
@@ -274,27 +288,30 @@ class Converter:
                 datapoints = datapoints.pivot(
                     index=index, columns="column_code", values="factValue"
                 )
+
             elif table.architecture == 'headers' and headers_as_datapoints:
                 datapoints["datapoint"] = 'dp' + datapoints["datapoint"].astype(str)
 
             datapoints.to_csv(output_path_table, index=export_index)
 
-    def _convert_filing_indicator(self, temp_dir_path):
+    def _convert_filing_indicator(self, temp_dir_path: Path) -> None:
         # Workaround;
         # Developed for the EBA structure
         output_path_fi = temp_dir_path / "FilingIndicators.csv"
+        if self.instance.filing_indicators is None:
+            return
         filing_indicators = self.instance.filing_indicators
 
-        with open(output_path_fi, "w", newline="", encoding="utf-8") as fl:
+        with output_path_fi.open("w", newline="", encoding="utf-8") as fl:
             csv_writer = csv.writer(fl)
             csv_writer.writerow(["templateID", "reported"])
             for fil_ind in filing_indicators:
                 value = "true" if fil_ind.value else "false"
                 csv_writer.writerow([fil_ind.table, value])
-                if fil_ind.value:
+                if fil_ind.value and fil_ind.table:
                     self._reported_tables.append(fil_ind.table)
 
-    def _convert_parameters(self, temp_dir_path):
+    def _convert_parameters(self, temp_dir_path: Path) -> None:
         # Workaround;
         # Developed for the EBA structure
         output_path_parameters = temp_dir_path / "parameters.csv"
