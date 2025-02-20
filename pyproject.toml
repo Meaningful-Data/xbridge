@@ -44,6 +44,7 @@ pandas-stubs = "^2.1.4.231227"
 ruff = "^0.9.4"
 pytest = "^8.3"
 pytest-cov = "^6.0.0"
+lxml-stubs = "^0.5.1"
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "^7.4.7"
