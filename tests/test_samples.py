@@ -27,15 +27,15 @@ params_basic = [
 
 @pytest.mark.parametrize("instance_path, expected_output_path", params_full)
 def test_full(instance_path, expected_output_path):
-    test_full = FullConversionTest()
-    test_full.instance_path = instance_path
-    test_full.expected_output_path = expected_output_path
-    test_full.setup_method(None)
+    test_full_obj = FullConversionTest()
+    test_full_obj.instance_path = instance_path
+    test_full_obj.expected_output_path = expected_output_path
+    test_full_obj.setup_method(None)
 
 
 @pytest.mark.parametrize("instance_path, expected_output_path", params_basic)
 def test_basic(instance_path, expected_output_path):
-    test_basic = BasicConversionTest()
-    test_basic.instance_path = instance_path
-    test_basic.expected_output_path = expected_output_path
-    test_basic.setup_method(None)
+    test_basic_obj = BasicConversionTest()
+    test_basic_obj.instance_path = instance_path
+    test_basic_obj.expected_output_path = expected_output_path
+    test_basic_obj.setup_method(None)
