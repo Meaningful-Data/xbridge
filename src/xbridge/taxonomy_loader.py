@@ -14,7 +14,7 @@ import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import time
-from typing import Union
+from typing import Any, Dict, List, Union
 from zipfile import ZipFile
 
 from lxml import etree
@@ -27,7 +27,7 @@ DIM_DOM_MAPPING_PATH = MODULES_FOLDER / "dim_dom_mapping.json"
 
 
 def _extract_specific_files_7z(file_path: Path, target_path: Path) -> None:
-    cmd = [
+    cmd: Any = [
         shutil.which("7z"),
         "x",
         f"-o{target_path}",
@@ -41,7 +41,7 @@ def _extract_specific_files_7z(file_path: Path, target_path: Path) -> None:
             "7z command not found, please install 7zip to be able to extract "
             "it and run the script again"
         )
-    process = subprocess.run(cmd, capture_output=True)
+    process = subprocess.run(cmd, capture_output=True) # noqa: S603
     if process.returncode != 0:
         raise ValueError(f"Error extracting 7z file {file_path}")
 
@@ -51,10 +51,10 @@ class Taxonomy:
     """
 
     def __init__(self) -> None:
-        self._modules: list[Module] = []
+        self._modules: List[Module] = []
 
     @property
-    def modules(self):
+    def modules(self) -> List[Module]:
         """Returns the modules within the taxonomy"""
         return self._modules
 
@@ -65,7 +65,7 @@ class Taxonomy:
             json.dump(module.to_dict(), fl)
 
     @staticmethod
-    def _get_dim_dom_mapping(root: etree) -> dict:
+    def _get_dim_dom_mapping(root: Any) -> Dict[str, Any]:
         ns = {
             "link": "http://www.xbrl.org/2003/linkbase",
             "xlink": "http://www.w3.org/1999/xlink",
@@ -137,12 +137,15 @@ class Taxonomy:
                     module_file_name = f"{module.code}_{module.framework_version}.json"
                     module_path = str(MODULES_FOLDER / module_file_name)
                     self.__save_module(module, module_path)
+                    if module.url is None:
+                        continue
                     index_key = f"http://{module.url[:-4]}xsd"
                     index[index_key] = module_file_name
                     # modules.append(module)
                     end = time()
                     elapsed = round(end - start, 3)
-                    print(f"Module {module.code.upper()} loaded in {elapsed} s")
+                    if module.code:
+                        print(f"Module {module.code.upper()} loaded in {elapsed} s")
         if not is_there_a_module:
             raise TypeError(
                 (
@@ -168,14 +171,8 @@ class Taxonomy:
                 return module
         raise ValueError(f"Module with code {code} not found in the taxonomy")
 
-    def get_variables_from_module(self, code: str) -> list:
-        """Returns the variables from the module with the given code"""
-        module = self.get_module(code)
-
-        return module.variables
-
     @classmethod
-    def from_taxonomy(cls, input_path: Union[str, Path]):
+    def from_taxonomy(cls, input_path: Union[str, Path]) -> None:
         """Returns a Taxonomy object from a JSON taxonomy file"""
         input_path = input_path if isinstance(input_path, Path) else Path(input_path)
         obj = cls()

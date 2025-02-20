@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Set, Union
 from urllib.parse import urljoin, urlparse
 from zipfile import ZipFile
 
@@ -37,10 +37,13 @@ class Module:
         tables: Optional[List[Table]] = None) -> None:
 
         self.code: Optional[str] = code
-        self.url: str = url
+        self.url: Optional[str] = url
         self._tables: List[Table] = tables if tables is not None else []
         self.taxonomy_module_path: Optional[str] = None
         self.module_json_setup: Optional[Dict[str, Any]] = None
+
+        if url is None:
+            url = ""
 
         url_split = url.split("/")
 
@@ -105,7 +108,7 @@ class Module:
         for table_path in self.tables_paths:
             if "FilingIndicators.json" in table_path or "FootNotes.json" in table_path:
                 continue
-            table = Table.from_taxonomy(zip_file, table_path, self.module_json_setup["tables"])
+            table = Table.from_taxonomy(zip_file, table_path, self.module_json_setup["tables"]) # type: ignore[index]
 
             self.tables.append(table)
 
@@ -162,7 +165,11 @@ class Module:
         """
         variables = {}
         for table in self.tables:
+            if table.code is None:
+                continue
             for variable in table.variables:
+                if variable.code is None:
+                    continue
                 if variable.code not in variables:
                     variables[variable.code] = [table.code]
                 else:
@@ -252,9 +259,11 @@ class Table:
         return self._attributes
 
     @property
-    def variable_columns(self) -> List[str]:
+    def variable_columns(self) -> Set[str]:
         """Returns the columns for the :obj:`variable <xbridge.taxonomy.Variable>` dataframe
         """
+        if self.variable_df is None:
+            return set()
         cols = set(self.variable_df.columns)
         cols.remove("datapoint")
         return cols
@@ -281,6 +290,9 @@ class Table:
                 if "concept" in variable.dimensions:
                     variable_info["metric"] = variable.dimensions["concept"].split(":")[1]
                     del variable_info["concept"]
+
+                if variable.code is None:
+                    continue
 
                 variable_info["datapoint"] = variable.code
                 variables.append(copy.copy(variable_info))
@@ -364,12 +376,12 @@ class Table:
         }
 
         if self.architecture == "datapoints":
-            result["variables"] = [var.to_dict() for var in self.variables]
+            result["variables"] = [var.to_dict() for var in self.variables] # type: ignore[misc]
             result["attributes"] = self.attributes
 
         elif self.architecture == "headers":
-            result["open_keys_mapping"] = self._open_keys_mapping
-            result["columns"] = self.columns
+            result["open_keys_mapping"] = self._open_keys_mapping  # type: ignore[assignment]
+            result["columns"] = self.columns # type: ignore[assignment]
 
         return result
 
