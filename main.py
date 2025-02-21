@@ -20,5 +20,6 @@ def main():
     print(f"Time to convert: {end - initial}")
     print(f"Total time: {end - start}")
 
+
 if __name__ == "__main__":
     main()

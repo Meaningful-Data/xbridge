@@ -25,6 +25,7 @@ params_basic = [
     (INPUT_PATH_3_2p1 / "test1_in.xbrl", INPUT_PATH_3_2p1 / "test1_out.zip"),
 ]
 
+
 @pytest.mark.parametrize("instance_path, expected_output_path", params_full)
 def test_full(instance_path, expected_output_path):
     test_full_obj = FullConversionTest()
