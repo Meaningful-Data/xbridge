@@ -50,7 +50,7 @@ lxml-stubs = "^0.5.1"
 [tool.poetry.group.docs.dependencies]
 sphinx = "^7.4.7"
 sphinx_rtd_theme = "^3.0.2"
-toml = "^0.10.2"
+tomlkit = "^0.13.2"
 
 [tool.ruff]
 line-length = 100

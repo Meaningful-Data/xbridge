@@ -379,9 +379,12 @@ class Scenario:
 
 
 class Context:
-    """Class for the context of a `fact
-     <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_.
+    """Context class.
+
+    Class for the context of a
+    `fact <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_.
     Its attributes are id, entity, period and scenario.
+
     Returns a dictionary which has as keys the entity and the period.
     """
 
