@@ -21,22 +21,30 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 # The EBA Taxonomy version
-rst_prolog = """
-.. |eba_version| replace:: 
- """ + "4.0"
+rst_prolog = (
+    """
+.. |eba_version| replace::
+ """
+    + "4.0"
+)
 
 # Get project information from pyproject.toml
-version = "unknown"
-project = "eba-xbridge"
-description = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.0)"
-copyright = "2025 MeaningfulData"
+version: str = "unknown"
+project: str = "eba-xbridge"
+description: str = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.0)"
+copyright: str = "2025 MeaningfulData"
 # adopt path to your pyproject.toml
 pyproject_toml_file = Path(__file__).parent / "pyproject.toml"
 if pyproject_toml_file.exists() and pyproject_toml_file.is_file():
-    data = tomlkit.load(pyproject_toml_file)
-    project = data["tool"]["poetry"]["name"]
-    version = data["tool"]["poetry"]["version"]
-    description = data["tool"]["poetry"]["description"]
+    with pyproject_toml_file.open("r", encoding="utf-8") as f:
+        data_toml = tomlkit.load(f)
+    tool_section = data_toml.get("tool")
+    if tool_section and isinstance(tool_section, dict):
+        poetry_section = tool_section.get("poetry")
+        if poetry_section and isinstance(poetry_section, dict):
+            project = str(poetry_section.get("name", project))
+            version = str(poetry_section.get("version", version))
+            description = str(poetry_section.get("description", description))
 
 # Other project information
 
@@ -48,6 +56,7 @@ if pyproject_toml_file.exists() and pyproject_toml_file.is_file():
 extensions = [
     "sphinx_rtd_theme",
     "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosectionlabel",
 ]

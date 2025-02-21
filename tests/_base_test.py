@@ -3,28 +3,34 @@ Test that EBA samples are transformed correctly
 """
 
 import json
-import unittest
 from pathlib import Path
 from zipfile import ZipFile
 
 import pandas as pd
+import pytest
 
 from xbridge.api import convert_instance, load_instance
 
 OUTPUT_PATH = Path(__file__).parent / "conversions"
 
 
-class TestInstanceConversionBasic(unittest.TestCase):
+class BasicConversionTest:
     """
     Tests for the cases where only input xml is provided
     """
 
-    def setUp(self, instance_path=None, expected_output_path=None):
+    def setup_method(self, method):
         """
         Sets up the test case
         """
+        self.instance_path = getattr(self, "instance_path", None)
+        self.expected_output_path = getattr(self, "expected_output_path", None)
+
+        instance_path = self.instance_path
+        expected_output_path = self.expected_output_path
+
         if instance_path is None:
-            self.skipTest("Abstract test class")
+            pytest.skip("Abstract test class (instance_path not set)")
 
         self.instance = load_instance(instance_path)
 
@@ -48,11 +54,10 @@ class TestInstanceConversionBasic(unittest.TestCase):
         self.expected_csv_files = [
             file
             for file in self.expected_output_zip.namelist()
-            if file.startswith(f"{self.expected_root_folder_name}reports")
-            and file.endswith(".csv")
+            if file.startswith(f"{self.expected_root_folder_name}reports") and file.endswith(".csv")
         ]
 
-    def tearDown(self) -> None:
+    def teardown_method(self, method) -> None:
         """
         Removes the generated zip file
         """
@@ -62,15 +67,15 @@ class TestInstanceConversionBasic(unittest.TestCase):
 
     def test_file_created(self):
         """Asserts that the file is created"""
-        self.assertTrue(self.generated_output_path.exists())
+        assert self.generated_output_path.exists()
 
     def test_file_structure(self):
         """
         Asserts that the file has the structure of an XBRL-CSV file
         Concretely, it contains the standard folders and json files
         """
-        self.assertTrue("reports/report.json" in self.generated_output_zip.namelist())
-        self.assertTrue("META-INF/reports.json" in self.generated_output_zip.namelist())
+        assert "reports/report.json" in self.generated_output_zip.namelist()
+        assert "META-INF/reports.json" in self.generated_output_zip.namelist()
 
     def test_number_facts(self):
         """
@@ -88,13 +93,9 @@ class TestInstanceConversionBasic(unittest.TestCase):
                 except pd.errors.EmptyDataError:
                     pass
         print(f"Generated: {no_generated_facts}; xml_facts: {self.no_xml_facts}")
-        self.assertGreaterEqual(
-            no_generated_facts,
-            self.no_xml_facts,
-            msg=(
-                f"Number of facts inconsistent for {self.input_path}: Expected: "
-                f"{self.no_xml_facts} Generated: {no_generated_facts} "
-            ),
+        assert no_generated_facts >= self.no_xml_facts, (
+            f"Number of facts inconsistent for {self.input_path}: Expected: "
+            f"{self.no_xml_facts} Generated: {no_generated_facts} "
         )
 
     def test_files_same_structure(self):
@@ -109,31 +110,25 @@ class TestInstanceConversionBasic(unittest.TestCase):
             with self.generated_output_zip.open(f"reports/{file_name}") as fl:
                 generated_df = pd.read_csv(fl)
 
-            self.assertTrue(
-                set(list(expected_df.columns)) == set(list(generated_df.columns)),
-                msg=(
-                    f"Expected: {set(list(expected_df.columns))} "
-                    f"Generated: {set(list(generated_df.columns))}"
-                ),
+            assert set(expected_df.columns) == set(generated_df.columns), (
+                f"Expected: {set(expected_df.columns)} Generated: {set(generated_df.columns)}"
             )
 
 
-class TestInstanceConversionFull(TestInstanceConversionBasic):
+class FullConversionTest(BasicConversionTest):
     """
     Tests for the cases where input xml and expected output
     csv files are provided
     """
 
-    def setUp(self, instance_path=None, expected_output_path=None):
+    def setup_method(self, method):
         """
         Sets up the test case
-        :param instance_path: Path to the input xml file
-        :param expected_output_path: Path to the expected output zip file
         """
-        super().setUp(instance_path, expected_output_path)
+        super().setup_method(method)
 
-    def tearDown(self) -> None:
-        super().tearDown()
+    def teardown_method(self, method) -> None:
+        super().teardown_method(method)
 
     def test_reports_file(self):
         """
@@ -146,17 +141,16 @@ class TestInstanceConversionFull(TestInstanceConversionBasic):
             f"{self.expected_root_folder_name}META-INF/reports.json"
         ) as fl:
             reports_expected = json.load(fl)
-        self.assertEqual(reports_generated, reports_expected)
+        assert reports_generated == reports_expected
 
     def test_same_report_files(self):
         """
         Tests that the number and name of csv files contained
         in both the input and output files are the same
         """
-        self.assertEqual(
-            {Path(file).name for file in self.expected_csv_files},
-            {Path(file).name for file in self.generated_csv_files},
-        )
+        assert {Path(file).name for file in self.expected_csv_files} == {
+            Path(file).name for file in self.generated_csv_files
+        }
 
     def test_files_same_size(self):
         """
@@ -171,12 +165,9 @@ class TestInstanceConversionFull(TestInstanceConversionBasic):
                 generated_df = pd.read_csv(fl)
 
             if file_name != "parameters.csv":
-                self.assertTrue(
-                    len(expected_df) == len(generated_df),
-                    msg=(
-                        f"Length of {file_name} inconsistent: Expected: "
-                        f"{len(expected_df)} Generated: {len(generated_df)}"
-                    ),
+                assert len(expected_df) == len(generated_df), (
+                    f"Length of {file_name} inconsistent: Expected: "
+                    f"{len(expected_df)} Generated: {len(generated_df)}"
                 )
 
     def test_number_filing_indicators(self):
@@ -187,4 +178,4 @@ class TestInstanceConversionFull(TestInstanceConversionBasic):
         with self.generated_output_zip.open("reports/FilingIndicators.csv") as fl:
             generated_df = pd.read_csv(fl)
 
-            self.assertEqual(self.no_filing_indicators, len(generated_df))
+            assert self.no_filing_indicators == len(generated_df)
