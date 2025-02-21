@@ -391,10 +391,12 @@ class Table:
     @staticmethod
     def check_taxonomy_architecture(table_dict: dict[str, Any]) -> str:
         """Checks the taxonomy architecture
-        Returns datapoints if the architecture of the CSV follows the pattern:
-            datapont,factValue
-        Returns headers if the architecture of the CSV follows the new DORA pattern:
-            0010,0020,...
+
+        Returns datapoints if the architecture of the
+        CSV follows the pattern: datapont,factValue
+
+        Returns headers if the architecture of the
+        CSV follows the new DORA pattern: 0010,0020,...
         """
         table_template = table_dict["tableTemplates"]
         if len(table_template) > 1:
@@ -459,18 +461,17 @@ class Table:
 
 class Variable:
     """Class representing a variable as represented in the JSON files.
+
     Can return or extract the
     `dimension <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=a%20taxonomy.-,Dimension,-A%20qualifying%20characteristic>`_
     of the :obj:`variable <xbridge.taxonomy.Variable>`,
     create a dictionary using its attributes as keys or return a variable object from the
     preprocessed JSON file.
 
-
     :param code: The code of the variable.
 
-    :param dimensions: the `dimensions
-    <https://www.xbrl.org/guidance/xbrl-glossary/#:~:
-    text=a%20taxonomy.-,Dimension,-A%20qualifying%20characteristic>`_ of the variable.
+    :param dimensions: the `dimensions <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=a%20taxonomy.-,Dimension,-A%20qualifying%20characteristic>`_
+        of the variable.
 
     :param attributes: The attributes related to the variable.
 
