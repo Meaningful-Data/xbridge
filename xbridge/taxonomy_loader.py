@@ -127,7 +127,7 @@ class Taxonomy:
                     module_file_name = f"{module.code}_{module.framework_version}.json"
                     module_path = str(MODULES_FOLDER / module_file_name)
                     self.__save_module(module, module_path)
-                    index_key = f"http://{module.url[:-4]}xsd"
+                    index_key = f"{module.url[:-4]}xsd"
                     index[index_key] = module_file_name
                     modules.append(module)
                     end = time()
