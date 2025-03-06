@@ -48,14 +48,14 @@ class Module:
 
         url_split = url.split("/")
 
-        if len(url_split) == 10:
+        if len(url_split) == 12:
             self.taxonomy_architecture = "2.0"
-            self.framework_code = url_split[5]
-            self.framework_version = f"{url_split[6]}_{url_split[7]}"
-        elif len(url_split) == 11:
+            self.framework_code = url_split[7]
+            self.framework_version = f"{url_split[8]}_{url_split[9]}"
+        elif len(url_split) == 13:
             self.taxonomy_architecture = "1.0"
-            self.framework_code = url_split[6]
-            self.framework_version = f"{url_split[7]}_{url_split[8]}"
+            self.framework_code = url_split[8]
+            self.framework_version = f"{url_split[9]}_{url_split[10]}"
 
         else:
             raise ValueError(f"Invalid taxonomy architecture: {len(url_split)}")
@@ -134,7 +134,7 @@ class Module:
         """Returns a :obj:`module <xbridge.taxonomy.Module>` object from a part of the JSON file"""
         module_code = Path(json_file_path).stem
 
-        obj = cls(code=module_code, url=json_file_path)
+        obj = cls(code=module_code, url=f"http://{json_file_path}")
 
         obj.taxonomy_module_path = json_file_path
 
