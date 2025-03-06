@@ -134,7 +134,7 @@ class Module:
         """Returns a :obj:`module <xbridge.taxonomy.Module>` object from a part of the JSON file"""
         module_code = Path(json_file_path).stem
 
-        obj = cls(code=module_code, url=f'http://{json_file_path}')
+        obj = cls(code=module_code, url=f"http://{json_file_path}")
 
         obj.taxonomy_module_path = json_file_path
 
