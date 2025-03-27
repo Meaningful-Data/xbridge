@@ -1,44 +1,92 @@
-[tool.poetry]
-name="eba-xbridge"
-version="1.1rc1"
-authors=[
-    "Antonio Olleros <antonio.olleros@meaningfuldata.eu>",
-    "Jesús Simon <jesus.simon@meaningfuldata.eu>",
-    "Javier Hernandez <javier.hernandez@meaningfuldata.eu>"
+[project]
+name = "eba-xbridge"
+version = "1.1.1"
+description = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.0)"
+license = 'Apache 2.0'
+readme = "README.rst"
+requires-python = ">=3.9"
+authors = [
+    { name = "MeaningfulData", email = "info@meaningfuldata.eu" },
 ]
-description="XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.0)"
-readme="README.rst"
-packages = [{ include = "xbridge"}]
-license='Apache 2.0'
-keywords=['xbrl', 'eba', 'taxonomy', 'csv', 'xml']
-repository='https://github.com/Meaningful-Data/xbridge'
-classifiers=[
+maintainers = [
+    { name = "Antonio Olleros", email = "antonio.olleros@meaningfuldata.eu" },
+    { name = "Jesus Simon", email = "jesus.simon@meaningfuldata.eu" },
+    { name = "Francisco Javier Hernandez del Caño", email = "javier.hernandez@meaningfuldata.eu" },
+    { name = "Guillermo Garcia Martin", email = "guillermo.garcia@meaningfuldata.eu" },
+]
+classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
+    "Typing :: Typed"
+]
+keywords = ['xbrl', 'eba', 'taxonomy', 'csv', 'xml']
+
+dependencies = [
+    "pandas>=2.1,<2.2",
+    "lxml>=5.2.1,<6.0",
+    "numpy>=1.21,<2.0",
 ]
 
-[tool.poetry.urls]
-BugTracker='https://github.com/Meaningful-Data/xbridge/issues'
-Documentation='https://docs.xbridge.meaningfuldata.eu'
-SourceCode='https://github.com/Meaningful-Data/xbridge'
+[project.urls]
+Repository = 'https://github.com/Meaningful-Data/xbridge'
+Documentation = 'https://docs.xbridge.meaningfuldata.eu'
+MeaningfulData = 'https://www.meaningfuldata.eu/'
+IssueTracker = 'https://github.com/Meaningful-Data/xbridge/issues'
 
-
-[tool.poetry.dependencies]
-python = "^3.9"
-pandas = "^2.1.4"
-lxml = "^5.2.1"
+[tool.poetry]
+packages = [{ include = "xbridge", from = "src" }]
 
 [tool.poetry.group.dev.dependencies]
-black = "*"
-flake8 = "*"
-pylint = "*"
-sphinx = "*"
-sphinx_rtd_theme = "*"
-twine = "*"
-toml = "*"
+mypy = "1.14.1"
+pandas-stubs = "^2.1.4.231227"
+ruff = "^0.9.4"
+pytest = "^8.3"
+pytest-cov = "^6.0.0"
+lxml-stubs = "^0.5.1"
+
+[tool.poetry.group.docs.dependencies]
+sphinx = "^7.4.7"
+sphinx_rtd_theme = "^3.0.2"
+tomlkit = "^0.13.2"
+
+[tool.ruff]
+line-length = 100
+lint.mccabe.max-complexity = 20
+lint.select = [
+    "B", "B9", "C", "C4", "D", "E", "F", "I", "PT", "S", "SIM", "W"
+]
+lint.ignore = ["B023", "B028", "B904", "C403", "D100", "D101", "D102", "D103", "D104", "D105",
+    "D107", "D200", "D201", "D202", "D203", "D205", "D209", "D212", "D213", "D301",
+    "D400", "D401", "D404", "D411", "D413", "D415", "D419", "E203", "S320", "S608"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "PT006", "PT012", "PT013", "E501", "W605"]
+
+[tool.mypy]
+files = "src/xbridge"
+disallow_untyped_defs = true
+disallow_untyped_calls = true
+ignore_errors = false
+no_implicit_optional = true
+show_column_numbers = true
+strict_equality = true
+strict_optional = true
+strict = true
+enable_error_code = [
+    "ignore-without-code",
+    "redundant-expr",
+    "truthy-bool",
+]
+warn_return_any = false
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers"
+markers = [
+    "input_path: directory where tests data files are stored"
+]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
