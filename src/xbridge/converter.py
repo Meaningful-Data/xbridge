@@ -77,14 +77,19 @@ class Converter:
         if self.module is None:
             raise ValueError("Module of the instance file not found in the taxonomy")
 
+        instance_path = self.instance.path
+        if not isinstance(instance_path, str):
+            instance_path = str(instance_path)
+        instance_path_stem = Path(instance_path).stem
+
         temp_dir = TemporaryDirectory()
         temp_dir_path = Path(temp_dir.name)
 
-        meta_inf_dir = temp_dir_path / "META-INF"
-        report_dir = temp_dir_path / "reports"
+        meta_inf_dir = temp_dir_path / instance_path_stem / "META-INF"
+        report_dir = temp_dir_path / instance_path_stem / "reports"
 
-        meta_inf_dir.mkdir()
-        report_dir.mkdir()
+        meta_inf_dir.mkdir(parents=True)
+        report_dir.mkdir(parents=True)
 
         with open(meta_inf_dir / "reports.json", "w", encoding="UTF-8") as fl:
             json.dump(
@@ -109,27 +114,15 @@ class Converter:
         self._convert_tables(report_dir, mapping_dict, headers_as_datapoints)
         self._convert_parameters(report_dir)
 
-        instance_path = self.instance.path
-
-        if not isinstance(instance_path, str):
-            instance_path = str(instance_path)
-
-        instance_name = Path(instance_path).name
-
-        if ".xbrl" in instance_name:
-            file_name = instance_name.replace(".xbrl", ".zip")
-        elif ".xml" in instance_name:
-            file_name = instance_name.replace(".xml", ".zip")
-        else:
-            file_name = instance_name + ".zip"
+        file_name = instance_path_stem + ".zip"
 
         zip_file_path = output_path / file_name
 
         with ZipFile(zip_file_path, "w") as zip_fl:
             for file in meta_inf_dir.iterdir():
-                zip_fl.write(file, arcname=f"META-INF/{file.name}")
+                zip_fl.write(file, arcname=f"{instance_path_stem}/META-INF/{file.name}")
             for file in report_dir.iterdir():
-                zip_fl.write(file, arcname=f"reports/{file.name}")
+                zip_fl.write(file, arcname=f"{instance_path_stem}/reports/{file.name}")
 
         temp_dir.cleanup()
 
