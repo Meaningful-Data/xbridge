@@ -3,6 +3,7 @@ Test that EBA samples are transformed correctly
 """
 
 from pathlib import Path
+from zipfile import ZipFile
 
 import pytest
 
@@ -33,6 +34,20 @@ def test_full(instance_path, expected_output_path):
     test_full_obj.expected_output_path = expected_output_path
     test_full_obj.setup_method(None)
 
+    zip_file_path = test_full_obj.generated_output_path
+
+    with ZipFile(zip_file_path, 'r') as z:
+        entries = z.namelist()
+        root_folders = {entry.split("/")[0] for entry in entries if "/" in entry}
+
+        assert len(root_folders) == 1, "ZIP file should contain one root folder"
+        root_folder = root_folders.pop()
+
+        subfolders = {"/".join(entry.split("/")[:2]) for entry in entries if "/" in entry}
+        expected_subfolders = {f"{root_folder}/META-INF", f"{root_folder}/reports"}
+        for folder in expected_subfolders:
+            assert folder in subfolders, f"{folder} folder is left in ZIP file"
+
 
 @pytest.mark.parametrize("instance_path, expected_output_path", params_basic)
 def test_basic(instance_path, expected_output_path):
@@ -40,3 +55,17 @@ def test_basic(instance_path, expected_output_path):
     test_basic_obj.instance_path = instance_path
     test_basic_obj.expected_output_path = expected_output_path
     test_basic_obj.setup_method(None)
+
+    zip_file_path = test_basic_obj.generated_output_path
+
+    with ZipFile(zip_file_path, 'r') as z:
+        entries = z.namelist()
+        root_folders = {entry.split("/")[0] for entry in entries if "/" in entry}
+
+        assert len(root_folders) == 1, "ZIP file should contain one root folder"
+        root_folder = root_folders.pop()
+
+        subfolders = {"/".join(entry.split("/")[:2]) for entry in entries if "/" in entry}
+        expected_subfolders = {f"{root_folder}/META-INF", f"{root_folder}/reports"}
+        for folder in expected_subfolders:
+            assert folder in subfolders, f"{folder} folder is left in ZIP file"
