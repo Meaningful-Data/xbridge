@@ -36,7 +36,7 @@ def test_full(instance_path, expected_output_path):
 
     zip_file_path = test_full_obj.generated_output_path
 
-    with ZipFile(zip_file_path, 'r') as z:
+    with ZipFile(zip_file_path, "r") as z:
         entries = z.namelist()
         root_folders = {entry.split("/")[0] for entry in entries if "/" in entry}
 
@@ -58,7 +58,7 @@ def test_basic(instance_path, expected_output_path):
 
     zip_file_path = test_basic_obj.generated_output_path
 
-    with ZipFile(zip_file_path, 'r') as z:
+    with ZipFile(zip_file_path, "r") as z:
         entries = z.namelist()
         root_folders = {entry.split("/")[0] for entry in entries if "/" in entry}
 
