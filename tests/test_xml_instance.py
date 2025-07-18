@@ -73,9 +73,11 @@ def test_fact_repr(fact):
     )
     assert repr(fact) == expected_repr
 
+
 def test_no_input_path():
     with pytest.raises(ValueError, match="Must provide a path to XBRL file."):
         Instance()
+
 
 def test_invalid_path_type():
     with pytest.raises(TypeError, match="Unsupported type for 'path' argument."):

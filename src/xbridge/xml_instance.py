@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Set, Union
 import warnings
+from typing import Any, Dict, List, Optional, Set, Union
 
 import pandas as pd
 from lxml import etree
@@ -146,7 +146,12 @@ class Instance:
         }
 
         if self._identifier_prefix not in entity_prefix_mapping:
-            warnings.warn(f"{self._identifier_prefix} is not a known identifier prefix. Default 'rs' will be used.")
+            warnings.warn(
+                (
+                    f"{self._identifier_prefix} is not a known identifier prefix. "
+                    "Default 'rs' will be used."
+                )
+            )
             return "rs"
 
         return entity_prefix_mapping[self._identifier_prefix]
