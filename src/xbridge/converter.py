@@ -205,7 +205,7 @@ class Converter:
         if missing_cols:
             mask = datapoint_df[missing_cols].isnull().all(axis=1)
             datapoint_df = datapoint_df.loc[mask]
-            datapoint_df.drop(columns=missing_cols, inplace=True)
+            datapoint_df = datapoint_df.drop(columns=missing_cols)
 
         # Join the dataframes on the datapoint_columns
         merge_cols = list(variable_columns & instance_columns)
