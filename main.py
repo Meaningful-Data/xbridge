@@ -9,7 +9,7 @@ from xbridge.converter import Converter
 
 
 def main():
-    INSTANCE_PATH = Path.cwd() / "input" / "dora_sample.xbrl"
+    INSTANCE_PATH = Path(__file__).parent / "input" / "sample.xbrl"
 
     start = time()
     converter = Converter(INSTANCE_PATH)
@@ -19,6 +19,9 @@ def main():
     print(f"Time to initialize: {initial - start}")
     print(f"Time to convert: {end - initial}")
     print(f"Total time: {end - start}")
+
+    # TAXONOMY_PATH = Path(__file__).parent / "input" / "Full_Taxonomy.7z"
+    # Taxonomy.from_taxonomy(TAXONOMY_PATH)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ XBridge (eba-xbridge)
 Overview
 ============
 XBridge is a Python library which main function is to convert XBRL-XML files into XBRL-CSV files by using EBA's taxonomy.
-It works with EBA Taxonomy latest published version (4.0). Library must be updated on each new EBA taxonomy version.
+It works with EBA Taxonomy latest published version (4.1). Library must be updated on each new EBA taxonomy version.
 
 Installation
 ============
