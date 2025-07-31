@@ -17,7 +17,7 @@ from xbridge.modules import Module, Table
 from xbridge.xml_instance import Instance
 
 INDEX_FILE = Path(__file__).parent / "modules" / "index.json"
-MAPPING_FILE = Path(__file__).parent / "modules" / "dim_dom_mapping.json"
+MAPPING_PATH = Path(__file__).parent / "modules" 
 
 if not INDEX_FILE.exists():
     raise ValueError(
@@ -109,7 +109,7 @@ class Converter:
             )
 
         self._convert_filing_indicator(report_dir)
-        with open(MAPPING_FILE, "r", encoding="utf-8") as fl:
+        with open(MAPPING_PATH / self.module.dim_dom_file_name, "r", encoding="utf-8") as fl:
             mapping_dict: Dict[str, str] = json.load(fl)
         self._convert_tables(report_dir, mapping_dict, headers_as_datapoints)
         self._convert_parameters(report_dir)
@@ -174,6 +174,7 @@ class Converter:
         if not_relevant_dims:
             # Convert to list
             nrd_list = list(not_relevant_dims)
+            # Create mask to filter out rows where not relevant dimensions have non-null values
             mask = instance_df[nrd_list].isnull().all(axis=1)
             instance_df = instance_df.loc[mask]
             instance_df.drop(columns=nrd_list, inplace=True)

@@ -128,6 +128,14 @@ class Taxonomy:
                         json.dump(dim_dom_mapping, fl, indent=4)
                     dim_dom_mapping_loaded = True
 
+                elif "dim-def.xml" in str(file_path_obj):
+                    version = str(file_path_obj).split("\\")[-2]
+                    bin_read = zip_file.read(file_path)
+                    root = etree.fromstring(bin_read)
+                    dim_dom_mapping = self._get_dim_dom_mapping(root)
+                    with open(DIM_DOM_MAPPING_PATH.with_name(f"dim_dom_mapping_{version}.json"), "w", encoding="UTF-8") as fl:
+                        json.dump(dim_dom_mapping, fl, indent=4)
+
                 if file_path_obj.suffix == ".json" and file_path_obj.parent.name == "mod":
                     is_there_a_module = True
                     print(f"Loading module {file_path_obj.stem.upper()}")
