@@ -65,7 +65,7 @@ class Module:
         if self.taxonomy_architecture == "1.0":
             return "dim_dom_mapping.json"
         elif self.taxonomy_architecture == "2.0":
-            return f"dim_dom_mapping_{self.framework_version}.json"
+            return f"dim_dom_mapping_{self.framework_version.split('_')[-1]}.json"
         else:
             raise ValueError(f"Invalid taxonomy architecture: {self.taxonomy_architecture}")
 
