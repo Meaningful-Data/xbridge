@@ -61,6 +61,15 @@ class Module:
             raise ValueError(f"Invalid taxonomy architecture: {len(url_split)}")
 
     @property
+    def dim_dom_file_name(self) -> str:
+        if self.taxonomy_architecture == "1.0":
+            return "dim_dom_mapping.json"
+        elif self.taxonomy_architecture == "2.0":
+            return f"dim_dom_mapping_{self.framework_version.split('_')[-1]}.json"
+        else:
+            raise ValueError(f"Invalid taxonomy architecture: {self.taxonomy_architecture}")
+
+    @property
     def tables(self) -> List[Table]:
         """Returns the :obj:`tables <xbridge.taxonomy.Table>` defined in the JSON file for the
         :obj:`module <xbridge.taxonomy.Module>`"""
