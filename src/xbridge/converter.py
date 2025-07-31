@@ -91,7 +91,7 @@ class Converter:
         meta_inf_dir.mkdir(parents=True)
         report_dir.mkdir(parents=True)
 
-        with open(meta_inf_dir / "reports.json", "w", encoding="UTF-8") as fl:
+        with open(meta_inf_dir / "reportPackage.json", "w", encoding="UTF-8") as fl:
             json.dump(
                 {"documentInfo": {"documentType": "http://xbrl.org/PWD/2020-12-09/report-package"}},
                 fl,
