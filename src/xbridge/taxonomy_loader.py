@@ -133,7 +133,11 @@ class Taxonomy:
                     bin_read = zip_file.read(file_path)
                     root = etree.fromstring(bin_read)
                     dim_dom_mapping = self._get_dim_dom_mapping(root)
-                    with open(DIM_DOM_MAPPING_PATH.with_name(f"dim_dom_mapping_{version}.json"), "w", encoding="UTF-8") as fl:
+                    with open(
+                        DIM_DOM_MAPPING_PATH.with_name(f"dim_dom_mapping_{version}.json"),
+                        "w",
+                        encoding="UTF-8",
+                    ) as fl:
                         json.dump(dim_dom_mapping, fl, indent=4)
 
                 if file_path_obj.suffix == ".json" and file_path_obj.parent.name == "mod":

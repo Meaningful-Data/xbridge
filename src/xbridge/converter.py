@@ -17,7 +17,7 @@ from xbridge.modules import Module, Table
 from xbridge.xml_instance import Instance
 
 INDEX_FILE = Path(__file__).parent / "modules" / "index.json"
-MAPPING_PATH = Path(__file__).parent / "modules" 
+MAPPING_PATH = Path(__file__).parent / "modules"
 
 if not INDEX_FILE.exists():
     raise ValueError(
