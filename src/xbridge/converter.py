@@ -330,14 +330,15 @@ class Converter:
             "entityID": self.instance.entity,
             "refPeriod": self.instance.period,
             "baseCurrency": self.instance.base_currency,
-            "decimalsInteger": 0,
-            "decimalsMonetary": (
-                self.instance.decimals_monetary if self.instance.decimals_monetary else 0
-            ),
-            "decimalsPercentage": (
-                self.instance.decimals_percentage if self.instance.decimals_percentage else 4
-            ),
         }
+
+        if self.instance.decimals_integer:
+            parameters["decimalsInteger"] = self.instance.decimals_integer
+        if self.instance.decimals_monetary:
+            parameters["decimalsMonetary"] = self.instance.decimals_monetary
+        if self.instance.decimals_percentage:
+            parameters["decimalsPercentage"] = self.instance.decimals_percentage
+
         with open(output_path_parameters, "w", newline="", encoding="utf-8") as fl:
             csv_writer = csv.writer(fl)
             csv_writer.writerow(["name", "value"])
