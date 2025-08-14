@@ -40,10 +40,13 @@ class Instance:
         self._units: Optional[Dict[str, str]] = None
         self._base_currency_unit: Optional[str] = None
         self._pure_unit: Optional[str] = None
+        self._integer_unit: Optional[str] = None
         self._decimals_monetary: Optional[int] = None
         self._decimals_percentage: Optional[int] = None
+        self._decimals_integer: Optional[int] = None
         self._decimals_monetary_set: Set[Optional[str]] = set()
         self._decimals_percentage_set: Set[Optional[str]] = set()
+        self._decimals_integer_set: Set[Optional[str]] = set()
         self._identifier_prefix: Optional[str] = None
 
         self.parse()
@@ -238,6 +241,8 @@ class Instance:
                     self._decimals_monetary_set.add(fact.decimals)
                 if fact.unit == self._pure_unit:
                     self._decimals_percentage_set.add(fact.decimals)
+                if fact.unit == self._integer_unit:
+                    self._decimals_integer_set.add(fact.decimals)
                 facts.append(Fact(child))
 
         self._facts = facts
@@ -299,6 +304,8 @@ class Instance:
                     self._base_currency_unit = unit_name
             if unit_value in ["xbrli:pure", "pure"]:
                 self._pure_unit = unit_name
+            if unit_value in ["xbrli:integer", "integer"]:
+                self._integer_unit = unit_name
             units[unit_name] = unit_value
 
         self._units = units
@@ -315,10 +322,14 @@ class Instance:
             raise ValueError("The instance has more than one entity")
 
     @property
-    def decimals_percentage(self) -> Optional[int]:
+    def decimals_percentage(self) -> Optional[Union[int, str]]:
         """Returns the single value for percentage values in the instance."""
         if not self._decimals_percentage_set:
             return None
+        
+        if "INF" in self._decimals_monetary_set:
+            return "INF"
+        
         max_val = (
             max(int(d) for d in self._decimals_percentage_set if d and d.isdigit())
             if any(d and d.isdigit() for d in self._decimals_percentage_set)
@@ -327,10 +338,12 @@ class Instance:
         return max_val
 
     @property
-    def decimals_monetary(self) -> Optional[int]:
+    def decimals_monetary(self) -> Optional[Union[int, str]]:
         """Returns the single value for monetary values in the instance."""
         if len(self._decimals_monetary_set) == 0:
             return None
+        if "INF" in self._decimals_monetary_set:
+            return "INF"
         decimal_values = [d for d in self._decimals_monetary_set if d]
         max_reported = max(decimal_values)
         if max_reported:
@@ -341,6 +354,17 @@ class Instance:
             # applying.
             return min(int(max_reported), 2)
         return None
+
+    @property
+    def decimals_integer(self) -> Optional[Union[int, str]]:
+        """Returns the single value for integer values in the instance."""
+        if not self._decimals_integer:
+            return None
+        if "INF" in self._decimals_monetary_set:
+            return "INF"
+        max_val = max(self._decimals_integer_set) if self._decimals_integer_set else 0
+
+        return max_val
 
 
 class Scenario:

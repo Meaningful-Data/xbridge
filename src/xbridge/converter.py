@@ -10,6 +10,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Dict, Union
 from zipfile import ZipFile
+import warnings
 
 import pandas as pd
 
@@ -76,6 +77,16 @@ class Converter:
 
         if self.module is None:
             raise ValueError("Module of the instance file not found in the taxonomy")
+        
+        module_filind_codes = [table.filing_indicator_code for table in self.module.tables]
+
+        for filing_indicator in self.instance.filing_indicators:
+            if filing_indicator.table not in module_filind_codes:
+                raise ValueError(
+                    f"Filing indicator {filing_indicator.table} not found in the module tables."
+                )
+                
+
 
         instance_path = self.instance.path
         if not isinstance(instance_path, str):
@@ -240,10 +251,8 @@ class Converter:
             # Possible alternative: add metadata mapping abstract and concrete tables to
             # avoid doing this kind of corrections
             # Defining the output path and check if the table is reported
-            normalised_table_code = table.code.replace("-", ".") if table.code else ""
-            if normalised_table_code and normalised_table_code[-1].isalpha():
-                normalised_table_code = normalised_table_code.rsplit(".", maxsplit=1)[0]
-            if normalised_table_code not in self._reported_tables:
+
+            if table.filing_indicator_code not in self._reported_tables:
                 continue
 
             datapoints = self._variable_generator(table)
@@ -321,14 +330,15 @@ class Converter:
             "entityID": self.instance.entity,
             "refPeriod": self.instance.period,
             "baseCurrency": self.instance.base_currency,
-            "decimalsInteger": 0,
-            "decimalsMonetary": (
-                self.instance.decimals_monetary if self.instance.decimals_monetary else 0
-            ),
-            "decimalsPercentage": (
-                self.instance.decimals_percentage if self.instance.decimals_percentage else 4
-            ),
         }
+
+        if self.instance.decimals_integer:
+            parameters["decimalsInteger"] = self.instance.decimals_integer
+        if self.instance.decimals_monetary:
+            parameters["decimalsMonetary"] = self.instance.decimals_monetary
+        if self.instance.decimals_percentage:
+            parameters["decimalsPercentage"] = self.instance.decimals_percentage
+
         with open(output_path_parameters, "w", newline="", encoding="utf-8") as fl:
             csv_writer = csv.writer(fl)
             csv_writer.writerow(["name", "value"])
