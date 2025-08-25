@@ -330,6 +330,9 @@ class Instance:
         if "INF" in self._decimals_monetary_set:
             return "INF"
         
+        if "#none" in self._decimals_percentage_set:
+            return "#none"
+        
         max_val = (
             max(int(d) for d in self._decimals_percentage_set if d and d.isdigit())
             if any(d and d.isdigit() for d in self._decimals_percentage_set)
@@ -344,6 +347,8 @@ class Instance:
             return None
         if "INF" in self._decimals_monetary_set:
             return "INF"
+        if "#none" in self._decimals_monetary_set:
+            return "#none"
         decimal_values = [d for d in self._decimals_monetary_set if d]
         max_reported = max(decimal_values)
         if max_reported:
@@ -362,6 +367,8 @@ class Instance:
             return None
         if "INF" in self._decimals_monetary_set:
             return "INF"
+        if "#none" in self._decimals_integer_set:
+            return "#none"
         max_val = max(self._decimals_integer_set) if self._decimals_integer_set else 0
 
         return max_val
