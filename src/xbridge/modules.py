@@ -324,7 +324,9 @@ class Table:
                             variable_info["metric"] = dim_v.split(":")[1]
                         elif dim_k not in ("unit", "decimals"):
                             variable_info[dim_k.split(":")[1]] = dim_v.split(":")[1]
-                variable_info["data_type"] = variable._attributes
+
+                if "decimals" in column:
+                    variable_info["data_type"] = column["decimals"]
                 variables.append(copy.copy(variable_info))
 
         self._variable_df = pd.DataFrame(variables)
