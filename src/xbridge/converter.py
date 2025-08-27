@@ -236,7 +236,7 @@ class Converter:
                     if decimals in {"INF", "#none"}:
                         self._decimals_parameters[data_type] = decimals
                     else:
-                        if self._decimals_parameters[data_type] < decimals:
+                        if isinstance(self._decimals_parameters, int) and self._decimals_parameters[data_type] < decimals:
                             self._decimals_parameters[data_type] = decimals
 
             drop_columns = merge_cols + ["data_type", "decimals"]
