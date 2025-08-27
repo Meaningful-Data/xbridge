@@ -8,7 +8,7 @@ import csv
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, Union
+from typing import Any, Dict, Union
 from zipfile import ZipFile
 
 import pandas as pd
@@ -80,7 +80,11 @@ class Converter:
 
         module_filind_codes = [table.filing_indicator_code for table in self.module.tables]
 
-        for filing_indicator in self.instance.filing_indicators:
+        filing_indicator_codes = (
+            self.instance.filing_indicators if self.instance.filing_indicators else []
+        )
+
+        for filing_indicator in filing_indicator_codes:
             if filing_indicator.table not in module_filind_codes:
                 raise ValueError(
                     f"Filing indicator {filing_indicator.table} not found in the module tables."
@@ -236,7 +240,10 @@ class Converter:
                     if decimals in {"INF", "#none"}:
                         self._decimals_parameters[data_type] = decimals
                     else:
-                        if isinstance(self._decimals_parameters, int) and self._decimals_parameters[data_type] < decimals:
+                        if (
+                            isinstance(self._decimals_parameters, int)
+                            and self._decimals_parameters[data_type] < decimals
+                        ):
                             self._decimals_parameters[data_type] = decimals
 
             drop_columns = merge_cols + ["data_type", "decimals"]
@@ -343,7 +350,7 @@ class Converter:
         # Workaround;
         # Developed for the EBA structure
         output_path_parameters = temp_dir_path / "parameters.csv"
-        parameters = {
+        parameters: Dict[str, Any] = {
             "entityID": self.instance.entity,
             "refPeriod": self.instance.period,
             "baseCurrency": self.instance.base_currency,
