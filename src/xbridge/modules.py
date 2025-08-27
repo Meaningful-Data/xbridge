@@ -286,12 +286,11 @@ class Table:
 
     @property
     def filing_indicator_code(self) -> Optional[str]:
-        
         normalised_table_code = self.code.replace("-", ".") if self.code else ""
 
         if normalised_table_code and normalised_table_code[-1].isalpha():
-                normalised_table_code = normalised_table_code.rsplit(".", maxsplit=1)[0]
-        
+            normalised_table_code = normalised_table_code.rsplit(".", maxsplit=1)[0]
+
         return normalised_table_code
 
     def generate_variable_df(self) -> None:

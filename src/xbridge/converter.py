@@ -10,7 +10,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Dict, Union
 from zipfile import ZipFile
-import warnings
 
 import pandas as pd
 
@@ -78,7 +77,7 @@ class Converter:
 
         if self.module is None:
             raise ValueError("Module of the instance file not found in the taxonomy")
-        
+
         module_filind_codes = [table.filing_indicator_code for table in self.module.tables]
 
         for filing_indicator in self.instance.filing_indicators:
@@ -86,8 +85,6 @@ class Converter:
                 raise ValueError(
                     f"Filing indicator {filing_indicator.table} not found in the module tables."
                 )
-                
-
 
         instance_path = self.instance.path
         if not isinstance(instance_path, str):
@@ -149,7 +146,6 @@ class Converter:
         open_keys = set(table.open_keys)
         attributes = set(table.attributes)
 
-
         # If any open key is not in the instance, then the table cannot have
         # any datapoint
         if not open_keys.issubset(instance_columns):
@@ -175,9 +171,7 @@ class Converter:
         instance_df = self.instance.instance_df[needed_columns].copy()
 
         cols_to_drop = [
-            col
-            for col in ["unit"]
-            if col not in attributes and col in instance_df.columns
+            col for col in ["unit"] if col not in attributes and col in instance_df.columns
         ]
         if cols_to_drop:
             instance_df.drop(columns=cols_to_drop, inplace=True)
@@ -216,8 +210,8 @@ class Converter:
         # Do the intersection and drop from datapoints the columns and records
         datapoint_df = table.variable_df
         missing_cols = list(variable_columns - instance_columns)
-        if 'data_type' in missing_cols:
-            missing_cols.remove('data_type')
+        if "data_type" in missing_cols:
+            missing_cols.remove("data_type")
         if missing_cols:
             mask = datapoint_df[missing_cols].isnull().all(axis=1)
             datapoint_df = datapoint_df.loc[mask]
@@ -227,25 +221,25 @@ class Converter:
         merge_cols = list(variable_columns & instance_columns)
         table_df = pd.merge(datapoint_df, instance_df, on=merge_cols, how="inner")
 
-        if 'data_type' in table_df.columns and 'decimals' in table_df.columns:
-            decimals_table = table_df[['decimals', 'data_type']].drop_duplicates()
-            for index, row in decimals_table.iterrows():
-                if not row['data_type'] or not row['decimals']:
+        if "data_type" in table_df.columns and "decimals" in table_df.columns:
+            decimals_table = table_df[["decimals", "data_type"]].drop_duplicates()
+            for _, row in decimals_table.iterrows():
+                if not row["data_type"] or not row["decimals"]:
                     continue
 
-                data_type = row['data_type'][1:]
-                decimals = row['decimals']
+                data_type = row["data_type"][1:]
+                decimals = row["decimals"]
 
-                if data_type not in self._decimals_parameters:  
+                if data_type not in self._decimals_parameters:
                     self._decimals_parameters[data_type] = decimals
                 else:
-                    if decimals in {'INF', '#none'}:
+                    if decimals in {"INF", "#none"}:
                         self._decimals_parameters[data_type] = decimals
                     else:
                         if self._decimals_parameters[data_type] < decimals:
                             self._decimals_parameters[data_type] = decimals
-                
-            drop_columns = merge_cols + ['data_type', 'decimals']
+
+            drop_columns = merge_cols + ["data_type", "decimals"]
         else:
             drop_columns = merge_cols
 
@@ -357,7 +351,6 @@ class Converter:
 
         for data_type, decimals in self._decimals_parameters.items():
             parameters[data_type] = decimals
-
 
         with open(output_path_parameters, "w", newline="", encoding="utf-8") as fl:
             csv_writer = csv.writer(fl)

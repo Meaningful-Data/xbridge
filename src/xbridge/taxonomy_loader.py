@@ -119,11 +119,8 @@ class Taxonomy:
                 file_path_obj = Path(file_path)
                 # Normalize path separators for cross-platform compatibility
                 normalized_path = str(file_path_obj).replace("\\", "/")
-                
-                if (
-                    normalized_path
-                    == "www.eba.europa.eu/eu/fr/xbrl/crr/dict/dim/dim-def.xml"
-                ):
+
+                if normalized_path == "www.eba.europa.eu/eu/fr/xbrl/crr/dict/dim/dim-def.xml":
                     bin_read = zip_file.read(file_path)
                     root = etree.fromstring(bin_read.decode("utf-8"))
                     dim_dom_mapping = self._get_dim_dom_mapping(root)
