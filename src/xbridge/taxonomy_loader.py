@@ -117,10 +117,10 @@ class Taxonomy:
         with ZipFile(input_path, mode="r") as zip_file:
             for file_path in zip_file.namelist():
                 file_path_obj = Path(file_path)
-                if (
-                    str(file_path_obj)
-                    == "www.eba.europa.eu\\eu\\fr\\xbrl\\crr\\dict\\dim\\dim-def.xml"
-                ):
+                # Normalize path separators for cross-platform compatibility
+                normalized_path = str(file_path_obj).replace("\\", "/")
+
+                if normalized_path == "www.eba.europa.eu/eu/fr/xbrl/crr/dict/dim/dim-def.xml":
                     bin_read = zip_file.read(file_path)
                     root = etree.fromstring(bin_read.decode("utf-8"))
                     dim_dom_mapping = self._get_dim_dom_mapping(root)
@@ -129,7 +129,8 @@ class Taxonomy:
                     dim_dom_mapping_loaded = True
 
                 elif "dim-def.xml" in str(file_path_obj):
-                    version = str(file_path_obj).split("\\")[-2]
+                    # Extract version using normalized path separators
+                    version = normalized_path.split("/")[-2]
                     bin_read = zip_file.read(file_path)
                     root = etree.fromstring(bin_read)
                     dim_dom_mapping = self._get_dim_dom_mapping(root)

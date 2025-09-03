@@ -8,7 +8,7 @@ import csv
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, Union
+from typing import Any, Dict, Union
 from zipfile import ZipFile
 
 import pandas as pd
@@ -63,6 +63,7 @@ class Converter:
         module_path = Path(__file__).parent / "modules" / index[module_ref]
         self.module = Module.from_serialized(module_path)
         self._reported_tables: list[str] = []
+        self._decimals_parameters: dict[str, int] = {}
 
     def convert(self, output_path: Union[str, Path], headers_as_datapoints: bool = False) -> Path:
         """Convert the ``XML Instance`` to a CSV file"""
@@ -76,6 +77,18 @@ class Converter:
 
         if self.module is None:
             raise ValueError("Module of the instance file not found in the taxonomy")
+
+        module_filind_codes = [table.filing_indicator_code for table in self.module.tables]
+
+        filing_indicator_codes = (
+            self.instance.filing_indicators if self.instance.filing_indicators else []
+        )
+
+        for filing_indicator in filing_indicator_codes:
+            if filing_indicator.table not in module_filind_codes:
+                raise ValueError(
+                    f"Filing indicator {filing_indicator.table} not found in the module tables."
+                )
 
         instance_path = self.instance.path
         if not isinstance(instance_path, str):
@@ -153,7 +166,7 @@ class Converter:
 
         # Convert to list so Pandas won't complain
         needed_columns = list(
-            variable_columns | open_keys | attributes | {"value"} | not_relevant_dims
+            variable_columns | open_keys | attributes | {"value", "decimals"} | not_relevant_dims
         )
 
         # Intersect with instance_columns as a list
@@ -162,9 +175,7 @@ class Converter:
         instance_df = self.instance.instance_df[needed_columns].copy()
 
         cols_to_drop = [
-            col
-            for col in ["unit", "decimals"]
-            if col not in attributes and col in instance_df.columns
+            col for col in ["unit"] if col not in attributes and col in instance_df.columns
         ]
         if cols_to_drop:
             instance_df.drop(columns=cols_to_drop, inplace=True)
@@ -203,6 +214,8 @@ class Converter:
         # Do the intersection and drop from datapoints the columns and records
         datapoint_df = table.variable_df
         missing_cols = list(variable_columns - instance_columns)
+        if "data_type" in missing_cols:
+            missing_cols.remove("data_type")
         if missing_cols:
             mask = datapoint_df[missing_cols].isnull().all(axis=1)
             datapoint_df = datapoint_df.loc[mask]
@@ -212,10 +225,32 @@ class Converter:
         merge_cols = list(variable_columns & instance_columns)
         table_df = pd.merge(datapoint_df, instance_df, on=merge_cols, how="inner")
 
-        # if len(table_df) == 0:
-        #     return pd.DataFrame(columns=["datapoint", "value"])
+        if "data_type" in table_df.columns and "decimals" in table_df.columns:
+            decimals_table = table_df[["decimals", "data_type"]].drop_duplicates()
+            for _, row in decimals_table.iterrows():
+                if not row["data_type"] or not row["decimals"]:
+                    continue
 
-        table_df.drop(columns=merge_cols, inplace=True)
+                data_type = row["data_type"][1:]
+                decimals = row["decimals"]
+
+                if data_type not in self._decimals_parameters:
+                    self._decimals_parameters[data_type] = decimals
+                else:
+                    if decimals in {"INF", "#none"}:
+                        self._decimals_parameters[data_type] = decimals
+                    else:
+                        if (
+                            isinstance(self._decimals_parameters, int)
+                            and self._decimals_parameters[data_type] < decimals
+                        ):
+                            self._decimals_parameters[data_type] = decimals
+
+            drop_columns = merge_cols + ["data_type", "decimals"]
+        else:
+            drop_columns = merge_cols
+
+        table_df.drop(columns=drop_columns, inplace=True)
 
         # Drop the datapoints that have null values in the open keys
         valid_open_keys = [key for key in open_keys if key in table_df.columns]
@@ -240,10 +275,8 @@ class Converter:
             # Possible alternative: add metadata mapping abstract and concrete tables to
             # avoid doing this kind of corrections
             # Defining the output path and check if the table is reported
-            normalised_table_code = table.code.replace("-", ".") if table.code else ""
-            if normalised_table_code and normalised_table_code[-1].isalpha():
-                normalised_table_code = normalised_table_code.rsplit(".", maxsplit=1)[0]
-            if normalised_table_code not in self._reported_tables:
+
+            if table.filing_indicator_code not in self._reported_tables:
                 continue
 
             datapoints = self._variable_generator(table)
@@ -317,18 +350,15 @@ class Converter:
         # Workaround;
         # Developed for the EBA structure
         output_path_parameters = temp_dir_path / "parameters.csv"
-        parameters = {
+        parameters: Dict[str, Any] = {
             "entityID": self.instance.entity,
             "refPeriod": self.instance.period,
             "baseCurrency": self.instance.base_currency,
-            "decimalsInteger": 0,
-            "decimalsMonetary": (
-                self.instance.decimals_monetary if self.instance.decimals_monetary else 0
-            ),
-            "decimalsPercentage": (
-                self.instance.decimals_percentage if self.instance.decimals_percentage else 4
-            ),
         }
+
+        for data_type, decimals in self._decimals_parameters.items():
+            parameters[data_type] = decimals
+
         with open(output_path_parameters, "w", newline="", encoding="utf-8") as fl:
             csv_writer = csv.writer(fl)
             csv_writer.writerow(["name", "value"])

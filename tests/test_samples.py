@@ -12,11 +12,13 @@ from ._base_test import BasicConversionTest, FullConversionTest
 INPUT_PATH_3_2p1 = Path(__file__).parent / "test_files" / "sample_3_2_phase1"
 INPUT_PATH_3_2p3 = Path(__file__).parent / "test_files" / "sample_3_2_phase3"
 INPUT_PATH_3_3 = Path(__file__).parent / "test_files" / "sample_3_3"
+INPUT_PATH_DORA = Path(__file__).parent / "test_files" / "sample_dora"
 
 params_full = [
     (INPUT_PATH_3_2p3 / "test1_in.xbrl", INPUT_PATH_3_2p3 / "test1_out.zip"),
     (INPUT_PATH_3_2p3 / "test3_in.xbrl", INPUT_PATH_3_2p3 / "test3_out.zip"),
     (INPUT_PATH_3_2p3 / "test4_in.xbrl", INPUT_PATH_3_2p3 / "test4_out.zip"),
+    (INPUT_PATH_DORA / "test1_in.xbrl", INPUT_PATH_DORA / "test1_out.zip"),
 ]
 
 params_basic = [

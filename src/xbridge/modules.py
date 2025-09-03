@@ -284,6 +284,15 @@ class Table:
         """
         return self._variable_df
 
+    @property
+    def filing_indicator_code(self) -> Optional[str]:
+        normalised_table_code = self.code.replace("-", ".") if self.code else ""
+
+        if normalised_table_code and normalised_table_code[-1].isalpha():
+            normalised_table_code = normalised_table_code.rsplit(".", maxsplit=1)[0]
+
+        return normalised_table_code
+
     def generate_variable_df(self) -> None:
         """Returns a dataframe with the :obj:`variable <xbridge.taxonomy.Variable>`
         and extensional context"""
@@ -303,6 +312,7 @@ class Table:
                     continue
 
                 variable_info["datapoint"] = variable.code
+                variable_info["data_type"] = variable._attributes
                 variables.append(copy.copy(variable_info))
         elif self.architecture == "headers":
             for column in self.columns:
@@ -313,6 +323,9 @@ class Table:
                             variable_info["metric"] = dim_v.split(":")[1]
                         elif dim_k not in ("unit", "decimals"):
                             variable_info[dim_k.split(":")[1]] = dim_v.split(":")[1]
+
+                if "decimals" in column:
+                    variable_info["data_type"] = column["decimals"]
                 variables.append(copy.copy(variable_info))
 
         self._variable_df = pd.DataFrame(variables)
@@ -369,6 +382,8 @@ class Table:
             }
             if "dimensions" in setup:
                 col_setup["dimensions"] = setup["dimensions"]
+            if "decimals" in setup:
+                col_setup["decimals"] = setup["decimals"]
 
             result.append(col_setup)
 
