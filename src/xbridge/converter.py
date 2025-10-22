@@ -64,6 +64,8 @@ class Converter:
         self.module = Module.from_serialized(module_path)
         self._reported_tables: list[str] = []
         self._decimals_parameters: dict[str, int] = {}
+        self._converted_facts: set[tuple[tuple[str, str], ...]] = set()
+        self._skipped_tables_facts: dict[str, list[tuple[tuple[str, str], ...]]] = {}
 
     def convert(self, output_path: Union[str, Path], headers_as_datapoints: bool = False) -> Path:
         """Convert the ``XML Instance`` to a CSV file"""
@@ -125,6 +127,8 @@ class Converter:
         with open(MAPPING_PATH / self.module.dim_dom_file_name, "r", encoding="utf-8") as fl:
             mapping_dict: Dict[str, str] = json.load(fl)
         self._convert_tables(report_dir, mapping_dict, headers_as_datapoints)
+        # Validate that no facts were orphaned due to false filing indicators
+        self._validate_filing_indicators()
         self._convert_parameters(report_dir)
 
         file_name = instance_path_stem + ".zip"
@@ -262,6 +266,105 @@ class Converter:
 
         return table_df
 
+    def _create_fact_id(self, row: pd.Series) -> tuple[tuple[str, str], ...]:
+        """Create a unique identifier for a fact based on its dimensions."""
+        return tuple(sorted((k, str(v)) for k, v in row.items()))
+
+    def _track_converted_facts(self, datapoints: pd.DataFrame) -> None:
+        """Track facts that are being written to the output."""
+        if datapoints.empty:
+            return
+
+        # Get all columns except factValue to identify unique facts
+        fact_cols = [col for col in datapoints.columns if col != 'factValue']
+        if not fact_cols:
+            return
+
+        for _, row in datapoints[fact_cols].iterrows():
+            fact_id = self._create_fact_id(row)
+            self._converted_facts.add(fact_id)
+
+    def _track_skipped_facts(self, table_code: str, datapoints: pd.DataFrame) -> None:
+        """Track facts from tables that are being skipped."""
+        if datapoints.empty:
+            return
+
+        # Get all columns except factValue to identify unique facts
+        fact_cols = [col for col in datapoints.columns if col != 'factValue']
+        if not fact_cols:
+            return
+
+        if table_code not in self._skipped_tables_facts:
+            self._skipped_tables_facts[table_code] = []
+
+        for _, row in datapoints[fact_cols].iterrows():
+            fact_id = self._create_fact_id(row)
+            self._skipped_tables_facts[table_code].append(fact_id)
+
+    def _validate_filing_indicators(self) -> None:
+        """Validates that facts in tables with false filing indicators are not orphaned.
+
+        Facts that belong to multiple tables are only flagged if they don't appear in
+        any table with a true filing indicator. This prevents false positives when
+        facts are shared across tables.
+
+        This validation runs after table conversion, using the tracked facts to
+        determine if any data was lost.
+
+        Raises ValueError if facts would be completely lost due to false filing indicators.
+        """
+        if not self.instance.filing_indicators:
+            return
+
+        # Get filing indicators that are set to false
+        false_filing_indicators = [
+            fi for fi in self.instance.filing_indicators
+            if fi.value is False and fi.table
+        ]
+
+        if not false_filing_indicators:
+            return
+
+        # Check if there are any skipped tables with facts
+        if not self._skipped_tables_facts:
+            return
+
+        # Check each skipped table for orphaned facts
+        tables_with_orphaned_facts = []
+        for table_code, skipped_facts in self._skipped_tables_facts.items():
+            # Count how many facts are NOT in the converted set
+            orphaned_count = sum(1 for fact_id in skipped_facts if fact_id not in self._converted_facts)
+
+            if orphaned_count > 0:
+                tables_with_orphaned_facts.append({
+                    'table': table_code,
+                    'fact_count': orphaned_count,
+                    'total_facts': len(skipped_facts)
+                })
+
+        if tables_with_orphaned_facts:
+            error_messages = []
+            for item in tables_with_orphaned_facts:
+                if item['fact_count'] == item['total_facts']:
+                    error_messages.append(
+                        f"  - Table '{item['table']}': {item['fact_count']} fact(s) would be lost"
+                    )
+                else:
+                    error_messages.append(
+                        f"  - Table '{item['table']}': {item['fact_count']} of {item['total_facts']} "
+                        f"fact(s) would be lost (others are in reported tables)"
+                    )
+
+            raise ValueError(
+                "Filing indicator validation failed: The following table(s) have filing "
+                "indicators set to 'false' but contain facts that would be lost:\n"
+                + "\n".join(error_messages) + "\n\n"
+                "This would result in data loss during conversion. Please either:\n"
+                "  1. Set the filing indicator to 'true' for these tables, or\n"
+                "  2. Remove the orphaned facts from the source XBRL-XML file, or\n"
+                "  3. Ensure these facts are covered by other tables with 'true' filing indicators."
+            )
+
     def _convert_tables(
         self,
         temp_dir_path: Path,
@@ -276,13 +379,19 @@ class Converter:
             # avoid doing this kind of corrections
             # Defining the output path and check if the table is reported
 
-            if table.filing_indicator_code not in self._reported_tables:
-                continue
-
             datapoints = self._variable_generator(table)
+
+            if table.filing_indicator_code not in self._reported_tables:
+                # Track facts from skipped tables for validation
+                if not datapoints.empty:
+                    self._track_skipped_facts(table.filing_indicator_code, datapoints)
+                continue
 
             if datapoints.empty:
                 continue
+
+            # Track facts that are being converted
+            self._track_converted_facts(datapoints)
 
             # if table.architecture == 'datapoints':
 
