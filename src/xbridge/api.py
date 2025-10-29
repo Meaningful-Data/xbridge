@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 from xbridge.converter import Converter
-from xbridge.xml_instance import Instance
+from xbridge.instance import Instance
 
 
 def convert_instance(
@@ -42,4 +42,4 @@ def load_instance(instance_path: Union[str, Path]) -> Instance:
     :return: An instance object may be return
     """
 
-    return Instance(str(instance_path))
+    return Instance.from_path(instance_path)

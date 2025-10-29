@@ -7,6 +7,7 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
+from shutil import rmtree
 from tempfile import TemporaryDirectory
 from typing import Any, Dict, Union
 from zipfile import ZipFile
@@ -14,7 +15,7 @@ from zipfile import ZipFile
 import pandas as pd
 
 from xbridge.modules import Module, Table
-from xbridge.xml_instance import Instance
+from xbridge.instance import Instance, XmlInstance, CsvInstance
 
 INDEX_FILE = Path(__file__).parent / "modules" / "index.json"
 MAPPING_PATH = Path(__file__).parent / "modules"
@@ -53,7 +54,7 @@ class Converter:
 
     def __init__(self, instance_path: Union[str, Path]) -> None:
         path_str = str(instance_path)
-        self.instance: Instance = Instance(path_str)
+        self.instance = Instance.from_path(path_str)
         module_ref = self.instance.module_ref
         if not module_ref:
             raise ValueError("No module_ref found in the instance.")
@@ -66,7 +67,7 @@ class Converter:
         self._decimals_parameters: dict[str, int] = {}
 
     def convert(self, output_path: Union[str, Path], headers_as_datapoints: bool = False) -> Path:
-        """Convert the ``XML Instance`` to a CSV file"""
+        """Convert the ``XML Instance`` to a CSV file or between CSV formats"""
         if not output_path:
             raise ValueError("Output path not provided")
 
@@ -78,6 +79,16 @@ class Converter:
         if self.module is None:
             raise ValueError("Module of the instance file not found in the taxonomy")
 
+        if isinstance(self.instance, XmlInstance):
+            return self.convert_xml(output_path, headers_as_datapoints)
+        elif isinstance(self.instance, CsvInstance):
+            if self.module.architecture != "headers":
+                raise ValueError("Cannot convert CSV instance with non-headers architecture")
+            return self.convert_csv(output_path)
+        else:
+            raise ValueError("Invalid instance type")
+
+    def convert_xml(self, output_path: Union[str, Path], headers_as_datapoints: bool = False) -> Path:
         module_filind_codes = [table.filing_indicator_code for table in self.module.tables]
 
         filing_indicator_codes = (
@@ -138,6 +149,55 @@ class Converter:
                 zip_fl.write(file, arcname=f"{instance_path_stem}/reports/{file.name}")
 
         temp_dir.cleanup()
+
+        return zip_file_path
+
+    def convert_csv(self, output_path: Union[str, Path]) -> Path:
+
+        for table_file in self.instance.table_files:
+            table_url = table_file.name
+            for table in self.module.tables:
+                if table.url == table_url:
+                    table_columns = table.columns
+                    open_keys_mapping = table._open_keys_mapping
+                    break
+            else:
+                raise ValueError(f"Table {table_url} not found in the module")
+
+            table_df = pd.read_csv(table_file)
+
+            columns_rename = {f'c{column_code}': property_code for property_code, column_code in open_keys_mapping.items()}
+            table_df.rename(columns=columns_rename, inplace=True)
+            open_keys_properties = [property_code for property_code in columns_rename.values()]
+            measure_columns = [column['code'] for column in table_columns if column['code'] not in columns_rename.keys()]
+            measure_columns = [column for column in measure_columns if column in table_df.columns]
+
+            table_df = table_df.melt(id_vars=open_keys_properties, value_vars=measure_columns)
+
+            mapping_dict = {column['code']: f'dp{column["variable_id"]}' for column in table_columns}
+            mapping_df = pd.DataFrame(mapping_dict.items(), columns=["variable", "datapoint"])
+            table_df = pd.merge(mapping_df, table_df, on="variable", how="inner")
+
+            table_df.drop(columns=["variable"], inplace=True)
+            table_df.rename(columns={"value": "factValue"}, inplace=True)
+
+            table_df.to_csv(table_file, index=False)
+
+        file_name = Path(self.instance.path).name.replace(".zip", "-datapoints_converted.zip")
+        zip_file_path = output_path / file_name
+
+        root = self.instance.root_folder
+
+        meta_inf_dir = self.instance._temp_dir_path / "META-INF"
+        report_dir = self.instance._temp_dir_path / "reports"
+
+        with ZipFile(zip_file_path, "w") as zip_fl:
+            for file in meta_inf_dir.iterdir():
+                zip_fl.write(file, arcname=f"{root}/META-INF/{file.name}")
+            for file in report_dir.iterdir():
+                zip_fl.write(file, arcname=f"{root}/reports/{file.name}")
+
+        rmtree(self.instance.temp_dir_path)
 
         return zip_file_path
 
