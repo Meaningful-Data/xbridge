@@ -14,8 +14,8 @@ from zipfile import ZipFile
 
 import pandas as pd
 
+from xbridge.instance import CsvInstance, Instance, XmlInstance
 from xbridge.modules import Module, Table
-from xbridge.instance import Instance, XmlInstance, CsvInstance
 
 INDEX_FILE = Path(__file__).parent / "modules" / "index.json"
 MAPPING_PATH = Path(__file__).parent / "modules"
@@ -88,7 +88,9 @@ class Converter:
         else:
             raise ValueError("Invalid instance type")
 
-    def convert_xml(self, output_path: Union[str, Path], headers_as_datapoints: bool = False) -> Path:
+    def convert_xml(
+        self, output_path: Union[str, Path], headers_as_datapoints: bool = False
+    ) -> Path:
         module_filind_codes = [table.filing_indicator_code for table in self.module.tables]
 
         filing_indicator_codes = (
@@ -153,7 +155,6 @@ class Converter:
         return zip_file_path
 
     def convert_csv(self, output_path: Union[str, Path]) -> Path:
-
         for table_file in self.instance.table_files:
             table_url = table_file.name
             for table in self.module.tables:
@@ -165,19 +166,27 @@ class Converter:
                 raise ValueError(f"Table {table_url} not found in the module")
 
             table_df = pd.read_csv(table_file)
-            # For type 't' datapoints is only accepted 'true' as value but pandas convert it directly to 'True'.
+            # For type 't' datapoints is only accepted 'true' as value
+            # but pandas convert it directly to 'True'.
             # For the rest of boolean datapoints 'true' is also accepted
-            table_df = table_df.replace(True, 'true')
+            table_df = table_df.replace(True, "true")
 
-            columns_rename = {f'c{column_code}': property_code for property_code, column_code in open_keys_mapping.items()}
+            columns_rename = {
+                f"c{column_code}": property_code
+                for property_code, column_code in open_keys_mapping.items()
+            }
             table_df.rename(columns=columns_rename, inplace=True)
-            open_keys_properties = [property_code for property_code in columns_rename.values()]
-            measure_columns = [column['code'] for column in table_columns if column['code'] not in columns_rename.keys()]
+            open_keys_properties = list(columns_rename.values())
+            measure_columns = [
+                column["code"] for column in table_columns if column["code"] not in columns_rename
+            ]
             measure_columns = [column for column in measure_columns if column in table_df.columns]
 
             table_df = table_df.melt(id_vars=open_keys_properties, value_vars=measure_columns)
 
-            mapping_dict = {column['code']: f'dp{column["variable_id"]}' for column in table_columns}
+            mapping_dict = {
+                column["code"]: f"dp{column['variable_id']}" for column in table_columns
+            }
             mapping_df = pd.DataFrame(mapping_dict.items(), columns=["variable", "datapoint"])
             table_df = pd.merge(mapping_df, table_df, on="variable", how="inner")
 

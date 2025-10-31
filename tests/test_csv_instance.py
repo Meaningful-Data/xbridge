@@ -1,6 +1,7 @@
 """
 Tests for csv_instance module
 """
+
 from __future__ import annotations
 
 import csv
@@ -8,11 +9,8 @@ import io
 from pathlib import Path
 from zipfile import ZipFile
 
-import pytest
-
-from xbridge.instance import Instance, CsvInstance
 from xbridge.converter import Converter
-
+from xbridge.instance import CsvInstance, Instance
 
 DORA_SAMPLE = Path(__file__).parent / "test_files" / "sample_dora" / "test2_in.zip"
 
@@ -96,14 +94,15 @@ def test_converter_preserves_name_root_and_manifests(tmp_path: Path):
 
     with ZipFile(out_zip) as z:
         names = z.namelist()
-        assert any(n.endswith("/META-INF/reportPackage.json") for n in names), \
+        assert any(n.endswith("/META-INF/reportPackage.json") for n in names), (
             "Missing META-INF/reportPackage.json"
-        assert any(n.endswith("/reports/report.json") for n in names), \
-            "Missing reports/report.json"
+        )
+        assert any(n.endswith("/reports/report.json") for n in names), "Missing reports/report.json"
 
         # only real tables: exclude parameters and filing indicators
         csv_entries = [
-            n for n in names
+            n
+            for n in names
             if "/reports/" in n
             and n.endswith(".csv")
             and not n.lower().endswith("/parameters.csv")

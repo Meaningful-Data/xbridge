@@ -2,20 +2,23 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from zipfile import ZipFile
-from tempfile import mkdtemp
 import json
 import os
 import warnings
+from pathlib import Path
+from tempfile import mkdtemp
 from typing import Any, Dict, List, Optional, Union
+from zipfile import ZipFile
 
 import pandas as pd
 from lxml import etree
 
 
 class Instance:
-    """Abstract class representing an XBRL instance file. Its attributes are the characters contained in the XBRL files."""
+    """
+    Abstract class representing an XBRL instance file.
+    Its attributes are the characters contained in the XBRL files.
+    """
 
     @classmethod
     def from_path(cls, path: str = None):
@@ -315,8 +318,11 @@ class Instance:
         if self._entity != context:
             raise ValueError("The instance has more than one entity")
 
+
 class CsvInstance(Instance):
-    """Class representing an XBRL CSV instance file. Its attributes are the characters contained in the XBRL files.
+    """
+    Class representing an XBRL CSV instance file.
+    Its attributes are the characters contained in the XBRL files.
     Each property returns one of these attributes.
     :param path: File path to be used
     """
@@ -372,7 +378,7 @@ class CsvInstance(Instance):
         with ZipFile(self.path, "r") as zip_ref:
             zip_ref.extractall(self._temp_dir_path)
 
-        self._report_file = base/ "reports" / "report.json"
+        self._report_file = base / "reports" / "report.json"
         with open(self._report_file, "r") as f:
             extends = json.load(f)["documentInfo"]["extends"]
             if len(extends) > 1:
@@ -388,11 +394,16 @@ class CsvInstance(Instance):
         self._parameters_file = base / "reports" / "parameters.csv"
         self._filing_indicators_file = base / "reports" / "FilingIndicators.csv"
         reports_dir = base / "reports"
-        self._table_files = set(reports_dir.glob("*.csv")) - {self._parameters_file, self._filing_indicators_file}
+        self._table_files = set(reports_dir.glob("*.csv")) - {
+            self._parameters_file,
+            self._filing_indicators_file,
+        }
 
 
 class XmlInstance(Instance):
-    """Class representing an XBRL XML instance file. Its attributes are the characters contained in the XBRL files.
+    """
+    Class representing an XBRL XML instance file.
+    Its attributes are the characters contained in the XBRL files.
     Each property returns one of these attributes.
 
     :param path: File path to be used
