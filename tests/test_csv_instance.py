@@ -14,8 +14,7 @@ from xbridge.instance import Instance, CsvInstance
 from xbridge.converter import Converter
 
 
-# Path to the real DORA sample in your repo
-DORA_SAMPLE = Path("tests/test_files/sample_dora/test2_out.zip")
+DORA_SAMPLE = Path(__file__).parent / "test_files" / "sample_dora" / "test2_in.zip"
 
 
 def _zip_root_prefixes(zip_path: Path) -> set[str]:
