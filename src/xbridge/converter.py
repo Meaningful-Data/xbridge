@@ -165,6 +165,9 @@ class Converter:
                 raise ValueError(f"Table {table_url} not found in the module")
 
             table_df = pd.read_csv(table_file)
+            # For type 't' datapoints is only accepted 'true' as value but pandas convert it directly to 'True'.
+            # For the rest of boolean datapoints 'true' is also accepted
+            table_df = table_df.replace(True, 'true')
 
             columns_rename = {f'c{column_code}': property_code for property_code, column_code in open_keys_mapping.items()}
             table_df.rename(columns=columns_rename, inplace=True)
@@ -183,7 +186,7 @@ class Converter:
 
             table_df.to_csv(table_file, index=False)
 
-        file_name = Path(self.instance.path).name.replace(".zip", "-datapoints_converted.zip")
+        file_name = Path(self.instance.path).name
         zip_file_path = output_path / file_name
 
         root = self.instance.root_folder
