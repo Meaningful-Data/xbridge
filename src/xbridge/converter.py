@@ -238,11 +238,12 @@ class Converter:
                     self._decimals_parameters[data_type] = decimals
                 else:
                     if decimals in {"INF", "#none"}:
-                        self._decimals_parameters[data_type] = decimals
+                        # Special values are skipped when an existing value exists
+                        pass
                     else:
                         if (
-                            isinstance(self._decimals_parameters, int)
-                            and self._decimals_parameters[data_type] < decimals
+                            isinstance(self._decimals_parameters[data_type], int)
+                            and decimals < self._decimals_parameters[data_type]
                         ):
                             self._decimals_parameters[data_type] = decimals
 
