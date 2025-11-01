@@ -65,8 +65,19 @@ class Converter:
         self._reported_tables: list[str] = []
         self._decimals_parameters: dict[str, int] = {}
 
-    def convert(self, output_path: Union[str, Path], headers_as_datapoints: bool = False) -> Path:
-        """Convert the ``XML Instance`` to a CSV file"""
+    def convert(
+        self,
+        output_path: Union[str, Path],
+        headers_as_datapoints: bool = False,
+        validate_filing_indicators: bool = True,
+    ) -> Path:
+        """Convert the ``XML Instance`` to a CSV file
+
+        :param output_path: Path to the output directory
+        :param headers_as_datapoints: If True, convert headers architecture to datapoints format
+        :param validate_filing_indicators: If True, validate that no facts are orphaned
+            (belong only to non-reported tables). Default is True.
+        """
         if not output_path:
             raise ValueError("Output path not provided")
 
@@ -122,6 +133,10 @@ class Converter:
             )
 
         self._convert_filing_indicator(report_dir)
+
+        if validate_filing_indicators:
+            self._validate_filing_indicators()
+
         with open(MAPPING_PATH / self.module.dim_dom_file_name, "r", encoding="utf-8") as fl:
             mapping_dict: Dict[str, str] = json.load(fl)
         self._convert_tables(report_dir, mapping_dict, headers_as_datapoints)
@@ -345,6 +360,53 @@ class Converter:
                 csv_writer.writerow([fil_ind.table, value])
                 if fil_ind.value and fil_ind.table:
                     self._reported_tables.append(fil_ind.table)
+
+    def _validate_filing_indicators(self) -> None:
+        """Validate that no facts are orphaned (belong only to non-reported tables).
+
+        Raises:
+            ValueError: If facts exist that belong only to tables with filed=false
+        """
+        if self.instance.instance_df is None or self.instance.instance_df.empty:
+            return
+
+        # Step 1: Collect indices of facts that belong to ANY reported table
+        reported_fact_indices = set()
+        for table in self.module.tables:
+            if table.filing_indicator_code in self._reported_tables:
+                instance_df = self._get_instance_df(table)
+                if not instance_df.empty:
+                    # Add all fact indices (DataFrame row indices) to the set
+                    reported_fact_indices.update(instance_df.index)
+
+        # Step 2: Find facts that belong ONLY to non-reported tables
+        all_orphaned_indices = set()
+        orphaned_per_table = {}
+
+        for table in self.module.tables:
+            if table.filing_indicator_code not in self._reported_tables:
+                instance_df = self._get_instance_df(table)
+                if not instance_df.empty:
+                    # Find facts that are in this table but NOT in any reported table
+                    orphaned_in_this_table = set(instance_df.index) - reported_fact_indices
+                    if orphaned_in_this_table:
+                        orphaned_per_table[table.filing_indicator_code] = len(
+                            orphaned_in_this_table
+                        )
+                        all_orphaned_indices.update(orphaned_in_this_table)
+
+        if all_orphaned_indices:
+            error_msg = (
+                f"Filing indicator inconsistency detected:\n"
+                f"Found {len(all_orphaned_indices)} fact(s) that belong ONLY to non-reported tables:\n"
+            )
+            for table_code, count in orphaned_per_table.items():
+                error_msg += f"  - {table_code}: {count} fact(s)\n"
+            error_msg += (
+                "\nThese facts will be excluded from the output. "
+                "Either set filed=true for the relevant tables or remove these facts from the XML."
+            )
+            raise ValueError(error_msg)
 
     def _convert_parameters(self, temp_dir_path: Path) -> None:
         # Workaround;

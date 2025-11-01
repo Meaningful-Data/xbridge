@@ -13,6 +13,7 @@ def convert_instance(
     instance_path: Union[str, Path],
     output_path: Optional[Union[str, Path]] = None,
     headers_as_datapoints: bool = False,
+    validate_filing_indicators: bool = True,
 ) -> Path:
     """
     Convert one single instance of XBRL-XML file to a CSV file
@@ -23,6 +24,9 @@ def convert_instance(
 
     :param headers_as_datapoints: If True, the headers will be treated as datapoints.
 
+    :param validate_filing_indicators: If True, validate that no facts are orphaned
+        (belong only to non-reported tables). Default is True.
+
     :return: Converted CSV file.
 
     """
@@ -30,7 +34,7 @@ def convert_instance(
         output_path = Path(".")
 
     converter = Converter(instance_path)
-    return converter.convert(output_path, headers_as_datapoints)
+    return converter.convert(output_path, headers_as_datapoints, validate_filing_indicators)
 
 
 def load_instance(instance_path: Union[str, Path]) -> Instance:
