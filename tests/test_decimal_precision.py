@@ -73,8 +73,8 @@ class TestDecimalPrecision:
 
         assert converter_instance._decimals_parameters[data_type] == 2
 
-    def test_inf_with_smaller_precision(self, converter_instance):
-        """Test that INF is not overridden by smaller numeric precision"""
+    def test_inf_then_numeric_prefers_numeric(self, converter_instance):
+        """Test that numeric value replaces INF (numeric values preferred)"""
         converter_instance._decimals_parameters = {}
 
         data_type = "Rate"
@@ -82,16 +82,20 @@ class TestDecimalPrecision:
         # First encounter: decimals = INF
         converter_instance._decimals_parameters[data_type] = "INF"
 
-        # Second encounter: decimals = 2 (should NOT update, INF should remain)
+        # Second encounter: decimals = 2 (should replace INF with 2)
         decimals = 2
         if decimals not in {"INF", "#none"}:
-            if (
+            # If existing value is special, replace with numeric
+            if converter_instance._decimals_parameters[data_type] in {"INF", "#none"}:
+                converter_instance._decimals_parameters[data_type] = decimals
+            # If existing value is also numeric, take minimum
+            elif (
                 isinstance(converter_instance._decimals_parameters[data_type], int)
                 and decimals < converter_instance._decimals_parameters[data_type]
             ):
                 converter_instance._decimals_parameters[data_type] = decimals
 
-        assert converter_instance._decimals_parameters[data_type] == "INF"
+        assert converter_instance._decimals_parameters[data_type] == 2
 
     def test_numeric_then_inf_skips_inf(self, converter_instance):
         """Test that INF does not override existing numeric precision"""
@@ -217,3 +221,48 @@ class TestDecimalPrecision:
             converter_instance._decimals_parameters[data_type] = decimals
 
         assert converter_instance._decimals_parameters[data_type] == 0
+
+    def test_order_independence_inf_and_numeric(self, converter_instance):
+        """Test that order of INF and numeric values doesn't matter - both should yield numeric"""
+        # Test 1: INF -> 2 should yield 2
+        converter_instance._decimals_parameters = {}
+        data_type1 = "Type1"
+
+        values_inf_first = ["INF", 2]
+        for decimals in values_inf_first:
+            if data_type1 not in converter_instance._decimals_parameters:
+                converter_instance._decimals_parameters[data_type1] = decimals
+            else:
+                if decimals in {"INF", "#none"}:
+                    pass
+                else:
+                    if converter_instance._decimals_parameters[data_type1] in {"INF", "#none"}:
+                        converter_instance._decimals_parameters[data_type1] = decimals
+                    elif (
+                        isinstance(converter_instance._decimals_parameters[data_type1], int)
+                        and decimals < converter_instance._decimals_parameters[data_type1]
+                    ):
+                        converter_instance._decimals_parameters[data_type1] = decimals
+
+        # Test 2: 2 -> INF should yield 2
+        data_type2 = "Type2"
+
+        values_numeric_first = [2, "INF"]
+        for decimals in values_numeric_first:
+            if data_type2 not in converter_instance._decimals_parameters:
+                converter_instance._decimals_parameters[data_type2] = decimals
+            else:
+                if decimals in {"INF", "#none"}:
+                    pass
+                else:
+                    if converter_instance._decimals_parameters[data_type2] in {"INF", "#none"}:
+                        converter_instance._decimals_parameters[data_type2] = decimals
+                    elif (
+                        isinstance(converter_instance._decimals_parameters[data_type2], int)
+                        and decimals < converter_instance._decimals_parameters[data_type2]
+                    ):
+                        converter_instance._decimals_parameters[data_type2] = decimals
+
+        # Both should result in 2
+        assert converter_instance._decimals_parameters[data_type1] == 2
+        assert converter_instance._decimals_parameters[data_type2] == 2

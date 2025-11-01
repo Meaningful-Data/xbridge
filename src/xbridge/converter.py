@@ -237,11 +237,16 @@ class Converter:
                 if data_type not in self._decimals_parameters:
                     self._decimals_parameters[data_type] = decimals
                 else:
+                    # If new value is a special value, skip it (prefer numeric values)
                     if decimals in {"INF", "#none"}:
-                        # Special values are skipped when an existing value exists
                         pass
+                    # If new value is numeric
                     else:
-                        if (
+                        # If existing value is special, replace with numeric
+                        if self._decimals_parameters[data_type] in {"INF", "#none"}:
+                            self._decimals_parameters[data_type] = decimals
+                        # If existing value is also numeric, take minimum
+                        elif (
                             isinstance(self._decimals_parameters[data_type], int)
                             and decimals < self._decimals_parameters[data_type]
                         ):
