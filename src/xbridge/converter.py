@@ -243,10 +243,7 @@ class Converter:
                     # If new value is numeric
                     else:
                         # If existing value is special, replace with numeric
-                        if self._decimals_parameters[data_type] in {"INF", "#none"}:
-                            self._decimals_parameters[data_type] = decimals
-                        # If existing value is also numeric, take minimum
-                        elif (
+                        if self._decimals_parameters[data_type] in {"INF", "#none"} or (
                             isinstance(self._decimals_parameters[data_type], int)
                             and decimals < self._decimals_parameters[data_type]
                         ):

@@ -2,10 +2,10 @@
 Tests for decimal precision logic in converter
 """
 
+from unittest.mock import Mock, patch
+
 import pandas as pd
 import pytest
-from unittest.mock import Mock, patch
-from pathlib import Path
 
 from xbridge.converter import Converter
 
@@ -17,17 +17,17 @@ class TestDecimalPrecision:
     def converter_instance(self):
         """Create a converter instance with mocked dependencies"""
         # Mock the instance file to avoid needing real files
-        with patch('xbridge.converter.Instance') as mock_instance_class:
+        with patch("xbridge.converter.Instance") as mock_instance_class:
             mock_instance = Mock()
             mock_instance.module_ref = "test_module"
             mock_instance.instance_df = pd.DataFrame()
             mock_instance_class.return_value = mock_instance
 
-            with patch('xbridge.converter.Module') as mock_module_class:
+            with patch("xbridge.converter.Module") as mock_module_class:
                 mock_module = Mock()
                 mock_module_class.from_serialized.return_value = mock_module
 
-                with patch('xbridge.converter.index', {"test_module": "test.json"}):
+                with patch("xbridge.converter.index", {"test_module": "test.json"}):
                     converter = Converter("dummy_path.xml")
                     return converter
 
@@ -84,12 +84,8 @@ class TestDecimalPrecision:
 
         # Second encounter: decimals = 2 (should replace INF with 2)
         decimals = 2
-        if decimals not in {"INF", "#none"}:
-            # If existing value is special, replace with numeric
-            if converter_instance._decimals_parameters[data_type] in {"INF", "#none"}:
-                converter_instance._decimals_parameters[data_type] = decimals
-            # If existing value is also numeric, take minimum
-            elif (
+        if decimals not in {"INF", "#none"} and \
+            converter_instance._decimals_parameters[data_type] in {"INF", "#none"} or (
                 isinstance(converter_instance._decimals_parameters[data_type], int)
                 and decimals < converter_instance._decimals_parameters[data_type]
             ):
@@ -236,9 +232,7 @@ class TestDecimalPrecision:
                 if decimals in {"INF", "#none"}:
                     pass
                 else:
-                    if converter_instance._decimals_parameters[data_type1] in {"INF", "#none"}:
-                        converter_instance._decimals_parameters[data_type1] = decimals
-                    elif (
+                    if converter_instance._decimals_parameters[data_type1] in {"INF", "#none"} or (
                         isinstance(converter_instance._decimals_parameters[data_type1], int)
                         and decimals < converter_instance._decimals_parameters[data_type1]
                     ):
@@ -255,9 +249,7 @@ class TestDecimalPrecision:
                 if decimals in {"INF", "#none"}:
                     pass
                 else:
-                    if converter_instance._decimals_parameters[data_type2] in {"INF", "#none"}:
-                        converter_instance._decimals_parameters[data_type2] = decimals
-                    elif (
+                    if converter_instance._decimals_parameters[data_type2] in {"INF", "#none"} or (
                         isinstance(converter_instance._decimals_parameters[data_type2], int)
                         and decimals < converter_instance._decimals_parameters[data_type2]
                     ):
