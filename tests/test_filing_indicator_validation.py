@@ -9,7 +9,6 @@ import pytest
 from lxml import etree
 
 from xbridge.api import convert_instance
-from xbridge.converter import Converter
 
 
 def create_test_xbrl(filing_indicators, facts_config):
@@ -45,11 +44,11 @@ def create_test_xbrl(filing_indicators, facts_config):
     # Create root element
     root = etree.Element(
         f"{{{namespaces['xbrli']}}}xbrl",
-        nsmap={k: v for k, v in namespaces.items()},
+        nsmap=dict(namespaces.items()),
     )
 
     # Add schema reference - using rem_bm module which has multiple tables
-    schema_ref = etree.SubElement(
+    etree.SubElement(
         root,
         f"{{{namespaces['link']}}}schemaRef",
         {
@@ -185,7 +184,9 @@ class TestFilingIndicatorValidation:
             tree.write(str(xml_path), encoding="utf-8", xml_declaration=True)
 
             # Should raise ValueError with specific message
-            with pytest.raises(ValueError) as exc_info:
+            with pytest.raises(
+                ValueError, match="Filing indicator inconsistency detected"
+            ) as exc_info:
                 convert_instance(xml_path, temp_path, validate_filing_indicators=True)
 
             assert "Filing indicator inconsistency detected" in str(exc_info.value)

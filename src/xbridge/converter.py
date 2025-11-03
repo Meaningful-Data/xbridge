@@ -8,7 +8,7 @@ import csv
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, Union
+from typing import Any, Dict, Set, Union
 from zipfile import ZipFile
 
 import pandas as pd
@@ -371,7 +371,7 @@ class Converter:
             return
 
         # Step 1: Collect indices of facts that belong to ANY reported table
-        reported_fact_indices = set()
+        reported_fact_indices: Set[int] = set()
         for table in self.module.tables:
             if table.filing_indicator_code in self._reported_tables:
                 instance_df = self._get_instance_df(table)
@@ -398,7 +398,8 @@ class Converter:
         if all_orphaned_indices:
             error_msg = (
                 f"Filing indicator inconsistency detected:\n"
-                f"Found {len(all_orphaned_indices)} fact(s) that belong ONLY to non-reported tables:\n"
+                f"Found {len(all_orphaned_indices)} fact(s) that belong ONLY"
+                f" to non-reported tables:\n"
             )
             for table_code, count in orphaned_per_table.items():
                 error_msg += f"  - {table_code}: {count} fact(s)\n"

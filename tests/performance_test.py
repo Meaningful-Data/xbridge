@@ -73,7 +73,7 @@ def run_performance_tests():
             exec_time, peak_mem, curr_mem = measure_performance(test_file, validate=True)
             times_with.append(exec_time)
             memory_with.append(peak_mem)
-            print(f"  Run {i+1}: {exec_time:.3f}s, Peak Memory: {peak_mem:.2f} MB")
+            print(f"  Run {i + 1}: {exec_time:.3f}s, Peak Memory: {peak_mem:.2f} MB")
 
         avg_time_with = sum(times_with) / len(times_with)
         avg_mem_with = sum(memory_with) / len(memory_with)
@@ -86,14 +86,20 @@ def run_performance_tests():
             exec_time, peak_mem, curr_mem = measure_performance(test_file, validate=False)
             times_without.append(exec_time)
             memory_without.append(peak_mem)
-            print(f"  Run {i+1}: {exec_time:.3f}s, Peak Memory: {peak_mem:.2f} MB")
+            print(f"  Run {i + 1}: {exec_time:.3f}s, Peak Memory: {peak_mem:.2f} MB")
 
         avg_time_without = sum(times_without) / len(times_without)
         avg_mem_without = sum(memory_without) / len(memory_without)
 
         # Calculate overhead
-        time_overhead = ((avg_time_with - avg_time_without) / avg_time_without * 100) if avg_time_without > 0 else 0
-        mem_overhead = ((avg_mem_with - avg_mem_without) / avg_mem_without * 100) if avg_mem_without > 0 else 0
+        time_overhead = (
+            ((avg_time_with - avg_time_without) / avg_time_without * 100)
+            if avg_time_without > 0
+            else 0
+        )
+        mem_overhead = (
+            ((avg_mem_with - avg_mem_without) / avg_mem_without * 100) if avg_mem_without > 0 else 0
+        )
 
         print("\n" + "=" * 80)
         print(f"SUMMARY FOR {test_file.name}")
