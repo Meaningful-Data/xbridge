@@ -84,12 +84,15 @@ class TestDecimalPrecision:
 
         # Second encounter: decimals = 2 (should replace INF with 2)
         decimals = 2
-        if decimals not in {"INF", "#none"} and \
-            converter_instance._decimals_parameters[data_type] in {"INF", "#none"} or (
+        if (
+            decimals not in {"INF", "#none"}
+            and converter_instance._decimals_parameters[data_type] in {"INF", "#none"}
+            or (
                 isinstance(converter_instance._decimals_parameters[data_type], int)
                 and decimals < converter_instance._decimals_parameters[data_type]
-            ):
-                converter_instance._decimals_parameters[data_type] = decimals
+            )
+        ):
+            converter_instance._decimals_parameters[data_type] = decimals
 
         assert converter_instance._decimals_parameters[data_type] == 2
 

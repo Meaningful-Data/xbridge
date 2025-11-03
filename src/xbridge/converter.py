@@ -63,7 +63,7 @@ class Converter:
         module_path = Path(__file__).parent / "modules" / index[module_ref]
         self.module = Module.from_serialized(module_path)
         self._reported_tables: list[str] = []
-        self._decimals_parameters: dict[str, int] = {}
+        self._decimals_parameters: dict[str, Union[int, str]] = {}
 
     def convert(self, output_path: Union[str, Path], headers_as_datapoints: bool = False) -> Path:
         """Convert the ``XML Instance`` to a CSV file"""
