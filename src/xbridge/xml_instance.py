@@ -254,7 +254,8 @@ class Instance:
         if len(schema_refs) > 1:
             raise ValueError(
                 f"Multiple schemaRef elements found in the XBRL instance. "
-                f"Only one schemaRef is expected, but {len(schema_refs)} were found: {schema_refs}. "
+                f"Only one schemaRef is expected, but {len(schema_refs)} "
+                f"were found: {schema_refs}. "
                 f"This may indicate an invalid XBRL-XML file."
             )
 
@@ -266,7 +267,8 @@ class Instance:
         if "/mod/" not in value:
             raise ValueError(
                 f"Invalid href format in schemaRef. Expected href to contain '/mod/' "
-                f"but got: '{value}'. Please verify the XBRL-XML file contains a valid schema reference."
+                f"but got: '{value}'. Please verify the XBRL-XML file contains a "
+                f"valid schema reference."
             )
 
         split_parts = value.split("/mod/")
@@ -280,7 +282,8 @@ class Instance:
         if ".xsd" not in module_part:
             raise ValueError(
                 f"Invalid href format in schemaRef. Expected href to end with '.xsd' "
-                f"but got: '{value}'. Please verify the XBRL-XML file contains a valid schema reference."
+                f"but got: '{value}'. Please verify the XBRL-XML file contains a valid "
+                f"schema reference."
             )
 
         xsd_split = module_part.split(".xsd")

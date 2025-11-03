@@ -20,7 +20,7 @@ class TestSchemaRefValidation:
 
         tree = etree.fromstring(xml_content.encode())
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="Invalid href format") as exc_info:
             instance = Instance.__new__(Instance)
             instance.root = tree
             instance._facts_list_dict = None
@@ -55,7 +55,7 @@ class TestSchemaRefValidation:
 
         tree = etree.fromstring(xml_content.encode())
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="Invalid href format") as exc_info:
             instance = Instance.__new__(Instance)
             instance.root = tree
             instance._facts_list_dict = None
@@ -91,7 +91,7 @@ class TestSchemaRefValidation:
 
         tree = etree.fromstring(xml_content.encode())
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="Multiple schemaRef elements found") as exc_info:
             instance = Instance.__new__(Instance)
             instance.root = tree
             instance._facts_list_dict = None
@@ -145,7 +145,10 @@ class TestSchemaRefValidation:
         instance._identifier_prefix = None
         instance.get_module_code()
 
-        assert instance._module_ref == "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/corep/its-005-2020/2022-03-01/mod/corep_lcr_da.xsd"
+        assert (
+            instance._module_ref
+            == "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/corep/its-005-2020/2022-03-01/mod/corep_lcr_da.xsd"
+        )
         assert instance._module_code == "corep_lcr_da"
 
     def test_no_schema_ref(self):
