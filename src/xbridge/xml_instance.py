@@ -238,13 +238,56 @@ class Instance:
 
     def get_module_code(self) -> None:
         """Extracts the module name from the XML instance file."""
+        schema_refs = []
         for child in self.root:
             if child.prefix == "link":
-                value: str = child.attrib["{http://www.w3.org/1999/xlink}href"]  # type: ignore[assignment]
-                self._module_ref = value
-                split_value = value.split("/mod/")[1].split(".xsd")[0]
-                self._module_code = split_value
-                break
+                href_attr = "{http://www.w3.org/1999/xlink}href"
+                if href_attr not in child.attrib:
+                    continue
+                value: str = child.attrib[href_attr]  # type: ignore[assignment]
+                schema_refs.append(value)
+
+        # Validate that only one schemaRef exists
+        if len(schema_refs) == 0:
+            return  # No schema reference found, module_ref will remain None
+
+        if len(schema_refs) > 1:
+            raise ValueError(
+                f"Multiple schemaRef elements found in the XBRL instance. "
+                f"Only one schemaRef is expected, but {len(schema_refs)} "
+                f"were found: {schema_refs}. "
+                f"This may indicate an invalid XBRL-XML file."
+            )
+
+        # Process the single schema reference
+        value = schema_refs[0]
+        self._module_ref = value
+
+        # Validate href format and extract module code
+        if "/mod/" not in value:
+            raise ValueError(
+                f"Invalid href format in schemaRef. Expected href to contain '/mod/' "
+                f"but got: '{value}'. Please verify the XBRL-XML file contains a "
+                f"valid schema reference."
+            )
+
+        split_parts = value.split("/mod/")
+        if len(split_parts) < 2:
+            raise ValueError(
+                f"Invalid href format in schemaRef. Could not extract module name from: '{value}'. "
+                f"Expected format: 'http://.../mod/[module_name].xsd'"
+            )
+
+        module_part = split_parts[1]
+        if ".xsd" not in module_part:
+            raise ValueError(
+                f"Invalid href format in schemaRef. Expected href to end with '.xsd' "
+                f"but got: '{value}'. Please verify the XBRL-XML file contains a valid "
+                f"schema reference."
+            )
+
+        xsd_split = module_part.split(".xsd")
+        self._module_code = xsd_split[0]
 
     def get_filing_indicators(self) -> None:
         """Extracts `filing <https://www.xbrl.org/guidance/xbrl-glossary/#2-other-terms-in-technical-or-common-use:~:text=data%20point.-,Filing,-The%20file%20or>`_
