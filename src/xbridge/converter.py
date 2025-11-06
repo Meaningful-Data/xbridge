@@ -89,7 +89,7 @@ class Converter:
             raise ValueError("Invalid instance type")
 
     def convert_xml(
-        self, output_path: Union[str, Path], headers_as_datapoints: bool = False
+        self, output_path: Path, headers_as_datapoints: bool = False
     ) -> Path:
         module_filind_codes = [table.filing_indicator_code for table in self.module.tables]
 
@@ -103,10 +103,7 @@ class Converter:
                     f"Filing indicator {filing_indicator.table} not found in the module tables."
                 )
 
-        instance_path = self.instance.path
-        if not isinstance(instance_path, str):
-            instance_path = str(instance_path)
-        instance_path_stem = Path(instance_path).stem
+        instance_path_stem = Path(str(self.instance.path)).stem
 
         temp_dir = TemporaryDirectory()
         temp_dir_path = Path(temp_dir.name)
@@ -154,7 +151,7 @@ class Converter:
 
         return zip_file_path
 
-    def convert_csv(self, output_path: Union[str, Path]) -> Path:
+    def convert_csv(self, output_path: Path) -> Path:
         for table_file in self.instance.table_files:
             table_url = table_file.name
             for table in self.module.tables:
@@ -195,13 +192,17 @@ class Converter:
 
             table_df.to_csv(table_file, index=False)
 
-        file_name = Path(self.instance.path).name
+        file_name = self.instance.path.name
         zip_file_path = output_path / file_name
 
-        root = self.instance.root_folder
+        root = self.instance._root_folder
 
-        meta_inf_dir = self.instance._temp_dir_path / "META-INF"
-        report_dir = self.instance._temp_dir_path / "reports"
+        temp_dir = self.instance.temp_dir_path
+        if temp_dir is None:
+            raise ValueError("CSV instance has no temp dir path")
+
+        meta_inf_dir = temp_dir / "META-INF"
+        report_dir = temp_dir / "reports"
 
         with ZipFile(zip_file_path, "w") as zip_fl:
             for file in meta_inf_dir.iterdir():
@@ -209,7 +210,7 @@ class Converter:
             for file in report_dir.iterdir():
                 zip_fl.write(file, arcname=f"{root}/reports/{file.name}")
 
-        rmtree(self.instance.temp_dir_path)
+        rmtree(temp_dir)
 
         return zip_file_path
 
