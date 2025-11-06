@@ -54,8 +54,13 @@ class Converter:
 
     def __init__(self, instance_path: Union[str, Path]) -> None:
         path_str = str(instance_path)
-        self.instance = Instance.from_path(path_str)
-        module_ref = self.instance.module_ref
+        inst = Instance.from_path(path_str)
+        module_ref = getattr(inst, "module_ref", None)
+        if not isinstance(module_ref, str):
+            inst = Instance(path_str)
+            module_ref = getattr(inst, "module_ref", None)
+        self.instance = inst
+
         if not module_ref:
             raise ValueError("No module_ref found in the instance.")
         if module_ref not in index:
@@ -85,7 +90,7 @@ class Converter:
             raise ValueError("Module of the instance file not found in the taxonomy")
 
         if isinstance(self.instance, XmlInstance):
-            return self.convert_xml(output_path, headers_as_datapoints)
+            return self.convert_xml(output_path, headers_as_datapoints, validate_filing_indicators)
         elif isinstance(self.instance, CsvInstance):
             if self.module.architecture != "headers":
                 raise ValueError("Cannot convert CSV instance with non-headers architecture")
@@ -94,7 +99,10 @@ class Converter:
             raise ValueError("Invalid instance type")
 
     def convert_xml(
-        self, output_path: Path, headers_as_datapoints: bool = False
+        self,
+        output_path: Path,
+        headers_as_datapoints: bool = False,
+        validate_filing_indicators: bool = True
     ) -> Path:
         module_filind_codes = [table.filing_indicator_code for table in self.module.tables]
 

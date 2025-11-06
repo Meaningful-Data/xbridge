@@ -3,7 +3,7 @@
 import pytest
 from lxml import etree
 
-from xbridge.xml_instance import Instance
+from xbridge.instance import Instance
 
 
 class TestSchemaRefValidation:
