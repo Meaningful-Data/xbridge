@@ -7,14 +7,15 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
+from shutil import rmtree
 from tempfile import TemporaryDirectory
 from typing import Any, Dict, Set, Union
 from zipfile import ZipFile
 
 import pandas as pd
 
+from xbridge.instance import CsvInstance, Instance, XmlInstance
 from xbridge.modules import Module, Table
-from xbridge.xml_instance import Instance
 
 INDEX_FILE = Path(__file__).parent / "modules" / "index.json"
 MAPPING_PATH = Path(__file__).parent / "modules"
@@ -53,8 +54,13 @@ class Converter:
 
     def __init__(self, instance_path: Union[str, Path]) -> None:
         path_str = str(instance_path)
-        self.instance: Instance = Instance(path_str)
-        module_ref = self.instance.module_ref
+        inst = Instance.from_path(path_str)
+        module_ref = getattr(inst, "module_ref", None)
+        if not isinstance(module_ref, str):
+            inst = Instance(path_str)
+            module_ref = getattr(inst, "module_ref", None)
+        self.instance = inst
+
         if not module_ref:
             raise ValueError("No module_ref found in the instance.")
         if module_ref not in index:
@@ -71,13 +77,7 @@ class Converter:
         headers_as_datapoints: bool = False,
         validate_filing_indicators: bool = True,
     ) -> Path:
-        """Convert the ``XML Instance`` to a CSV file
-
-        :param output_path: Path to the output directory
-        :param headers_as_datapoints: If True, convert headers architecture to datapoints format
-        :param validate_filing_indicators: If True, validate that no facts are orphaned
-            (belong only to non-reported tables). Default is True.
-        """
+        """Convert the ``XML Instance`` to a CSV file or between CSV formats"""
         if not output_path:
             raise ValueError("Output path not provided")
 
@@ -89,6 +89,21 @@ class Converter:
         if self.module is None:
             raise ValueError("Module of the instance file not found in the taxonomy")
 
+        if isinstance(self.instance, XmlInstance):
+            return self.convert_xml(output_path, headers_as_datapoints, validate_filing_indicators)
+        elif isinstance(self.instance, CsvInstance):
+            if self.module.architecture != "headers":
+                raise ValueError("Cannot convert CSV instance with non-headers architecture")
+            return self.convert_csv(output_path)
+        else:
+            raise ValueError("Invalid instance type")
+
+    def convert_xml(
+        self,
+        output_path: Path,
+        headers_as_datapoints: bool = False,
+        validate_filing_indicators: bool = True
+    ) -> Path:
         module_filind_codes = [table.filing_indicator_code for table in self.module.tables]
 
         filing_indicator_codes = (
@@ -101,10 +116,7 @@ class Converter:
                     f"Filing indicator {filing_indicator.table} not found in the module tables."
                 )
 
-        instance_path = self.instance.path
-        if not isinstance(instance_path, str):
-            instance_path = str(instance_path)
-        instance_path_stem = Path(instance_path).stem
+        instance_path_stem = Path(str(self.instance.path)).stem
 
         temp_dir = TemporaryDirectory()
         temp_dir_path = Path(temp_dir.name)
@@ -153,6 +165,69 @@ class Converter:
                 zip_fl.write(file, arcname=f"{instance_path_stem}/reports/{file.name}")
 
         temp_dir.cleanup()
+
+        return zip_file_path
+
+    def convert_csv(self, output_path: Path) -> Path:
+        for table_file in self.instance.table_files:
+            table_url = table_file.name
+            for table in self.module.tables:
+                if table.url == table_url:
+                    table_columns = table.columns
+                    open_keys_mapping = table._open_keys_mapping
+                    break
+            else:
+                raise ValueError(f"Table {table_url} not found in the module")
+
+            table_df = pd.read_csv(table_file)
+            # For type 't' datapoints is only accepted 'true' as value
+            # but pandas convert it directly to 'True'.
+            # For the rest of boolean datapoints 'true' is also accepted
+            table_df = table_df.replace(True, "true")
+
+            columns_rename = {
+                f"c{column_code}": property_code
+                for property_code, column_code in open_keys_mapping.items()
+            }
+            table_df.rename(columns=columns_rename, inplace=True)
+            open_keys_properties = list(columns_rename.values())
+            measure_columns = [
+                column["code"] for column in table_columns if column["code"] not in columns_rename
+            ]
+            measure_columns = [column for column in measure_columns if column in table_df.columns]
+
+            table_df = table_df.melt(id_vars=open_keys_properties, value_vars=measure_columns)
+
+            mapping_dict = {
+                column["code"]: f"dp{column['variable_id']}" for column in table_columns
+            }
+            mapping_df = pd.DataFrame(mapping_dict.items(), columns=["variable", "datapoint"])
+            table_df = pd.merge(mapping_df, table_df, on="variable", how="inner")
+
+            table_df.drop(columns=["variable"], inplace=True)
+            table_df.rename(columns={"value": "factValue"}, inplace=True)
+
+            table_df.to_csv(table_file, index=False)
+
+        file_name = self.instance.path.name
+        zip_file_path = output_path / file_name
+
+        root = self.instance._root_folder
+
+        temp_dir = self.instance.temp_dir_path
+        if temp_dir is None:
+            raise ValueError("CSV instance has no temp dir path")
+
+        meta_inf_dir = temp_dir / "META-INF"
+        report_dir = temp_dir / "reports"
+
+        with ZipFile(zip_file_path, "w") as zip_fl:
+            for file in meta_inf_dir.iterdir():
+                zip_fl.write(file, arcname=f"{root}/META-INF/{file.name}")
+            for file in report_dir.iterdir():
+                zip_fl.write(file, arcname=f"{root}/reports/{file.name}")
+
+        rmtree(temp_dir)
 
         return zip_file_path
 

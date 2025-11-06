@@ -5,7 +5,7 @@ Tests for xml_instance module
 import pytest
 from lxml import etree
 
-from xbridge.xml_instance import Fact, FilingIndicator, Instance
+from xbridge.instance import Fact, FilingIndicator, Instance
 
 
 @pytest.fixture

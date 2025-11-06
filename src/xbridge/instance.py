@@ -2,48 +2,65 @@
 
 from __future__ import annotations
 
+import json
+import os
 import warnings
+from pathlib import Path
+from tempfile import mkdtemp
 from typing import Any, Dict, List, Optional, Union
+from zipfile import ZipFile
 
 import pandas as pd
 from lxml import etree
 
 
 class Instance:
-    """Class representing an XBRL XML instance file.
+    """
+    Abstract class representing an XBRL instance file.
     Its attributes are the characters contained in the XBRL files.
-    Each property returns one of these attributes.
-
-    :param path: File path to be used
-
     """
 
-    def __init__(self, path: Optional[Union[str, bytes, etree._ElementTree]] = None) -> None:
+    @classmethod
+    def from_path(cls, path: Union[str, Path]) -> Instance:
+        path = Path(path)
+
+        if path.suffix in [".xml", ".xbrl"]:
+            return XmlInstance(path)
+        elif path.suffix == ".zip":
+            return CsvInstance(path)
+        else:
+            raise ValueError(f"Unsupported file extension: {path.suffix}")
+
+    def __init__(self, path: Optional[Union[str, Path]] = None) -> None:
         if path is None:
             raise ValueError("Must provide a path to XBRL file.")
-        if isinstance(path, (str, bytes)):
-            self.path = path
-            self.root = etree.parse(self.path).getroot()
-        else:
+        try:
+            path_str = os.fspath(path)  # acepta str y PathLike
+        except TypeError:
+            raise TypeError("Unsupported type for 'path' argument.")
+        if not isinstance(path_str, str):
             raise TypeError("Unsupported type for 'path' argument.")
 
-        self._facts_list_dict: Optional[List[Dict[str, Any]]] = None
-        self._df: Optional[pd.DataFrame] = None
-        self._facts: Optional[List[Fact]] = None
-        self._contexts: Optional[Dict[str, Context]] = None
+        self.path = Path(path)
         self._module_code: Optional[str] = None
         self._module_ref: Optional[str] = None
         self._entity: Optional[str] = None
         self._period: Optional[str] = None
         self._filing_indicators: Optional[List[FilingIndicator]] = None
         self._base_currency: Optional[str] = None
-        self._units: Optional[Dict[str, str]] = None
+        self._units: Optional[Dict[str, str]] = {}
         self._base_currency_unit: Optional[str] = None
         self._pure_unit: Optional[str] = None
         self._integer_unit: Optional[str] = None
         self._identifier_prefix: Optional[str] = None
+        self.root: Optional[etree._Element] = None
+        self._contexts: Optional[Dict[str, Context]] = None
+        self._facts: Optional[List[Fact]] = None
+        self._facts_list_dict: Optional[List[Dict[str, Any]]] = None
+        self._table_files: Optional[set[Path]] = None
+        self._root_folder: Optional[str] = None
+        self._report_file: Optional[Path] = None
 
-        self.parse()
 
     @property
     def namespaces(self) -> Dict[Optional[str], str]:
@@ -52,6 +69,8 @@ class Instance:
         -common-use:~:text=calculation%20tree.-,Namespace,-A%20namespace%20>`_
         is of the instance file.
         """
+        if self.root is None:
+            raise AttributeError("XML root not loaded.")
         return self.root.nsmap
 
     @property
@@ -65,6 +84,13 @@ class Instance:
         <https://www.xbrl.org/guidance/xbrl-glossary/#:
         ~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_ of the instance file."""
         return self._facts
+
+    @property
+    def table_files(self) -> set[Path]:
+        """
+        Returns the :obj:`TableFiles <xbridge.xml_instance.TableFiles>`
+        """
+        return set()
 
     @property
     def facts_list_dict(self) -> Optional[List[Dict[str, Any]]]:
@@ -175,6 +201,10 @@ class Instance:
         """Returns the base currency of the instance file"""
         return self._base_currency
 
+    @property
+    def temp_dir_path(self) -> Optional[Path]:
+        return None
+
     def parse(self) -> None:
         """Parses the XML file into the library objects."""
         try:
@@ -197,6 +227,9 @@ class Instance:
 
     def get_contexts(self) -> None:
         """Extracts :obj:`Context <xbridge.xml_instance.Context>` from the XML instance file."""
+        if self.root is None:
+            raise AttributeError("XML root not loaded.")
+
         contexts: Dict[str, Context] = {}
         for context in self.root.findall(
             "{http://www.xbrl.org/2003/instance}context",
@@ -219,6 +252,9 @@ class Instance:
         """Extracts `facts <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_
         from the XML instance file.
         """
+        if self.root is None:
+            raise AttributeError("XML root not loaded.")
+
         facts = []
         for child in self.root:
             facts_prefixes = []
@@ -238,6 +274,9 @@ class Instance:
 
     def get_module_code(self) -> None:
         """Extracts the module name from the XML instance file."""
+        if self.root is None:
+            raise AttributeError("XML root not loaded.")
+
         schema_refs = []
         for child in self.root:
             if child.prefix == "link":
@@ -293,6 +332,9 @@ class Instance:
         """Extracts `filing <https://www.xbrl.org/guidance/xbrl-glossary/#2-other-terms-in-technical-or-common-use:~:text=data%20point.-,Filing,-The%20file%20or>`_
         indicators from the XML instance file.
         """
+        if self.root is None:
+            raise AttributeError("XML root not loaded.")
+
         node_f_indicators = self.root.find(
             "{http://www.eurofiling.info/xbrl/ext/filing-indicators}fIndicators"
         )
@@ -315,6 +357,9 @@ class Instance:
 
     def get_units(self) -> None:
         """Extracts the base currency of the instance"""
+        if self.root is None:
+            raise AttributeError("XML root not loaded.")
+
         units: Dict[str, str] = {}
         for unit in self.root.findall("{http://www.xbrl.org/2003/instance}unit"):
             unit_name: str = unit.attrib["id"]  # type: ignore[assignment]
@@ -350,6 +395,130 @@ class Instance:
             self._entity = context
         if self._entity != context:
             raise ValueError("The instance has more than one entity")
+
+
+class CsvInstance(Instance):
+    """
+    Class representing an XBRL CSV instance file.
+    Its attributes are the characters contained in the XBRL files.
+    Each property returns one of these attributes.
+    :param path: File path to be used
+    """
+
+    def __init__(self, path: Union[str, Path]) -> None:
+        super().__init__(path)
+
+        self._temp_dir_path: Optional[Path] = None
+        self._parameters_file: Optional[Path] = None
+        self._filing_indicators_file: Optional[Path] = None
+        self._table_files: Optional[set[Path]] = None
+
+        self.parse()
+
+    @property
+    def parameters_file(self) -> Optional[Path]:
+        """Returns the parameters file."""
+        return self._parameters_file
+
+    @property
+    def filing_indicators_file(self) -> Optional[Path]:
+        """Returns the filing indicators file."""
+        return self._filing_indicators_file
+
+    @property
+    def temp_dir_path(self) -> Optional[Path]:
+        """Returns the temporary directory path."""
+        return self._temp_dir_path
+
+    @property
+    def table_files(self) -> set[Path]:
+        """Returns the table files."""
+        return self._table_files or set()
+
+    @property
+    def root_folder(self) -> str:
+        return getattr(self, "_root_folder", Path(self.path).stem)
+
+    def parse(self) -> None:
+        """Parses the XBRL-CSV into the library objects."""
+        temp_dir = mkdtemp()
+        tmp = Path(temp_dir)
+
+        with ZipFile(self.path, "r") as zip_ref:
+            zip_ref.extractall(tmp)
+
+        inner_dirs = [p for p in tmp.iterdir() if p.is_dir()]
+        base = inner_dirs[0] if len(inner_dirs) == 1 else tmp
+
+        self._root_folder = base.name if base != tmp else self.path.stem
+        self._temp_dir_path = base
+
+        with ZipFile(self.path, "r") as zip_ref:
+            zip_ref.extractall(self._temp_dir_path)
+
+        self._report_file = base / "reports" / "report.json"
+        with open(self._report_file, "r") as f:
+            extends = json.load(f)["documentInfo"]["extends"]
+            if len(extends) > 1:
+                raise ValueError("More than one extension in the report.json file")
+            mod = extends[0]
+            if mod.endswith(".json"):
+                mod = mod.replace(".json", ".xsd")
+            if mod.startswith("http://") or mod.startswith("https://"):
+                self._module_ref = mod
+            else:
+                self._module_ref = "http://" + mod.lstrip("/")
+
+        self._parameters_file = base / "reports" / "parameters.csv"
+        self._filing_indicators_file = base / "reports" / "FilingIndicators.csv"
+        reports_dir = base / "reports"
+        self._table_files = set(reports_dir.glob("*.csv")) - {
+            self._parameters_file,
+            self._filing_indicators_file,
+        }
+
+
+class XmlInstance(Instance):
+    """
+    Class representing an XBRL XML instance file.
+    Its attributes are the characters contained in the XBRL files.
+    Each property returns one of these attributes.
+
+    :param path: File path to be used
+
+    """
+
+    def __init__(self, path: Union[str, Path]) -> None:
+        super().__init__(path)
+
+        self._facts_list_dict = None
+        self._facts = None
+        self._contexts = None
+        self._df = None
+
+        self.root = etree.parse(self.path).getroot()
+        self.parse()
+
+    def parse(self) -> None:
+        """Parses the XML file into the library objects."""
+        try:
+            self.root = etree.parse(self.path).getroot()
+            self.get_units()
+            self.get_contexts()
+            self.get_facts()
+            self.get_module_code()
+            self.get_filing_indicators()
+        except etree.XMLSyntaxError:
+            raise ValueError("Invalid XML format")
+        except Exception as e:
+            raise ValueError(f"Error parsing instance: {str(e)}")
+
+        # TODO: Validate that all the assumptions about the EBA instances are correct
+        # Should be an optional parameter (to avoid performance issues when it is known
+        # that the assumptions are correct)
+        # - Validate that there is only one entity
+        # - Validate that there is only one period
+        # - Validate that all the facts have the same currency
 
 
 class Scenario:
