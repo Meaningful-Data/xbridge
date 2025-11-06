@@ -63,7 +63,7 @@ class Converter:
         module_path = Path(__file__).parent / "modules" / index[module_ref]
         self.module = Module.from_serialized(module_path)
         self._reported_tables: list[str] = []
-        self._decimals_parameters: dict[str, int] = {}
+        self._decimals_parameters: dict[str, Union[int, str]] = {}
 
     def convert(self, output_path: Union[str, Path], headers_as_datapoints: bool = False) -> Path:
         """Convert the ``XML Instance`` to a CSV file"""
@@ -237,12 +237,15 @@ class Converter:
                 if data_type not in self._decimals_parameters:
                     self._decimals_parameters[data_type] = decimals
                 else:
+                    # If new value is a special value, skip it (prefer numeric values)
                     if decimals in {"INF", "#none"}:
-                        self._decimals_parameters[data_type] = decimals
+                        pass
+                    # If new value is numeric
                     else:
-                        if (
-                            isinstance(self._decimals_parameters, int)
-                            and self._decimals_parameters[data_type] < decimals
+                        # If existing value is special, replace with numeric
+                        if self._decimals_parameters[data_type] in {"INF", "#none"} or (
+                            isinstance(self._decimals_parameters[data_type], int)
+                            and decimals < self._decimals_parameters[data_type]
                         ):
                             self._decimals_parameters[data_type] = decimals
 
