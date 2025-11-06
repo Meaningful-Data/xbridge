@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from shutil import rmtree
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, Union
+from typing import Any, Dict, Set, Union
 from zipfile import ZipFile
 
 import pandas as pd
@@ -64,9 +64,14 @@ class Converter:
         module_path = Path(__file__).parent / "modules" / index[module_ref]
         self.module = Module.from_serialized(module_path)
         self._reported_tables: list[str] = []
-        self._decimals_parameters: dict[str, int] = {}
+        self._decimals_parameters: dict[str, Union[int, str]] = {}
 
-    def convert(self, output_path: Union[str, Path], headers_as_datapoints: bool = False) -> Path:
+    def convert(
+        self,
+        output_path: Union[str, Path],
+        headers_as_datapoints: bool = False,
+        validate_filing_indicators: bool = True,
+    ) -> Path:
         """Convert the ``XML Instance`` to a CSV file or between CSV formats"""
         if not output_path:
             raise ValueError("Output path not provided")
@@ -132,6 +137,10 @@ class Converter:
             )
 
         self._convert_filing_indicator(report_dir)
+
+        if validate_filing_indicators:
+            self._validate_filing_indicators()
+
         with open(MAPPING_PATH / self.module.dim_dom_file_name, "r", encoding="utf-8") as fl:
             mapping_dict: Dict[str, str] = json.load(fl)
         self._convert_tables(report_dir, mapping_dict, headers_as_datapoints)
@@ -310,12 +319,15 @@ class Converter:
                 if data_type not in self._decimals_parameters:
                     self._decimals_parameters[data_type] = decimals
                 else:
+                    # If new value is a special value, skip it (prefer numeric values)
                     if decimals in {"INF", "#none"}:
-                        self._decimals_parameters[data_type] = decimals
+                        pass
+                    # If new value is numeric
                     else:
-                        if (
-                            isinstance(self._decimals_parameters, int)
-                            and self._decimals_parameters[data_type] < decimals
+                        # If existing value is special, replace with numeric
+                        if self._decimals_parameters[data_type] in {"INF", "#none"} or (
+                            isinstance(self._decimals_parameters[data_type], int)
+                            and decimals < self._decimals_parameters[data_type]
                         ):
                             self._decimals_parameters[data_type] = decimals
 
@@ -418,6 +430,54 @@ class Converter:
                 csv_writer.writerow([fil_ind.table, value])
                 if fil_ind.value and fil_ind.table:
                     self._reported_tables.append(fil_ind.table)
+
+    def _validate_filing_indicators(self) -> None:
+        """Validate that no facts are orphaned (belong only to non-reported tables).
+
+        Raises:
+            ValueError: If facts exist that belong only to tables with filed=false
+        """
+        if self.instance.instance_df is None or self.instance.instance_df.empty:
+            return
+
+        # Step 1: Collect indices of facts that belong to ANY reported table
+        reported_fact_indices: Set[int] = set()
+        for table in self.module.tables:
+            if table.filing_indicator_code in self._reported_tables:
+                instance_df = self._get_instance_df(table)
+                if not instance_df.empty:
+                    # Add all fact indices (DataFrame row indices) to the set
+                    reported_fact_indices.update(instance_df.index)
+
+        # Step 2: Find facts that belong ONLY to non-reported tables
+        all_orphaned_indices = set()
+        orphaned_per_table = {}
+
+        for table in self.module.tables:
+            if table.filing_indicator_code not in self._reported_tables:
+                instance_df = self._get_instance_df(table)
+                if not instance_df.empty:
+                    # Find facts that are in this table but NOT in any reported table
+                    orphaned_in_this_table = set(instance_df.index) - reported_fact_indices
+                    if orphaned_in_this_table:
+                        orphaned_per_table[table.filing_indicator_code] = len(
+                            orphaned_in_this_table
+                        )
+                        all_orphaned_indices.update(orphaned_in_this_table)
+
+        if all_orphaned_indices:
+            error_msg = (
+                f"Filing indicator inconsistency detected:\n"
+                f"Found {len(all_orphaned_indices)} fact(s) that belong ONLY"
+                f" to non-reported tables:\n"
+            )
+            for table_code, count in orphaned_per_table.items():
+                error_msg += f"  - {table_code}: {count} fact(s)\n"
+            error_msg += (
+                "\nThese facts will be excluded from the output. "
+                "Either set filed=true for the relevant tables or remove these facts from the XML."
+            )
+            raise ValueError(error_msg)
 
     def _convert_parameters(self, temp_dir_path: Path) -> None:
         # Workaround;
