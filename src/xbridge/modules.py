@@ -273,7 +273,10 @@ class Table:
         if self.variable_df is None:
             return set()
         cols = set(self.variable_df.columns)
-        cols.remove("datapoint")
+        # Remove metadata columns that are not actual dimensions
+        cols.discard("datapoint")
+        cols.discard("data_type")
+        cols.discard("allowed_values")
         return cols
 
     @property
@@ -313,6 +316,7 @@ class Table:
 
                 variable_info["datapoint"] = variable.code
                 variable_info["data_type"] = variable._attributes
+                variable_info["allowed_values"] = variable._allowed_values
                 variables.append(copy.copy(variable_info))
         elif self.architecture == "headers":
             for column in self.columns:
@@ -564,7 +568,12 @@ class Variable:
                 modified_dimensions[k] = v
         modified_dict = variable_dict.copy()
         modified_dict["dimensions"] = modified_dimensions
+
+        # Extract allowed_values separately since it's not a constructor parameter
+        allowed_values = modified_dict.pop("allowed_values", [])
+
         obj = cls(**modified_dict)
+        obj._allowed_values = allowed_values
         return obj
 
     def __repr__(self) -> str:

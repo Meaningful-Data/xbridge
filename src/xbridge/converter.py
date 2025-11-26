@@ -282,6 +282,110 @@ class Converter:
 
         return instance_df
 
+    def _normalize_allowed_values(
+        self, table_df: pd.DataFrame, datapoint_df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Normalizes fact values against allowed_values for each variable.
+
+        For variables with allowed_values:
+        1. Extracts code part from fact values (after ":")
+        2. Maps to correct namespaced value from allowed_values
+        3. Updates dimension columns with normalized values
+        4. Validates no unmatched codes remain
+
+        :param table_df: The merged dataframe with facts and variables
+        :param datapoint_df: The dataframe with variable definitions including allowed_values
+        :return: The normalized dataframe
+        """
+        if "allowed_values" not in datapoint_df.columns:
+            return table_df
+
+        # Build mapping: datapoint → dimension → {code → full_value}
+        datapoint_allowed_map: Dict[str, Dict[str, Dict[str, str]]] = {}
+
+        for _, row in datapoint_df.iterrows():
+            datapoint = row.get("datapoint")
+            allowed_values = row.get("allowed_values")
+
+            if not datapoint or not allowed_values or len(allowed_values) == 0:
+                continue
+
+            # Group allowed values by the dimension they apply to
+            # For now, we'll apply them to all dimension columns
+            # In the future, we could make this more sophisticated
+            code_map: Dict[str, str] = {}
+            for allowed_val in allowed_values:
+                if ":" in allowed_val:
+                    code = allowed_val.split(":")[-1]
+                    code_map[code] = allowed_val
+
+            if code_map:
+                datapoint_allowed_map[datapoint] = code_map
+
+        if not datapoint_allowed_map:
+            return table_df
+
+        # Identify columns to normalize
+        # We normalize both dimension columns AND the value column (for enumerated values)
+        exclude_cols = {"datapoint", "decimals", "unit", "data_type", "allowed_values"}
+        columns_to_check = [col for col in table_df.columns if col not in exclude_cols]
+
+        # For each column that might contain namespaced values
+        for dim_col in columns_to_check:
+            if dim_col not in table_df.columns or table_df[dim_col].isna().all():
+                continue
+
+            # Check if column contains namespaced values (contains ":")
+            sample_values = table_df[dim_col].dropna()
+            if sample_values.empty:
+                continue
+
+            has_namespace = sample_values.astype(str).str.contains(":", regex=False).any()
+            if not has_namespace:
+                continue
+
+            # Extract codes from values (vectorized operation)
+            mask = table_df[dim_col].notna()
+            temp_code_col = f"_{dim_col}_temp_code"
+            table_df.loc[mask, temp_code_col] = (
+                table_df.loc[mask, dim_col].astype(str).str.split(":").str[-1]
+            )
+
+            # Normalize values for each datapoint
+            for datapoint, code_map in datapoint_allowed_map.items():
+                dp_mask = (table_df["datapoint"] == datapoint) & mask
+
+                if not dp_mask.any():
+                    continue
+
+                # Store original values for error reporting
+                original_values = table_df.loc[dp_mask, dim_col].copy()
+
+                # Map codes to correct full values
+                normalized_values = table_df.loc[dp_mask, temp_code_col].map(code_map)
+
+                # Update only the values that were successfully mapped
+                mapped_mask = dp_mask & normalized_values.notna()
+                table_df.loc[mapped_mask, dim_col] = normalized_values[mapped_mask]
+
+                # Check for values that couldn't be mapped (validation errors)
+                unmapped_mask = dp_mask & normalized_values.isna()
+                if unmapped_mask.any():
+                    invalid_codes = table_df.loc[unmapped_mask, temp_code_col].unique()
+                    valid_codes = list(code_map.keys())
+                    raise ValueError(
+                        f"Invalid values for datapoint '{datapoint}' in column '{dim_col}': "
+                        f"Found codes {list(invalid_codes)} but only {valid_codes} are allowed. "
+                        f"Original values: {original_values[unmapped_mask].tolist()}"
+                    )
+
+            # Clean up temporary column
+            if temp_code_col in table_df.columns:
+                table_df.drop(columns=[temp_code_col], inplace=True)
+
+        return table_df
+
     def _variable_generator(self, table: Table) -> pd.DataFrame:
         """Returns the dataframe with the CSV file for the table
 
@@ -315,6 +419,9 @@ class Converter:
         merge_cols = list(variable_columns & instance_columns)
         table_df = pd.merge(datapoint_df, instance_df, on=merge_cols, how="inner")
 
+        # Normalize values against allowed_values
+        table_df = self._normalize_allowed_values(table_df, datapoint_df)
+
         if "data_type" in table_df.columns and "decimals" in table_df.columns:
             decimals_table = table_df[["decimals", "data_type"]].drop_duplicates()
             for _, row in decimals_table.iterrows():
@@ -342,6 +449,10 @@ class Converter:
             drop_columns = merge_cols + ["data_type", "decimals"]
         else:
             drop_columns = merge_cols
+
+        # Also drop allowed_values if present (it's metadata, not data)
+        if "allowed_values" in table_df.columns:
+            drop_columns.append("allowed_values")
 
         table_df.drop(columns=drop_columns, inplace=True)
 
