@@ -510,6 +510,7 @@ class Variable:
         self.code: Optional[str] = code
         self._dimensions: dict[str, str] = dimensions if dimensions else {}
         self._attributes = attributes
+        self._allowed_values = []
 
     @property
     def dimensions(self) -> dict[str, str]:
@@ -526,12 +527,18 @@ class Variable:
         if "decimals" in datapoint_dict:
             self._attributes = datapoint_dict["decimals"]
 
+    def extract_allowed_values(self, datapoint_dict: dict[str, Any]) -> None:
+        """Extracts the allowed values for the variable"""
+        if "AllowedValue" in datapoint_dict["eba:documentation"]:
+            self._allowed_values = [code for code in datapoint_dict["eba:documentation"]["AllowedValue"].keys()]
+
     def to_dict(self) -> dict[str, Any]:
         """Returns a dictionary with the attributes"""
         return {
             "code": self.code,
             "dimensions": self.dimensions,
             "attributes": self._attributes,
+            "allowed_values": self._allowed_values,
         }
 
     @classmethod
@@ -541,6 +548,7 @@ class Variable:
         """
         obj = cls(code=variable_id)
         obj.extract_dimensions(variable_dict)
+        obj.extract_allowed_values(variable_dict)
 
         return obj
 
