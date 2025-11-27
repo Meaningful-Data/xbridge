@@ -439,7 +439,10 @@ class Converter:
                         pass
                     # If new value is numeric
                     else:
-                        decimals = int(decimals)
+                        try:
+                            decimals = int(decimals)
+                        except ValueError:
+                            raise ValueError(f"Invalid decimals value: {decimals}, should be integer, 'INF' or '#none'")
                         # If existing value is special, replace with numeric
                         if self._decimals_parameters[data_type] in {"INF", "#none"} or \
                             decimals < self._decimals_parameters[data_type]:
