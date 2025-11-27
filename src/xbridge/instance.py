@@ -13,6 +13,57 @@ from zipfile import ZipFile
 import pandas as pd
 from lxml import etree
 
+# Cache namespace → CSV prefix derivations to avoid repeated string work during parse
+_namespace_prefix_cache: Dict[str, str] = {}
+
+
+def _derive_csv_prefix(namespace_uri: str) -> Optional[str]:
+    """Derive the fixed CSV prefix from a namespace URI using the EBA convention."""
+    if not namespace_uri:
+        return None
+
+    cached = _namespace_prefix_cache.get(namespace_uri)
+    if cached is not None:
+        return cached
+
+    cleaned = namespace_uri.rstrip("#/")
+    if "#" in namespace_uri:
+        segment = namespace_uri.rsplit("#", 1)[-1]
+    else:
+        segment = cleaned.rsplit("/", 1)[-1] if "/" in cleaned else cleaned
+
+    if not segment:
+        return None
+
+    prefix = f"eba_{segment}"
+    _namespace_prefix_cache[namespace_uri] = prefix
+    return prefix
+
+
+def _normalize_namespaced_value(value: Optional[str], nsmap: Dict[Optional[str], str]) -> Optional[str]:
+    """
+    Normalize a namespaced value (e.g., 'dom:qAE' or '{uri}qAE') to the CSV prefix convention.
+    Returns the original value if no namespace can be resolved.
+    """
+    if value is None:
+        return None
+
+    # Clark notation: {uri}local
+    if value.startswith("{") and "}" in value:
+        uri, local = value[1:].split("}", 1)
+        derived = _derive_csv_prefix(uri)
+        return f"{derived}:{local}" if derived else value
+
+    # Prefixed notation: prefix:local
+    if ":" in value:
+        potential_prefix, local = value.split(":", 1)
+        namespace_uri = nsmap.get(potential_prefix)
+        if namespace_uri:
+            derived = _derive_csv_prefix(namespace_uri)
+            return f"{derived}:{local}" if derived else value
+
+    return value
+
 
 class Instance:
     """
@@ -548,7 +599,7 @@ class Scenario:
                     continue
                 dimension = dimension_raw.split(":")[1]
                 value = self.get_value(child)
-                value = value.split(":")[1] if ":" in value else value
+                value = _normalize_namespaced_value(value, child.nsmap)
                 self.dimensions[dimension] = value
 
     @staticmethod
@@ -667,7 +718,7 @@ class Fact:
     def parse(self) -> None:
         """Parse the XML node with the `fact <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_."""
         self.metric = self.fact_xml.tag
-        self.value = self.fact_xml.text
+        self.value = _normalize_namespaced_value(self.fact_xml.text, self.fact_xml.nsmap)
         self.decimals = self.fact_xml.attrib.get("decimals")
         self.context = self.fact_xml.attrib.get("contextRef")
         self.unit = self.fact_xml.attrib.get("unitRef")
