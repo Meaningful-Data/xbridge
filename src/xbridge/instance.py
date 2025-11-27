@@ -61,7 +61,6 @@ class Instance:
         self._root_folder: Optional[str] = None
         self._report_file: Optional[Path] = None
 
-
     @property
     def namespaces(self) -> Dict[Optional[str], str]:
         """Returns the `namespaces

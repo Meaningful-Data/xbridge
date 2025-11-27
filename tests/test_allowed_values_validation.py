@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from xbridge.converter import Converter
-from xbridge.modules import Module, Table, Variable
+from xbridge.modules import Table, Variable
 
 
 class TestAllowedValuesNormalization:
@@ -67,7 +67,7 @@ class TestAllowedValuesNormalization:
         converter = Converter.__new__(Converter)
 
         # Should raise ValueError for invalid code
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="Invalid values for datapoint") as exc_info:
             converter._normalize_allowed_values(table_df, datapoint_df)
 
         assert "Invalid values for datapoint 'dp123'" in str(exc_info.value)
@@ -118,9 +118,7 @@ class TestAllowedValuesNormalization:
         )
 
         # Create a table_df with facts
-        table_df = pd.DataFrame(
-            [{"datapoint": "dp789", "metric": "any:value", "value": "100"}]
-        )
+        table_df = pd.DataFrame([{"datapoint": "dp789", "metric": "any:value", "value": "100"}])
 
         # Create a mock converter instance
         converter = Converter.__new__(Converter)
@@ -187,9 +185,7 @@ class TestAllowedValuesNormalization:
         """Test that dataframes without allowed_values column are returned unchanged"""
         datapoint_df = pd.DataFrame([{"datapoint": "dp300", "metric": "met1"}])
 
-        table_df = pd.DataFrame(
-            [{"datapoint": "dp300", "metric": "any:value", "value": "100"}]
-        )
+        table_df = pd.DataFrame([{"datapoint": "dp300", "metric": "any:value", "value": "100"}])
 
         converter = Converter.__new__(Converter)
 

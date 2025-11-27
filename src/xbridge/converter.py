@@ -102,7 +102,7 @@ class Converter:
         self,
         output_path: Path,
         headers_as_datapoints: bool = False,
-        validate_filing_indicators: bool = True
+        validate_filing_indicators: bool = True,
     ) -> Path:
         module_filind_codes = [table.filing_indicator_code for table in self.module.tables]
 
@@ -301,8 +301,8 @@ class Converter:
         if "allowed_values" not in datapoint_df.columns:
             return table_df
 
-        # Build mapping: datapoint → dimension → {code → full_value}
-        datapoint_allowed_map: Dict[str, Dict[str, Dict[str, str]]] = {}
+        # Build mapping: datapoint → {code → full_value}
+        datapoint_allowed_map: Dict[str, Dict[str, str]] = {}
 
         for _, row in datapoint_df.iterrows():
             datapoint = row.get("datapoint")

@@ -303,7 +303,7 @@ class Table:
 
         if self.architecture == "datapoints":
             for variable in self.variables:
-                variable_info = {}
+                variable_info: dict[str, Any] = {}
                 for dim_k, dim_v in variable.dimensions.items():
                     if dim_k not in ("unit", "decimals"):
                         variable_info[dim_k] = dim_v.split(":")[1]
@@ -514,7 +514,7 @@ class Variable:
         self.code: Optional[str] = code
         self._dimensions: dict[str, str] = dimensions if dimensions else {}
         self._attributes = attributes
-        self._allowed_values = []
+        self._allowed_values: list[str] = []
 
     @property
     def dimensions(self) -> dict[str, str]:
@@ -534,7 +534,7 @@ class Variable:
     def extract_allowed_values(self, datapoint_dict: dict[str, Any]) -> None:
         """Extracts the allowed values for the variable"""
         if "AllowedValue" in datapoint_dict["eba:documentation"]:
-            self._allowed_values = [code for code in datapoint_dict["eba:documentation"]["AllowedValue"].keys()]
+            self._allowed_values = list(datapoint_dict["eba:documentation"]["AllowedValue"])
 
     def to_dict(self) -> dict[str, Any]:
         """Returns a dictionary with the attributes"""
