@@ -432,18 +432,17 @@ class Converter:
                 decimals = row["decimals"]
 
                 if data_type not in self._decimals_parameters:
-                    self._decimals_parameters[data_type] = decimals
+                    self._decimals_parameters[data_type] = int(decimals) if decimals not in {"INF", "#none"} else decimals
                 else:
                     # If new value is a special value, skip it (prefer numeric values)
                     if decimals in {"INF", "#none"}:
                         pass
                     # If new value is numeric
                     else:
+                        decimals = int(decimals)
                         # If existing value is special, replace with numeric
-                        if self._decimals_parameters[data_type] in {"INF", "#none"} or (
-                            isinstance(self._decimals_parameters[data_type], int)
-                            and decimals < self._decimals_parameters[data_type]
-                        ):
+                        if self._decimals_parameters[data_type] in {"INF", "#none"} or \
+                            decimals < self._decimals_parameters[data_type]:
                             self._decimals_parameters[data_type] = decimals
 
             drop_columns = merge_cols + ["data_type", "decimals"]
