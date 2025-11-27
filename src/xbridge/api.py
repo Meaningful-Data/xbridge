@@ -14,6 +14,7 @@ def convert_instance(
     output_path: Optional[Union[str, Path]] = None,
     headers_as_datapoints: bool = False,
     validate_filing_indicators: bool = True,
+    strict_validation: bool = True,
 ) -> Path:
     """
     Convert one single instance of XBRL-XML file to a CSV file
@@ -27,6 +28,9 @@ def convert_instance(
     :param validate_filing_indicators: If True, validate that no facts are orphaned
         (belong only to non-reported tables). Default is True.
 
+    :param strict_validation: If True (default), raise an error on orphaned facts. If False,
+        emit a warning instead and continue.
+
     :return: Converted CSV file.
 
     """
@@ -34,7 +38,12 @@ def convert_instance(
         output_path = Path(".")
 
     converter = Converter(instance_path)
-    return converter.convert(output_path, headers_as_datapoints, validate_filing_indicators)
+    return converter.convert(
+        output_path,
+        headers_as_datapoints,
+        validate_filing_indicators,
+        strict_validation,
+    )
 
 
 def load_instance(instance_path: Union[str, Path]) -> Instance:

@@ -6,10 +6,11 @@ from __future__ import annotations
 
 import csv
 import json
+import warnings
 from pathlib import Path
 from shutil import rmtree
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, Set, Union
+from typing import Any, Dict, Union
 from zipfile import ZipFile
 
 import pandas as pd
@@ -76,6 +77,7 @@ class Converter:
         output_path: Union[str, Path],
         headers_as_datapoints: bool = False,
         validate_filing_indicators: bool = True,
+        strict_validation: bool = True,
     ) -> Path:
         """Convert the ``XML Instance`` to a CSV file or between CSV formats"""
         if not output_path:
@@ -90,7 +92,9 @@ class Converter:
             raise ValueError("Module of the instance file not found in the taxonomy")
 
         if isinstance(self.instance, XmlInstance):
-            return self.convert_xml(output_path, headers_as_datapoints, validate_filing_indicators)
+            return self.convert_xml(
+                output_path, headers_as_datapoints, validate_filing_indicators, strict_validation
+            )
         elif isinstance(self.instance, CsvInstance):
             if self.module.architecture != "headers":
                 raise ValueError("Cannot convert CSV instance with non-headers architecture")
@@ -103,6 +107,7 @@ class Converter:
         output_path: Path,
         headers_as_datapoints: bool = False,
         validate_filing_indicators: bool = True,
+        strict_validation: bool = True,
     ) -> Path:
         module_filind_codes = [table.filing_indicator_code for table in self.module.tables]
 
@@ -147,7 +152,7 @@ class Converter:
         self._convert_filing_indicator(report_dir)
 
         if validate_filing_indicators:
-            self._validate_filing_indicators()
+            self._validate_filing_indicators(strict_validation=strict_validation)
 
         with open(MAPPING_PATH / self.module.dim_dom_file_name, "r", encoding="utf-8") as fl:
             mapping_dict: Dict[str, str] = json.load(fl)
@@ -280,7 +285,55 @@ class Converter:
             instance_df = instance_df.loc[mask]
             instance_df.drop(columns=nrd_list, inplace=True)
 
+        # Rows missing values for required open keys do not belong to the table
+        if open_keys:
+            instance_df.dropna(subset=list(open_keys), inplace=True)
+
         return instance_df
+
+    def _matching_fact_indices(self, table: Table) -> set[int]:
+        """Return indices of instance facts that actually match the table definition."""
+        if self.instance.instance_df is None:
+            return set()
+
+        instance_df = self._get_instance_df(table)
+        if instance_df.empty or table.variable_df is None:
+            return set()
+
+        variable_columns = set(table.variable_columns or [])
+        open_keys = set(table.open_keys)
+        instance_columns = set(self.instance.instance_df.columns)
+
+        datapoint_df = table.variable_df.copy()
+
+        # For validation we match minimally on metric (concept) and any open keys present
+        merge_cols: list[str] = []
+        if "metric" in datapoint_df.columns and "metric" in instance_df.columns:
+            merge_cols.append("metric")
+        merge_cols.extend([key for key in open_keys if key in datapoint_df.columns and key in instance_df.columns])
+
+        def _strip_prefix(val: Any) -> Any:
+            if isinstance(val, str) and ":" in val:
+                return val.split(":", 1)[1]
+            return val
+
+        for col in merge_cols:
+            if col in datapoint_df.columns:
+                datapoint_df[col] = datapoint_df[col].map(_strip_prefix)
+            if col in instance_df.columns:
+                instance_df[col] = instance_df[col].map(_strip_prefix)
+
+        instance_df = instance_df.copy()
+        instance_df["_idx"] = instance_df.index
+
+        merged_df = pd.merge(datapoint_df, instance_df, on=merge_cols, how="inner")
+
+        if open_keys:
+            valid_open_keys = [key for key in open_keys if key in merged_df.columns]
+            if valid_open_keys:
+                merged_df.dropna(subset=valid_open_keys, inplace=True)
+
+        return set(merged_df["_idx"].tolist())
 
     def _variable_generator(self, table: Table) -> pd.DataFrame:
         """Returns the dataframe with the CSV file for the table
@@ -449,7 +502,7 @@ class Converter:
                 if fil_ind.value and fil_ind.table:
                     self._reported_tables.append(fil_ind.table)
 
-    def _validate_filing_indicators(self) -> None:
+    def _validate_filing_indicators(self, strict_validation: bool = True) -> None:
         """Validate that no facts are orphaned (belong only to non-reported tables).
 
         Raises:
@@ -458,44 +511,52 @@ class Converter:
         if self.instance.instance_df is None or self.instance.instance_df.empty:
             return
 
-        # Step 1: Collect indices of facts that belong to ANY reported table
-        reported_fact_indices: Set[int] = set()
+        # Step 1: Track which facts belong to ANY reported table without materializing a huge set
+        reported_mask = pd.Series(False, index=self.instance.instance_df.index)
         for table in self.module.tables:
             if table.filing_indicator_code in self._reported_tables:
-                instance_df = self._get_instance_df(table)
-                if not instance_df.empty:
-                    # Add all fact indices (DataFrame row indices) to the set
-                    reported_fact_indices.update(instance_df.index)
+                reported_indices = self._matching_fact_indices(table)
+                if reported_indices:
+                    reported_mask.loc[list(reported_indices)] = True
 
         # Step 2: Find facts that belong ONLY to non-reported tables
-        all_orphaned_indices = set()
+        orphaned_mask = pd.Series(False, index=self.instance.instance_df.index)
         orphaned_per_table = {}
 
         for table in self.module.tables:
             if table.filing_indicator_code not in self._reported_tables:
-                instance_df = self._get_instance_df(table)
-                if not instance_df.empty:
-                    # Find facts that are in this table but NOT in any reported table
-                    orphaned_in_this_table = set(instance_df.index) - reported_fact_indices
+                orphaned_indices = self._matching_fact_indices(table)
+                if orphaned_indices:
+                    # Facts in this table that never appear in a reported table
+                    orphaned_in_this_table = [
+                        idx for idx in orphaned_indices if not reported_mask.loc[idx]
+                    ]
                     if orphaned_in_this_table:
-                        orphaned_per_table[table.filing_indicator_code] = len(
-                            orphaned_in_this_table
-                        )
-                        all_orphaned_indices.update(orphaned_in_this_table)
+                        orphaned_mask.loc[orphaned_in_this_table] = True
+                        orphaned_per_table[table.filing_indicator_code] = len(orphaned_in_this_table)
 
-        if all_orphaned_indices:
+        total_orphaned = int(orphaned_mask.sum())
+
+        if total_orphaned:
             error_msg = (
                 f"Filing indicator inconsistency detected:\n"
-                f"Found {len(all_orphaned_indices)} fact(s) that belong ONLY"
+                f"Found {total_orphaned} fact(s) that belong ONLY"
                 f" to non-reported tables:\n"
             )
             for table_code, count in orphaned_per_table.items():
                 error_msg += f"  - {table_code}: {count} fact(s)\n"
+
+            if strict_validation:
+                error_msg += (
+                    "\nThe conversion process will not continue due to strict validation mode. "
+                    "Either set filed=true for the relevant tables or remove these facts from the XML."
+                )
+                raise ValueError(error_msg)
             error_msg += (
                 "\nThese facts will be excluded from the output. "
-                "Either set filed=true for the relevant tables or remove these facts from the XML."
+                "Consider setting filed=true for the relevant tables or removing these facts from the XML."
             )
-            raise ValueError(error_msg)
+            warnings.warn(error_msg)
 
     def _convert_parameters(self, temp_dir_path: Path) -> None:
         # Workaround;
