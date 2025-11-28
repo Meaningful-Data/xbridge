@@ -300,9 +300,7 @@ class Converter:
         if instance_df.empty or table.variable_df is None:
             return set()
 
-        variable_columns = set(table.variable_columns or [])
         open_keys = set(table.open_keys)
-        instance_columns = set(self.instance.instance_df.columns)
 
         datapoint_df = table.variable_df.copy()
 
@@ -310,7 +308,9 @@ class Converter:
         merge_cols: list[str] = []
         if "metric" in datapoint_df.columns and "metric" in instance_df.columns:
             merge_cols.append("metric")
-        merge_cols.extend([key for key in open_keys if key in datapoint_df.columns and key in instance_df.columns])
+        merge_cols.extend(
+            [key for key in open_keys if key in datapoint_df.columns and key in instance_df.columns]
+        )
 
         def _strip_prefix(val: Any) -> Any:
             if isinstance(val, str) and ":" in val:
@@ -533,7 +533,9 @@ class Converter:
                     ]
                     if orphaned_in_this_table:
                         orphaned_mask.loc[orphaned_in_this_table] = True
-                        orphaned_per_table[table.filing_indicator_code] = len(orphaned_in_this_table)
+                        orphaned_per_table[table.filing_indicator_code] = len(
+                            orphaned_in_this_table
+                        )
 
         total_orphaned = int(orphaned_mask.sum())
 
@@ -549,12 +551,14 @@ class Converter:
             if strict_validation:
                 error_msg += (
                     "\nThe conversion process will not continue due to strict validation mode. "
-                    "Either set filed=true for the relevant tables or remove these facts from the XML."
+                    "Either set filed=true for the relevant tables "
+                    "or remove these facts from the XML."
                 )
                 raise ValueError(error_msg)
             error_msg += (
                 "\nThese facts will be excluded from the output. "
-                "Consider setting filed=true for the relevant tables or removing these facts from the XML."
+                "Consider setting filed=true for the relevant tables "
+                "or removing these facts from the XML."
             )
             warnings.warn(error_msg)
 

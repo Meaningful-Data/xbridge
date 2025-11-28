@@ -1,4 +1,3 @@
-import pytest
 from lxml import etree
 
 from src.xbridge.instance import Scenario

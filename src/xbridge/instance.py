@@ -40,7 +40,9 @@ def _derive_csv_prefix(namespace_uri: str) -> Optional[str]:
     return prefix
 
 
-def _normalize_namespaced_value(value: Optional[str], nsmap: Dict[Optional[str], str]) -> Optional[str]:
+def _normalize_namespaced_value(
+    value: Optional[str], nsmap: Dict[Optional[str], str]
+) -> Optional[str]:
     """
     Normalize a namespaced value (e.g., 'dom:qAE' or '{uri}qAE') to the CSV prefix convention.
     Returns the original value if no namespace can be resolved.
@@ -599,7 +601,7 @@ class Scenario:
                     continue
                 dimension = dimension_raw.split(":")[1]
                 value = self.get_value(child)
-                value = _normalize_namespaced_value(value, child.nsmap)
+                value = _normalize_namespaced_value(value, child.nsmap) or ""
                 self.dimensions[dimension] = value
 
     @staticmethod
