@@ -1,0 +1,72 @@
+name: Question or Help
+description: Ask a question or get help using XBridge
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question? We're here to help!
+
+        Before asking, please check:
+        - [Documentation](https://docs.xbridge.meaningfuldata.eu)
+        - [FAQ](https://docs.xbridge.meaningfuldata.eu/faq.html)
+        - [Existing issues](https://github.com/Meaningful-Data/xbridge/issues)
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: How do I...? What does...? Why is...?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide any relevant context for your question
+      placeholder: |
+        I'm trying to convert an XBRL-XML file with...
+        I've read the documentation about...
+        I expected...
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What Have You Tried?
+      description: What have you already attempted?
+      placeholder: |
+        - Checked documentation section X
+        - Tried approach Y
+        - Searched for Z
+
+  - type: input
+    id: version
+    attributes:
+      label: XBridge Version
+      description: What version of XBridge are you using? (if applicable)
+      placeholder: "1.5.0rc2"
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Code Example
+      description: If applicable, provide a code example
+      render: python
+      placeholder: |
+        from xbridge.api import convert_instance
+
+        # Your code here
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please confirm
+      options:
+        - label: I have checked the documentation
+          required: true
+        - label: I have searched for similar questions in existing issues
+          required: true
