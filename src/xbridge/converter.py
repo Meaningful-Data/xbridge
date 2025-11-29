@@ -77,7 +77,7 @@ class Converter:
         output_path: Union[str, Path],
         headers_as_datapoints: bool = False,
         validate_filing_indicators: bool = True,
-        strict_validation: bool = True,
+        strict_validation: bool = False,
     ) -> Path:
         """Convert the ``XML Instance`` to a CSV file or between CSV formats"""
         if not output_path:
@@ -312,17 +312,6 @@ class Converter:
             [key for key in open_keys if key in datapoint_df.columns and key in instance_df.columns]
         )
 
-        def _strip_prefix(val: Any) -> Any:
-            if isinstance(val, str) and ":" in val:
-                return val.split(":", 1)[1]
-            return val
-
-        for col in merge_cols:
-            if col in datapoint_df.columns:
-                datapoint_df[col] = datapoint_df[col].map(_strip_prefix)
-            if col in instance_df.columns:
-                instance_df[col] = instance_df[col].map(_strip_prefix)
-
         instance_df = instance_df.copy()
         instance_df["_idx"] = instance_df.index
 
@@ -366,18 +355,6 @@ class Converter:
 
         # Join the dataframes on the datapoint_columns
         merge_cols = list(variable_columns & instance_columns)
-
-        def _strip_prefix(val: Any) -> Any:
-            if isinstance(val, str) and ":" in val:
-                return val.split(":", 1)[1]
-            return val
-
-        # Align merge columns by stripping any namespace prefixes from both sides
-        for col in merge_cols:
-            if col in datapoint_df.columns:
-                datapoint_df[col] = datapoint_df[col].map(_strip_prefix)
-            if col in instance_df.columns:
-                instance_df[col] = instance_df[col].map(_strip_prefix)
 
         table_df = pd.merge(datapoint_df, instance_df, on=merge_cols, how="inner")
 

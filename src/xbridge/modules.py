@@ -306,9 +306,9 @@ class Table:
                 variable_info: dict[str, Any] = {}
                 for dim_k, dim_v in variable.dimensions.items():
                     if dim_k not in ("unit", "decimals"):
-                        variable_info[dim_k] = dim_v.split(":")[1]
+                        variable_info[dim_k] = dim_v
                 if "concept" in variable.dimensions:
-                    variable_info["metric"] = variable.dimensions["concept"].split(":")[1]
+                    variable_info["metric"] = variable.dimensions["concept"]
                     del variable_info["concept"]
 
                 if variable.code is None:
@@ -324,9 +324,11 @@ class Table:
                 if "dimensions" in column:
                     for dim_k, dim_v in column["dimensions"].items():
                         if dim_k == "concept":
-                            variable_info["metric"] = dim_v.split(":")[1]
+                            variable_info["metric"] = dim_v
                         elif dim_k not in ("unit", "decimals"):
-                            variable_info[dim_k.split(":")[1]] = dim_v.split(":")[1]
+                            # Keep the full dimension key and value with prefixes
+                            dim_k_clean = dim_k.split(":")[1] if ":" in dim_k else dim_k
+                            variable_info[dim_k_clean] = dim_v
 
                 if "decimals" in column:
                     variable_info["data_type"] = column["decimals"]

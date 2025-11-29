@@ -728,7 +728,11 @@ class Fact:
     def __dict__(self) -> Dict[str, Any]:  # type: ignore[override]
         metric_clean = ""
         if self.metric:
-            metric_clean = self.metric.split("}")[1] if "}" in self.metric else self.metric
+            # Normalize metric to use consistent eba_* prefix like other dimensions
+            metric_clean = _normalize_namespaced_value(self.metric, self.fact_xml.nsmap) or ""
+            # If still in Clark notation, extract the local name
+            if metric_clean.startswith("{") and "}" in metric_clean:
+                metric_clean = metric_clean.split("}", 1)[1]
 
         return {
             "metric": metric_clean,
