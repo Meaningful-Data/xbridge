@@ -1,4 +1,5 @@
 - When requested to prepare a release candidate, you have to follow these steps:
+    - Make sure that we are not working in main.
     - Check PyPI to verify what versions have already been published at https://pypi.org/project/eba-xbridge/#history
     - Determine the next appropriate release candidate number based on PyPI history
     - Update the version in pyproject.toml and src/xbridge/__init__.py
@@ -7,4 +8,5 @@
         - `ruff check --fix`
         - `ruff format`
         - `mypy`
+    - Ensure all tests pass.
     - Create a commit message and release notes, following best practices.
