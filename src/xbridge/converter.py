@@ -303,11 +303,8 @@ class Converter:
         variable_columns = set(table.variable_columns or [])
         open_keys = set(table.open_keys)
 
-        instance_columns = (
-            set(self.instance.instance_df.columns)
-            if self.instance.instance_df is not None
-            else set()
-        )
+        # self.instance.instance_df is guaranteed to not be None due to check at line 296
+        instance_columns = set(self.instance.instance_df.columns)
 
         datapoint_df = table.variable_df.copy()
 
@@ -321,8 +318,8 @@ class Converter:
             datapoint_df = datapoint_df.loc[mask]
             datapoint_df = datapoint_df.drop(columns=missing_cols)
 
-        # Match on all variable columns (dimensions) to avoid Cartesian product explosion
-        # This is consistent with _variable_generator() and prevents OOM on tables with no/few open keys
+        # Match on all variable columns (dimensions) to avoid Cartesian product
+        # explosion. Consistent with _variable_generator() to prevent OOM.
         merge_cols = list(variable_columns & instance_columns)
 
         instance_df = instance_df.copy()
