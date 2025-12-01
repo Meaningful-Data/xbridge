@@ -300,17 +300,30 @@ class Converter:
         if instance_df.empty or table.variable_df is None:
             return set()
 
+        variable_columns = set(table.variable_columns or [])
         open_keys = set(table.open_keys)
+
+        instance_columns = (
+            set(self.instance.instance_df.columns)
+            if self.instance.instance_df is not None
+            else set()
+        )
 
         datapoint_df = table.variable_df.copy()
 
-        # For validation we match minimally on metric (concept) and any open keys present
-        merge_cols: list[str] = []
-        if "metric" in datapoint_df.columns and "metric" in instance_df.columns:
-            merge_cols.append("metric")
-        merge_cols.extend(
-            [key for key in open_keys if key in datapoint_df.columns and key in instance_df.columns]
-        )
+        # Handle missing columns by filtering datapoint_df (same as _variable_generator)
+        # This prevents requiring dimensions that don't exist in the instance
+        missing_cols = list(variable_columns - instance_columns)
+        if "data_type" in missing_cols:
+            missing_cols.remove("data_type")
+        if missing_cols:
+            mask = datapoint_df[missing_cols].isnull().all(axis=1)
+            datapoint_df = datapoint_df.loc[mask]
+            datapoint_df = datapoint_df.drop(columns=missing_cols)
+
+        # Match on all variable columns (dimensions) to avoid Cartesian product explosion
+        # This is consistent with _variable_generator() and prevents OOM on tables with no/few open keys
+        merge_cols = list(variable_columns & instance_columns)
 
         instance_df = instance_df.copy()
         instance_df["_idx"] = instance_df.index
