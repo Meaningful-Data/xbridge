@@ -10,3 +10,4 @@
         - `mypy`
     - Ensure all tests pass.
     - Create a commit message and release notes, following best practices.
+    - But please don't commit, I want to review everything
