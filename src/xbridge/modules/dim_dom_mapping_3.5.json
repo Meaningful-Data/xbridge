@@ -65,5 +65,7 @@
     "IFD": "eba_ZZ",
     "EFI": "eba_EN",
     "RCA": "eba_CO",
-    "KTQ": "eba_CO"
+    "KTQ": "eba_CO",
+    "ei1404": "eba_BT",
+    "ei1405": "eba_BT"
 }

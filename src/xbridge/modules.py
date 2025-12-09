@@ -273,7 +273,10 @@ class Table:
         if self.variable_df is None:
             return set()
         cols = set(self.variable_df.columns)
-        cols.remove("datapoint")
+        # Remove metadata columns that are not actual dimensions
+        cols.discard("datapoint")
+        cols.discard("data_type")
+        cols.discard("allowed_values")
         return cols
 
     @property
@@ -300,12 +303,12 @@ class Table:
 
         if self.architecture == "datapoints":
             for variable in self.variables:
-                variable_info = {}
+                variable_info: dict[str, Any] = {}
                 for dim_k, dim_v in variable.dimensions.items():
                     if dim_k not in ("unit", "decimals"):
-                        variable_info[dim_k] = dim_v.split(":")[1]
+                        variable_info[dim_k] = dim_v
                 if "concept" in variable.dimensions:
-                    variable_info["metric"] = variable.dimensions["concept"].split(":")[1]
+                    variable_info["metric"] = variable.dimensions["concept"]
                     del variable_info["concept"]
 
                 if variable.code is None:
@@ -313,6 +316,7 @@ class Table:
 
                 variable_info["datapoint"] = variable.code
                 variable_info["data_type"] = variable._attributes
+                variable_info["allowed_values"] = variable._allowed_values
                 variables.append(copy.copy(variable_info))
         elif self.architecture == "headers":
             for column in self.columns:
@@ -320,9 +324,11 @@ class Table:
                 if "dimensions" in column:
                     for dim_k, dim_v in column["dimensions"].items():
                         if dim_k == "concept":
-                            variable_info["metric"] = dim_v.split(":")[1]
+                            variable_info["metric"] = dim_v
                         elif dim_k not in ("unit", "decimals"):
-                            variable_info[dim_k.split(":")[1]] = dim_v.split(":")[1]
+                            # Keep the full dimension key and value with prefixes
+                            dim_k_clean = dim_k.split(":")[1] if ":" in dim_k else dim_k
+                            variable_info[dim_k_clean] = dim_v
 
                 if "decimals" in column:
                     variable_info["data_type"] = column["decimals"]
@@ -510,6 +516,7 @@ class Variable:
         self.code: Optional[str] = code
         self._dimensions: dict[str, str] = dimensions if dimensions else {}
         self._attributes = attributes
+        self._allowed_values: list[str] = []
 
     @property
     def dimensions(self) -> dict[str, str]:
@@ -526,12 +533,18 @@ class Variable:
         if "decimals" in datapoint_dict:
             self._attributes = datapoint_dict["decimals"]
 
+    def extract_allowed_values(self, datapoint_dict: dict[str, Any]) -> None:
+        """Extracts the allowed values for the variable"""
+        if "AllowedValue" in datapoint_dict["eba:documentation"]:
+            self._allowed_values = list(datapoint_dict["eba:documentation"]["AllowedValue"])
+
     def to_dict(self) -> dict[str, Any]:
         """Returns a dictionary with the attributes"""
         return {
             "code": self.code,
             "dimensions": self.dimensions,
             "attributes": self._attributes,
+            "allowed_values": self._allowed_values,
         }
 
     @classmethod
@@ -541,6 +554,7 @@ class Variable:
         """
         obj = cls(code=variable_id)
         obj.extract_dimensions(variable_dict)
+        obj.extract_allowed_values(variable_dict)
 
         return obj
 
@@ -556,7 +570,12 @@ class Variable:
                 modified_dimensions[k] = v
         modified_dict = variable_dict.copy()
         modified_dict["dimensions"] = modified_dimensions
+
+        # Extract allowed_values separately since it's not a constructor parameter
+        allowed_values = modified_dict.pop("allowed_values", [])
+
         obj = cls(**modified_dict)
+        obj._allowed_values = allowed_values
         return obj
 
     def __repr__(self) -> str:

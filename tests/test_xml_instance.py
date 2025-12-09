@@ -58,7 +58,7 @@ def test_fact_parse(fact):
 
 def test_fact_dict(fact):
     expected_dict = {
-        "metric": "fact",
+        "metric": "eba_instance:fact",
         "value": "100",
         "decimals": "2",
         "context": "context1",

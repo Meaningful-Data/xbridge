@@ -13,6 +13,130 @@ from zipfile import ZipFile
 import pandas as pd
 from lxml import etree
 
+# Cache namespace → CSV prefix derivations to avoid repeated string work during parse
+_namespace_prefix_cache: Dict[str, str] = {}
+
+
+def _derive_csv_prefix(namespace_uri: str) -> Optional[str]:
+    """Derive the fixed CSV prefix from a namespace URI using the EBA convention."""
+    if not namespace_uri:
+        return None
+
+    cached = _namespace_prefix_cache.get(namespace_uri)
+    if cached is not None:
+        return cached
+
+    cleaned = namespace_uri.rstrip("#/")
+    if "#" in namespace_uri:
+        segment = namespace_uri.rsplit("#", 1)[-1]
+    else:
+        segment = cleaned.rsplit("/", 1)[-1] if "/" in cleaned else cleaned
+
+    if not segment:
+        return None
+
+    prefix = f"eba_{segment}"
+    _namespace_prefix_cache[namespace_uri] = prefix
+    return prefix
+
+
+def _derive_metric_prefix(namespace_uri: str) -> Optional[str]:
+    """
+    Derive the CSV prefix for metrics from a namespace URI.
+
+    For metrics, we preserve version suffixes in the prefix:
+    - http://www.eba.europa.eu/xbrl/crr/dict/met -> eba_met
+    - http://www.eba.europa.eu/xbrl/crr/dict/met/3.5 -> eba_met_3.5
+    - http://www.eba.europa.eu/xbrl/crr/dict/met/4.0 -> eba_met_4.0
+    """
+    if not namespace_uri:
+        return None
+
+    cached = _namespace_prefix_cache.get(f"metric:{namespace_uri}")
+    if cached is not None:
+        return cached
+
+    cleaned = namespace_uri.rstrip("#/")
+
+    # Split the URI into path segments
+    segments = cleaned.split("/")
+
+    # Find the 'met' (metrics) segment and check if there's a version after it
+    prefix = None
+    for i, segment in enumerate(segments):
+        if segment == "met":
+            # Check if there's a version suffix (e.g., "3.5", "4.0")
+            if i + 1 < len(segments):
+                version = segments[i + 1]
+                prefix = f"eba_met_{version}"
+            else:
+                prefix = "eba_met"
+            break
+
+    # If we didn't find 'met', fall back to the standard logic
+    if prefix is None:
+        prefix = _derive_csv_prefix(namespace_uri)
+
+    if prefix:
+        _namespace_prefix_cache[f"metric:{namespace_uri}"] = prefix
+
+    return prefix
+
+
+def _normalize_namespaced_value(
+    value: Optional[str], nsmap: Dict[Optional[str], str]
+) -> Optional[str]:
+    """
+    Normalize a namespaced value (e.g., 'dom:qAE' or '{uri}qAE') to the CSV prefix convention.
+    Returns the original value if no namespace can be resolved.
+    """
+    if value is None:
+        return None
+
+    # Clark notation: {uri}local
+    if value.startswith("{") and "}" in value:
+        uri, local = value[1:].split("}", 1)
+        derived = _derive_csv_prefix(uri)
+        return f"{derived}:{local}" if derived else value
+
+    # Prefixed notation: prefix:local
+    if ":" in value:
+        potential_prefix, local = value.split(":", 1)
+        namespace_uri = nsmap.get(potential_prefix)
+        if namespace_uri:
+            derived = _derive_csv_prefix(namespace_uri)
+            return f"{derived}:{local}" if derived else value
+
+    return value
+
+
+def _normalize_metric_value(
+    value: Optional[str], nsmap: Dict[Optional[str], str]
+) -> Optional[str]:
+    """
+    Normalize a metric namespaced value to the CSV prefix convention.
+    For metrics, we preserve version suffixes (e.g., eba_met_3.5, eba_met_4.0).
+    Returns the original value if no namespace can be resolved.
+    """
+    if value is None:
+        return None
+
+    # Clark notation: {uri}local
+    if value.startswith("{") and "}" in value:
+        uri, local = value[1:].split("}", 1)
+        derived = _derive_metric_prefix(uri)
+        return f"{derived}:{local}" if derived else value
+
+    # Prefixed notation: prefix:local
+    if ":" in value:
+        potential_prefix, local = value.split(":", 1)
+        namespace_uri = nsmap.get(potential_prefix)
+        if namespace_uri:
+            derived = _derive_metric_prefix(namespace_uri)
+            return f"{derived}:{local}" if derived else value
+
+    return value
+
 
 class Instance:
     """
@@ -60,7 +184,6 @@ class Instance:
         self._table_files: Optional[set[Path]] = None
         self._root_folder: Optional[str] = None
         self._report_file: Optional[Path] = None
-
 
     @property
     def namespaces(self) -> Dict[Optional[str], str]:
@@ -549,7 +672,7 @@ class Scenario:
                     continue
                 dimension = dimension_raw.split(":")[1]
                 value = self.get_value(child)
-                value = value.split(":")[1] if ":" in value else value
+                value = _normalize_namespaced_value(value, child.nsmap) or ""
                 self.dimensions[dimension] = value
 
     @staticmethod
@@ -668,7 +791,7 @@ class Fact:
     def parse(self) -> None:
         """Parse the XML node with the `fact <https://www.xbrl.org/guidance/xbrl-glossary/#:~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_."""
         self.metric = self.fact_xml.tag
-        self.value = self.fact_xml.text
+        self.value = _normalize_namespaced_value(self.fact_xml.text, self.fact_xml.nsmap)
         self.decimals = self.fact_xml.attrib.get("decimals")
         self.context = self.fact_xml.attrib.get("contextRef")
         self.unit = self.fact_xml.attrib.get("unitRef")
@@ -676,7 +799,11 @@ class Fact:
     def __dict__(self) -> Dict[str, Any]:  # type: ignore[override]
         metric_clean = ""
         if self.metric:
-            metric_clean = self.metric.split("}")[1] if "}" in self.metric else self.metric
+            # Normalize metric using metric-specific logic that preserves version suffixes
+            metric_clean = _normalize_metric_value(self.metric, self.fact_xml.nsmap) or ""
+            # If still in Clark notation, extract the local name
+            if metric_clean.startswith("{") and "}" in metric_clean:
+                metric_clean = metric_clean.split("}", 1)[1]
 
         return {
             "metric": metric_clean,
