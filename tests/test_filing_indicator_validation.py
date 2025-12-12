@@ -4,14 +4,20 @@ Tests for filing indicator validation functionality
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import warnings
 
 import pytest
 from lxml import etree
 
 from xbridge.api import convert_instance
+from xbridge.exceptions import FilingIndicatorWarning, IdentifierPrefixWarning
 
 
-def create_test_xbrl(filing_indicators, facts_config):
+def create_test_xbrl(
+    filing_indicators,
+    facts_config,
+    identifier_scheme: str = "https://eurofiling.info/eu/rs",
+):
     """
     Create a minimal test XBRL XML file.
 
@@ -73,7 +79,7 @@ def create_test_xbrl(filing_indicators, facts_config):
     identifier = etree.SubElement(
         entity,
         f"{{{namespaces['xbrli']}}}identifier",
-        scheme="https://eurofiling.info/eu/rs",
+        scheme=identifier_scheme,
     )
     identifier.text = "FR000.TEST"
     period = etree.SubElement(c1, f"{{{namespaces['xbrli']}}}period")
@@ -104,7 +110,7 @@ def create_test_xbrl(filing_indicators, facts_config):
         identifier = etree.SubElement(
             entity,
             f"{{{namespaces['xbrli']}}}identifier",
-            scheme="https://eurofiling.info/eu/rs",
+            scheme=identifier_scheme,
         )
         identifier.text = "FR000.TEST"
         period = etree.SubElement(context, f"{{{namespaces['xbrli']}}}period")
@@ -191,6 +197,45 @@ class TestFilingIndicatorValidation:
 
             assert "Filing indicator inconsistency detected" in str(exc_info.value)
             assert "R_01.00" in str(exc_info.value)
+
+    def test_orphaned_facts_emit_warning_when_not_strict(self):
+        """Orphaned facts emit a FilingIndicatorWarning when strict_validation is False."""
+        filing_indicators = [("R_01.00", False)]
+        facts = [
+            {
+                "metric": "md103",
+                "value": "1000",
+                "dimensions": {"BAS": "eba_BA:x1", "MCY": "eba_MC:x276", "CCA": "eba_CA:x2"},
+            }
+        ]
+
+        tree = create_test_xbrl(filing_indicators, facts)
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            xml_path = temp_path / "test_orphaned_warning.xbrl"
+            tree.write(str(xml_path), encoding="utf-8", xml_declaration=True)
+
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always", FilingIndicatorWarning)
+
+                output_path = convert_instance(
+                    xml_path,
+                    temp_path,
+                    validate_filing_indicators=True,
+                    strict_validation=False,
+                )
+
+                assert output_path.exists()
+
+            filing_warnings = [
+                w for w in caught if issubclass(w.category, FilingIndicatorWarning)
+            ]
+            assert filing_warnings
+            assert any(
+                "Filing indicator inconsistency detected" in str(w.message)
+                for w in filing_warnings
+            )
 
     def test_validation_passes_with_multi_table_facts(self):
         """
@@ -315,3 +360,43 @@ class TestFilingIndicatorValidation:
             # Should not raise error
             output_path = convert_instance(xml_path, temp_path, validate_filing_indicators=True)
             assert output_path.exists()
+
+    def test_unknown_identifier_prefix_emits_warning(self):
+        """Unknown identifier prefix should emit IdentifierPrefixWarning via convert_instance."""
+        filing_indicators = [("R_01.00", True)]
+        facts = [
+            {
+                "metric": "ii937",
+                "value": "1000",
+                "dimensions": {"SCO": "eba_SC:x11", "BAS": "eba_BA:x17"},
+            }
+        ]
+
+        unknown_scheme = "https://example.com/custom-id-scheme"
+        tree = create_test_xbrl(
+            filing_indicators,
+            facts,
+            identifier_scheme=unknown_scheme,
+        )
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            xml_path = temp_path / "test_unknown_identifier_prefix.xbrl"
+            tree.write(str(xml_path), encoding="utf-8", xml_declaration=True)
+
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always", IdentifierPrefixWarning)
+
+                output_path = convert_instance(
+                    xml_path,
+                    temp_path,
+                    validate_filing_indicators=False,
+                )
+
+                assert output_path.exists()
+
+            id_warnings = [
+                w for w in caught if issubclass(w.category, IdentifierPrefixWarning)
+            ]
+            assert id_warnings
+            assert any("not a known identifier prefix" in str(w.message) for w in id_warnings)

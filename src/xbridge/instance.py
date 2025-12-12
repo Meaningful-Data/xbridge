@@ -13,7 +13,7 @@ from zipfile import ZipFile
 import pandas as pd
 from lxml import etree
 
-from xbridge.exceptions import SchemaRefValueError
+from xbridge.exceptions import IdentifierPrefixWarning, SchemaRefValueError
 
 # Cache namespace → CSV prefix derivations to avoid repeated string work during parse
 _namespace_prefix_cache: Dict[str, str] = {}
@@ -298,7 +298,9 @@ class Instance:
                 (
                     f"{self._identifier_prefix} is not a known identifier prefix. "
                     "Default 'rs' will be used."
-                )
+                ),
+                category=IdentifierPrefixWarning,
+                stacklevel=2,
             )
             return "rs"
 

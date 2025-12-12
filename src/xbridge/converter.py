@@ -15,7 +15,7 @@ from zipfile import ZipFile
 
 import pandas as pd
 
-from xbridge.exceptions import DecimalValueError
+from xbridge.exceptions import DecimalValueError, FilingIndicatorWarning
 from xbridge.instance import CsvInstance, Instance, XmlInstance
 from xbridge.modules import Module, Table
 
@@ -570,7 +570,11 @@ class Converter:
                 "Consider setting filed=true for the relevant tables "
                 "or removing these facts from the XML."
             )
-            warnings.warn(error_msg)
+            warnings.warn(
+                error_msg,
+                category=FilingIndicatorWarning,
+                stacklevel=2,
+            )
 
     def _convert_parameters(self, temp_dir_path: Path) -> None:
         # Workaround;
