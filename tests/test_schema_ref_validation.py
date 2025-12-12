@@ -3,6 +3,7 @@
 import pytest
 from lxml import etree
 
+from xbridge.exceptions import SchemaRefValueError
 from xbridge.instance import Instance
 
 
@@ -20,7 +21,7 @@ class TestSchemaRefValidation:
 
         tree = etree.fromstring(xml_content.encode())
 
-        with pytest.raises(ValueError, match="Invalid href format") as exc_info:
+        with pytest.raises(SchemaRefValueError, match="Invalid href format") as exc_info:
             instance = Instance.__new__(Instance)
             instance.root = tree
             instance._facts_list_dict = None
@@ -43,6 +44,7 @@ class TestSchemaRefValidation:
         assert "Invalid href format" in str(exc_info.value)
         assert "'/mod/'" in str(exc_info.value)
         assert "http://www.eba.europa.eu/invalid/path.xsd" in str(exc_info.value)
+        assert exc_info.value.offending_value == "http://www.eba.europa.eu/invalid/path.xsd"
 
     def test_invalid_href_missing_xsd(self):
         """Test that an error is raised when href doesn't end with '.xsd'."""
@@ -55,7 +57,7 @@ class TestSchemaRefValidation:
 
         tree = etree.fromstring(xml_content.encode())
 
-        with pytest.raises(ValueError, match="Invalid href format") as exc_info:
+        with pytest.raises(SchemaRefValueError, match="Invalid href format") as exc_info:
             instance = Instance.__new__(Instance)
             instance.root = tree
             instance._facts_list_dict = None
@@ -78,6 +80,7 @@ class TestSchemaRefValidation:
         assert "Invalid href format" in str(exc_info.value)
         assert ".xsd" in str(exc_info.value)
         assert "http://www.eba.europa.eu/mod/corep_lcr_da" in str(exc_info.value)
+        assert exc_info.value.offending_value == "http://www.eba.europa.eu/mod/corep_lcr_da"
 
     def test_multiple_schema_refs(self):
         """Test that an error is raised when multiple schemaRef elements are present."""
@@ -91,7 +94,7 @@ class TestSchemaRefValidation:
 
         tree = etree.fromstring(xml_content.encode())
 
-        with pytest.raises(ValueError, match="Multiple schemaRef elements found") as exc_info:
+        with pytest.raises(SchemaRefValueError, match="Multiple schemaRef elements found") as exc_info:
             instance = Instance.__new__(Instance)
             instance.root = tree
             instance._facts_list_dict = None
@@ -114,6 +117,10 @@ class TestSchemaRefValidation:
         assert "Multiple schemaRef elements found" in str(exc_info.value)
         assert "2 were found" in str(exc_info.value)
         assert "invalid XBRL-XML" in str(exc_info.value)
+        assert exc_info.value.offending_value == [
+            "http://www.eba.europa.eu/mod/corep_lcr_da.xsd",
+            "http://www.eba.europa.eu/mod/corep_lcr_db.xsd",
+        ]
 
     def test_valid_href(self):
         """Test that a valid href is processed correctly."""

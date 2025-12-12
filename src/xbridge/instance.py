@@ -13,6 +13,8 @@ from zipfile import ZipFile
 import pandas as pd
 from lxml import etree
 
+from xbridge.exceptions import SchemaRefValueError
+
 # Cache namespace → CSV prefix derivations to avoid repeated string work during parse
 _namespace_prefix_cache: Dict[str, str] = {}
 
@@ -414,11 +416,14 @@ class Instance:
             return  # No schema reference found, module_ref will remain None
 
         if len(schema_refs) > 1:
-            raise ValueError(
-                f"Multiple schemaRef elements found in the XBRL instance. "
-                f"Only one schemaRef is expected, but {len(schema_refs)} "
-                f"were found: {schema_refs}. "
-                f"This may indicate an invalid XBRL-XML file."
+            raise SchemaRefValueError(
+                (
+                    "Multiple schemaRef elements found in the XBRL instance. "
+                    f"Only one schemaRef is expected, but {len(schema_refs)} "
+                    f"were found: {schema_refs}. "
+                    "This may indicate an invalid XBRL-XML file."
+                ),
+                offending_value=schema_refs,
             )
 
         # Process the single schema reference
@@ -427,25 +432,34 @@ class Instance:
 
         # Validate href format and extract module code
         if "/mod/" not in value:
-            raise ValueError(
-                f"Invalid href format in schemaRef. Expected href to contain '/mod/' "
-                f"but got: '{value}'. Please verify the XBRL-XML file contains a "
-                f"valid schema reference."
+            raise SchemaRefValueError(
+                (
+                    "Invalid href format in schemaRef. Expected href to contain '/mod/' "
+                    f"but got: '{value}'. Please verify the XBRL-XML file contains a "
+                    "valid schema reference."
+                ),
+                offending_value=value,
             )
 
         split_parts = value.split("/mod/")
         if len(split_parts) < 2:
-            raise ValueError(
-                f"Invalid href format in schemaRef. Could not extract module name from: '{value}'. "
-                f"Expected format: 'http://.../mod/[module_name].xsd'"
+            raise SchemaRefValueError(
+                (
+                    "Invalid href format in schemaRef. Could not extract module name "
+                    f"from: '{value}'. Expected format: 'http://.../mod/[module_name].xsd'"
+                ),
+                offending_value=value,
             )
 
         module_part = split_parts[1]
         if ".xsd" not in module_part:
-            raise ValueError(
-                f"Invalid href format in schemaRef. Expected href to end with '.xsd' "
-                f"but got: '{value}'. Please verify the XBRL-XML file contains a valid "
-                f"schema reference."
+            raise SchemaRefValueError(
+                (
+                    "Invalid href format in schemaRef. Expected href to end with '.xsd' "
+                    f"but got: '{value}'. Please verify the XBRL-XML file contains a valid "
+                    "schema reference."
+                ),
+                offending_value=value,
             )
 
         xsd_split = module_part.split(".xsd")

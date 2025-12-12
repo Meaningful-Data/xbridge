@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 
 from xbridge.converter import Converter
+from xbridge.exceptions import DecimalValueError
 
 
 class TestDecimalPrecision:
@@ -261,3 +262,10 @@ class TestDecimalPrecision:
         # Both should result in 2
         assert converter_instance._decimals_parameters[data_type1] == 2
         assert converter_instance._decimals_parameters[data_type2] == 2
+
+    def test_invalid_decimal_value_raises_custom_exception(self, converter_instance):
+        """Ensure invalid decimals raise a DecimalValueError with offending value."""
+        with pytest.raises(DecimalValueError, match="Invalid decimals value") as exc_info:
+            converter_instance._normalize_decimals_value("2.0")
+
+        assert exc_info.value.offending_value == "2.0"
