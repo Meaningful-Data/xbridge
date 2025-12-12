@@ -2,9 +2,9 @@
 Tests for filing indicator validation functionality
 """
 
+import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import warnings
 
 import pytest
 from lxml import etree
@@ -26,6 +26,7 @@ def create_test_xbrl(
             e.g., [("R_08.00", True), ("R_09.00", False)]
         facts_config: List of dicts with fact configurations
             e.g., [{"metric": "ii937", "context": "c2", "value": "1000", "table": "R_08.00"}]
+        identifier_scheme: Identifier scheme URI for entity identifiers in the instance.
 
     Returns:
         etree.ElementTree: The XBRL XML tree
@@ -228,13 +229,10 @@ class TestFilingIndicatorValidation:
 
                 assert output_path.exists()
 
-            filing_warnings = [
-                w for w in caught if issubclass(w.category, FilingIndicatorWarning)
-            ]
+            filing_warnings = [w for w in caught if issubclass(w.category, FilingIndicatorWarning)]
             assert filing_warnings
             assert any(
-                "Filing indicator inconsistency detected" in str(w.message)
-                for w in filing_warnings
+                "Filing indicator inconsistency detected" in str(w.message) for w in filing_warnings
             )
 
     def test_validation_passes_with_multi_table_facts(self):
@@ -395,8 +393,6 @@ class TestFilingIndicatorValidation:
 
                 assert output_path.exists()
 
-            id_warnings = [
-                w for w in caught if issubclass(w.category, IdentifierPrefixWarning)
-            ]
+            id_warnings = [w for w in caught if issubclass(w.category, IdentifierPrefixWarning)]
             assert id_warnings
             assert any("not a known identifier prefix" in str(w.message) for w in id_warnings)

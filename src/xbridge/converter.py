@@ -388,12 +388,10 @@ class Converter:
                         continue
 
                     existing_value = self._decimals_parameters[data_type]
-                    if (
-                        existing_value in {"INF", "#none"}
-                        or (
-                            isinstance(existing_value, int)
-                            and normalized_decimals < existing_value
-                        )
+                    if existing_value in {"INF", "#none"} or (
+                        isinstance(existing_value, int)
+                        and isinstance(normalized_decimals, int)
+                        and normalized_decimals < existing_value
                     ):
                         self._decimals_parameters[data_type] = normalized_decimals
 
@@ -430,8 +428,7 @@ class Converter:
             return int(candidate)
         except (TypeError, ValueError) as exc:
             raise DecimalValueError(
-                "Invalid decimals value: "
-                f"{decimals}, should be integer, 'INF' or '#none'",
+                f"Invalid decimals value: {decimals}, should be integer, 'INF' or '#none'",
                 offending_value=decimals,
             ) from exc
 

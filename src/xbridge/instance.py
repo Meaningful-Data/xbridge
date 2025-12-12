@@ -112,9 +112,7 @@ def _normalize_namespaced_value(
     return value
 
 
-def _normalize_metric_value(
-    value: Optional[str], nsmap: Dict[Optional[str], str]
-) -> Optional[str]:
+def _normalize_metric_value(value: Optional[str], nsmap: Dict[Optional[str], str]) -> Optional[str]:
     """
     Normalize a metric namespaced value to the CSV prefix convention.
     For metrics, we preserve version suffixes (e.g., eba_met_3.5, eba_met_4.0).
@@ -183,6 +181,7 @@ class Instance:
         self._contexts: Optional[Dict[str, Context]] = None
         self._facts: Optional[List[Fact]] = None
         self._facts_list_dict: Optional[List[Dict[str, Any]]] = None
+        self._df: Optional[pd.DataFrame] = None
         self._table_files: Optional[set[Path]] = None
         self._root_folder: Optional[str] = None
         self._report_file: Optional[Path] = None
@@ -272,7 +271,7 @@ class Instance:
         """
         if self.facts_list_dict is None:
             return
-        df = pd.DataFrame.from_dict(self.facts_list_dict)  # type: ignore[call-overload]
+        df = pd.DataFrame(self.facts_list_dict)
         df_columns = list(df.columns)
         ##Workaround
         # Dropping period an entity columns because in current EBA architecture,
@@ -358,16 +357,17 @@ class Instance:
             raise AttributeError("XML root not loaded.")
 
         contexts: Dict[str, Context] = {}
+        namespaces: Dict[str, str] = {key or "": value for key, value in self.namespaces.items()}
         for context in self.root.findall(
             "{http://www.xbrl.org/2003/instance}context",
-            self.namespaces,  # type: ignore[arg-type]
+            namespaces,
         ):
             context_object = Context(context)
             contexts[context_object.id] = context_object
 
         self._contexts = contexts
 
-        first_ctx = self.root.find("{http://www.xbrl.org/2003/instance}context", self.namespaces)  # type: ignore[arg-type]
+        first_ctx = self.root.find("{http://www.xbrl.org/2003/instance}context", namespaces)
         if first_ctx is not None:
             entity_elem = first_ctx.find("{http://www.xbrl.org/2003/instance}entity")
             if entity_elem is not None:
@@ -410,7 +410,8 @@ class Instance:
                 href_attr = "{http://www.w3.org/1999/xlink}href"
                 if href_attr not in child.attrib:
                     continue
-                value: str = child.attrib[href_attr]  # type: ignore[assignment]
+                raw_value = child.attrib[href_attr]
+                value = str(raw_value)
                 schema_refs.append(value)
 
         # Validate that only one schemaRef exists
@@ -501,7 +502,8 @@ class Instance:
 
         units: Dict[str, str] = {}
         for unit in self.root.findall("{http://www.xbrl.org/2003/instance}unit"):
-            unit_name: str = unit.attrib["id"]  # type: ignore[assignment]
+            unit_id = unit.attrib["id"]
+            unit_name = str(unit_id)
             measure = unit.find("{http://www.xbrl.org/2003/instance}measure")
             if measure is None or measure.text is None:
                 continue
@@ -755,7 +757,7 @@ class Context:
 
     def parse(self) -> None:
         """Parses the XML node with the :obj:`Context <xbridge.xml_instance.Context>`."""
-        self._id = self.context_xml.attrib["id"]  # type: ignore[assignment]
+        self._id = str(self.context_xml.attrib["id"])
 
         entity_elem = self.context_xml.find("{http://www.xbrl.org/2003/instance}entity")
         if entity_elem is not None:

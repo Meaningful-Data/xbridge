@@ -7,9 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0rc6] - 2025-12-12
+
+### Added
+- Custom `SchemaRefValueError` and `DecimalValueError` exceptions that include offending values.
+- Structured warning types (`XbridgeWarning`, `IdentifierPrefixWarning`, `FilingIndicatorWarning`) for easier integration with external tooling.
+- Documentation examples for capturing or promoting XBridge warnings when using `convert_instance`.
+
+### Changed
+- Centralized decimals validation logic to normalize and validate decimals values.
+
 ### Fixed
-- Fixed decimals issues
-- Fixed issue with stripping
+- Fixed decimals handling edge cases.
+- Fixed issue with stripping.
 
 ## [1.5.0rc2] - 2024-11-28
 
@@ -132,7 +142,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0rc2...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0rc6...HEAD
+[1.5.0rc6]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0rc2...v1.5.0rc6
 [1.5.0rc2]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0rc1...v1.5.0rc2
 [1.5.0rc1]: https://github.com/Meaningful-Data/xbridge/compare/v1.4.0...v1.5.0rc1
 [1.4.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.3.1rc1...v1.4.0

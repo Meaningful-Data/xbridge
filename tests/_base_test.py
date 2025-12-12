@@ -48,9 +48,7 @@ class BasicConversionTest:
             self.generated_root_folder = generated_namelist[0].split("/")[0] + "/"
 
         self.generated_csv_files = [
-            file
-            for file in generated_namelist
-            if "reports/" in file and file.endswith(".csv")
+            file for file in generated_namelist if "reports/" in file and file.endswith(".csv")
         ]
 
         self.no_xml_facts = len(self.instance.facts)
@@ -63,9 +61,7 @@ class BasicConversionTest:
             self.expected_root_folder = expected_namelist[0].split("/")[0] + "/"
 
         self.expected_csv_files = [
-            file
-            for file in expected_namelist
-            if "reports/" in file and file.endswith(".csv")
+            file for file in expected_namelist if "reports/" in file and file.endswith(".csv")
         ]
 
     def teardown_method(self, method) -> None:
@@ -88,10 +84,15 @@ class BasicConversionTest:
         namelist = self.generated_output_zip.namelist()
         # Files are within a root folder, so we need to check for the pattern
         has_report_json = any("reports/report.json" in name for name in namelist)
-        has_reports_json = any("META-INF/reports.json" in name or "META-INF/reportPackage.json" in name for name in namelist)
+        has_reports_json = any(
+            "META-INF/reports.json" in name or "META-INF/reportPackage.json" in name
+            for name in namelist
+        )
 
         assert has_report_json, f"reports/report.json not found in {namelist}"
-        assert has_reports_json, f"META-INF/reports.json or META-INF/reportPackage.json not found in {namelist}"
+        assert has_reports_json, (
+            f"META-INF/reports.json or META-INF/reportPackage.json not found in {namelist}"
+        )
 
     def test_number_facts(self):
         """
@@ -119,7 +120,9 @@ class BasicConversionTest:
             # Test passes
         else:
             # DORA architecture: multiple facts per record
-            print(f"DORA-style file detected: {no_generated_records} records contain {self.no_xml_facts} facts")
+            print(
+                f"DORA-style file detected: {no_generated_records} records contain {self.no_xml_facts} facts"
+            )
             # Skip the assertion for DORA files
 
     def test_files_same_structure(self):
@@ -131,8 +134,7 @@ class BasicConversionTest:
 
             # Find matching generated file by name
             generated_file = next(
-                (f for f in self.generated_csv_files if Path(f).name == file_name),
-                None
+                (f for f in self.generated_csv_files if Path(f).name == file_name), None
             )
             assert generated_file, f"Generated file {file_name} not found"
 
@@ -178,19 +180,29 @@ class FullConversionTest(BasicConversionTest):
         """
         # Find the reports.json or reportPackage.json file in generated output
         generated_reports = next(
-            (f for f in self.generated_output_zip.namelist()
-             if "META-INF/reports.json" in f or "META-INF/reportPackage.json" in f),
-            None
+            (
+                f
+                for f in self.generated_output_zip.namelist()
+                if "META-INF/reports.json" in f or "META-INF/reportPackage.json" in f
+            ),
+            None,
         )
         # Find reports.json or reportPackage.json in expected output
         expected_reports = next(
-            (f for f in self.expected_output_zip.namelist()
-             if "META-INF/reports.json" in f or "META-INF/reportPackage.json" in f),
-            None
+            (
+                f
+                for f in self.expected_output_zip.namelist()
+                if "META-INF/reports.json" in f or "META-INF/reportPackage.json" in f
+            ),
+            None,
         )
 
-        assert generated_reports, "META-INF/reports.json or reportPackage.json not found in generated output"
-        assert expected_reports, "META-INF/reports.json or reportPackage.json not found in expected output"
+        assert generated_reports, (
+            "META-INF/reports.json or reportPackage.json not found in generated output"
+        )
+        assert expected_reports, (
+            "META-INF/reports.json or reportPackage.json not found in expected output"
+        )
 
         with self.generated_output_zip.open(generated_reports) as fl:
             reports_generated = json.load(fl)
@@ -216,8 +228,7 @@ class FullConversionTest(BasicConversionTest):
 
             # Find matching generated file by name
             generated_file = next(
-                (f for f in self.generated_csv_files if Path(f).name == file_name),
-                None
+                (f for f in self.generated_csv_files if Path(f).name == file_name), None
             )
             assert generated_file, f"Generated file {file_name} not found"
 
@@ -238,8 +249,7 @@ class FullConversionTest(BasicConversionTest):
         """
         # Find FilingIndicators.csv file
         filing_indicators_file = next(
-            (f for f in self.generated_csv_files if Path(f).name == "FilingIndicators.csv"),
-            None
+            (f for f in self.generated_csv_files if Path(f).name == "FilingIndicators.csv"), None
         )
         assert filing_indicators_file, "FilingIndicators.csv not found in generated output"
 
@@ -257,8 +267,7 @@ class FullConversionTest(BasicConversionTest):
 
             # Find matching generated file by name
             generated_file = next(
-                (f for f in self.generated_csv_files if Path(f).name == file_name),
-                None
+                (f for f in self.generated_csv_files if Path(f).name == file_name), None
             )
             assert generated_file, f"Generated file {file_name} not found"
 
@@ -271,14 +280,16 @@ class FullConversionTest(BasicConversionTest):
             if len(expected_df) > 0 and len(generated_df) > 0:
                 sort_columns = list(expected_df.columns)
                 expected_df_sorted = expected_df.sort_values(by=sort_columns).reset_index(drop=True)
-                generated_df_sorted = generated_df.sort_values(by=sort_columns).reset_index(drop=True)
+                generated_df_sorted = generated_df.sort_values(by=sort_columns).reset_index(
+                    drop=True
+                )
 
                 # Compare dataframes
                 pd.testing.assert_frame_equal(
                     expected_df_sorted,
                     generated_df_sorted,
                     check_dtype=False,  # Allow for minor type differences
-                    obj=f"File: {file_name}"
+                    obj=f"File: {file_name}",
                 )
             elif len(expected_df) == 0 and len(generated_df) == 0:
                 # Both empty is fine
@@ -295,14 +306,10 @@ class FullConversionTest(BasicConversionTest):
         """
         # Get all files from both zips (excluding directory entries)
         expected_files = {
-            Path(f).name
-            for f in self.expected_output_zip.namelist()
-            if not f.endswith("/")
+            Path(f).name for f in self.expected_output_zip.namelist() if not f.endswith("/")
         }
         generated_files = {
-            Path(f).name
-            for f in self.generated_output_zip.namelist()
-            if not f.endswith("/")
+            Path(f).name for f in self.generated_output_zip.namelist() if not f.endswith("/")
         }
 
         missing_files = expected_files - generated_files

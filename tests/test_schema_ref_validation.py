@@ -94,7 +94,9 @@ class TestSchemaRefValidation:
 
         tree = etree.fromstring(xml_content.encode())
 
-        with pytest.raises(SchemaRefValueError, match="Multiple schemaRef elements found") as exc_info:
+        with pytest.raises(
+            SchemaRefValueError, match="Multiple schemaRef elements found"
+        ) as exc_info:
             instance = Instance.__new__(Instance)
             instance.root = tree
             instance._facts_list_dict = None
