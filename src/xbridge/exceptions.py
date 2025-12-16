@@ -21,6 +21,14 @@ class DecimalValueError(ValueError):
         self.offending_value = offending_value
 
 
+class FilingIndicatorValueError(ValueError):
+    """Raised when filing indicator validation fails."""
+
+    def __init__(self, error_message: str, offending_value: Optional[Any] = None) -> None:
+        super().__init__(error_message)
+        self.offending_value = offending_value
+
+
 class XbridgeWarning(Warning):
     """Base warning for the xbridge library."""
 

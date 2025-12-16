@@ -15,7 +15,11 @@ from zipfile import ZipFile
 
 import pandas as pd
 
-from xbridge.exceptions import DecimalValueError, FilingIndicatorWarning
+from xbridge.exceptions import (
+    DecimalValueError,
+    FilingIndicatorValueError,
+    FilingIndicatorWarning,
+)
 from xbridge.instance import CsvInstance, Instance, XmlInstance
 from xbridge.modules import Module, Table
 
@@ -513,7 +517,7 @@ class Converter:
         """Validate that no facts are orphaned (belong only to non-reported tables).
 
         Raises:
-            ValueError: If facts exist that belong only to tables with filed=false
+            FilingIndicatorValueError: If facts exist that belong only to tables with filed=false
         """
         if self.instance.instance_df is None or self.instance.instance_df.empty:
             return
@@ -561,7 +565,7 @@ class Converter:
                     "Either set filed=true for the relevant tables "
                     "or remove these facts from the XML."
                 )
-                raise ValueError(error_msg)
+                raise FilingIndicatorValueError(error_msg, orphaned_per_table)
             error_msg += (
                 "\nThese facts will be excluded from the output. "
                 "Consider setting filed=true for the relevant tables "

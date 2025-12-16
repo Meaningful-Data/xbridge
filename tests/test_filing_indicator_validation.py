@@ -10,7 +10,11 @@ import pytest
 from lxml import etree
 
 from xbridge.api import convert_instance
-from xbridge.exceptions import FilingIndicatorWarning, IdentifierPrefixWarning
+from xbridge.exceptions import (
+    FilingIndicatorValueError,
+    FilingIndicatorWarning,
+    IdentifierPrefixWarning,
+)
 
 
 def create_test_xbrl(
@@ -190,14 +194,17 @@ class TestFilingIndicatorValidation:
             xml_path = temp_path / "test_orphaned.xbrl"
             tree.write(str(xml_path), encoding="utf-8", xml_declaration=True)
 
-            # Should raise ValueError with specific message
+            # Should raise FilingIndicatorValueError with specific message
             with pytest.raises(
-                ValueError, match="Filing indicator inconsistency detected"
+                FilingIndicatorValueError, match="Filing indicator inconsistency detected"
             ) as exc_info:
                 convert_instance(xml_path, temp_path, validate_filing_indicators=True)
 
             assert "Filing indicator inconsistency detected" in str(exc_info.value)
             assert "R_01.00" in str(exc_info.value)
+            # Verify the offending_value attribute contains the orphaned facts per table
+            assert hasattr(exc_info.value, "offending_value")
+            assert "R_01.00" in exc_info.value.offending_value
 
     def test_orphaned_facts_emit_warning_when_not_strict(self):
         """Orphaned facts emit a FilingIndicatorWarning when strict_validation is False."""
