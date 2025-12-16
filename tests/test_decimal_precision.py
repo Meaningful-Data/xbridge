@@ -268,4 +268,6 @@ class TestDecimalPrecision:
         with pytest.raises(DecimalValueError, match="Invalid decimals value") as exc_info:
             converter_instance._normalize_decimals_value("2.0")
 
+        # Verify it's the exact exception type, not wrapped
+        assert type(exc_info.value) is DecimalValueError
         assert exc_info.value.offending_value == "2.0"

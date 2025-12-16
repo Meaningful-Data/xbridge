@@ -341,6 +341,8 @@ class Instance:
             self.get_filing_indicators()
         except etree.XMLSyntaxError:
             raise ValueError("Invalid XML format")
+        except SchemaRefValueError:
+            raise  # Let SchemaRefValueError propagate as-is
         except Exception as e:
             raise ValueError(f"Error parsing instance: {str(e)}")
 
@@ -651,6 +653,8 @@ class XmlInstance(Instance):
             self.get_filing_indicators()
         except etree.XMLSyntaxError:
             raise ValueError("Invalid XML format")
+        except SchemaRefValueError:
+            raise  # Let SchemaRefValueError propagate as-is
         except Exception as e:
             raise ValueError(f"Error parsing instance: {str(e)}")
 
