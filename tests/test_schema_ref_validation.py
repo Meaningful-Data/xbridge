@@ -220,7 +220,7 @@ class TestSchemaRefValidationEndToEnd:
   <link:schemaRef xlink:type="simple" xlink:href="http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/corep/mod/cor_456.xsd"/>
 </xbrl>"""
 
-        with NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+        with NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
             f.write(xml_content)
             temp_path = Path(f.name)
 
@@ -248,7 +248,7 @@ class TestSchemaRefValidationEndToEnd:
   <link:schemaRef xlink:type="simple" xlink:href="http://www.eba.europa.eu/invalid/path/schema.xsd"/>
 </xbrl>"""
 
-        with NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+        with NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
             f.write(xml_content)
             temp_path = Path(f.name)
 
@@ -259,7 +259,9 @@ class TestSchemaRefValidationEndToEnd:
             # Verify it's the exact exception type
             assert type(exc_info.value) is SchemaRefValueError
             assert "'/mod/'" in str(exc_info.value)
-            assert exc_info.value.offending_value == "http://www.eba.europa.eu/invalid/path/schema.xsd"
+            assert (
+                exc_info.value.offending_value == "http://www.eba.europa.eu/invalid/path/schema.xsd"
+            )
         finally:
             temp_path.unlink()
 
@@ -272,7 +274,7 @@ class TestSchemaRefValidationEndToEnd:
   <link:schemaRef xlink:type="simple" xlink:href="http://www.eba.europa.eu/mod/corep_lcr_da"/>
 </xbrl>"""
 
-        with NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+        with NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
             f.write(xml_content)
             temp_path = Path(f.name)
 
@@ -302,7 +304,7 @@ class TestSchemaRefValidationEndToEnd:
   <unclosed_tag>
 </xbrl>"""
 
-        with NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+        with NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
             f.write(xml_content)
             temp_path = Path(f.name)
 
@@ -334,13 +336,16 @@ class TestSchemaRefValidationEndToEnd:
   </context>
 </xbrl>"""
 
-        with NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+        with NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
             f.write(xml_content)
             temp_path = Path(f.name)
 
         try:
             instance = XmlInstance(temp_path)
             assert instance.module_code == "cor"
-            assert instance.module_ref == "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/corep/mod/cor.xsd"
+            assert (
+                instance.module_ref
+                == "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/corep/mod/cor.xsd"
+            )
         finally:
             temp_path.unlink()
