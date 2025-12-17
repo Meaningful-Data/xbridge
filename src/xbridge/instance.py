@@ -13,7 +13,11 @@ from zipfile import ZipFile
 import pandas as pd
 from lxml import etree
 
-from xbridge.exceptions import IdentifierPrefixWarning, SchemaRefValueError
+from xbridge.exceptions import (
+    FilingIndicatorValueError,
+    IdentifierPrefixWarning,
+    SchemaRefValueError,
+)
 
 # Cache namespace → CSV prefix derivations to avoid repeated string work during parse
 _namespace_prefix_cache: Dict[str, str] = {}
@@ -343,6 +347,8 @@ class Instance:
             raise ValueError("Invalid XML format")
         except SchemaRefValueError:
             raise  # Let SchemaRefValueError propagate as-is
+        except FilingIndicatorValueError:
+            raise  # Let FilingIndicatorValueError propagate as-is
         except Exception as e:
             raise ValueError(f"Error parsing instance: {str(e)}")
 
@@ -655,6 +661,8 @@ class XmlInstance(Instance):
             raise ValueError("Invalid XML format")
         except SchemaRefValueError:
             raise  # Let SchemaRefValueError propagate as-is
+        except FilingIndicatorValueError:
+            raise  # Let FilingIndicatorValueError propagate as-is
         except Exception as e:
             raise ValueError(f"Error parsing instance: {str(e)}")
 
@@ -860,11 +868,21 @@ class FilingIndicator:
         self.parse()
 
     def parse(self) -> None:
-        """Parse the XML node with the filing indicator."""
+        """Parse the XML node with the filing indicator.
+
+        Raises:
+            FilingIndicatorValueError: If the filed attribute is not "true" or "false"
+        """
         value = self.filing_indicator_xml.attrib.get(
             "{http://www.eurofiling.info/xbrl/ext/filing-indicators}filed"
         )
         if value:
+            if value not in ("true", "false"):
+                raise FilingIndicatorValueError(
+                    f"Invalid filing indicator value: '{value}'. "
+                    f"The 'filed' attribute must be either 'true' or 'false'.",
+                    offending_value=value,
+                )
             self.value = value == "true"
         else:
             self.value = True

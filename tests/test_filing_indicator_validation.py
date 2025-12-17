@@ -403,3 +403,146 @@ class TestFilingIndicatorValidation:
             id_warnings = [w for w in caught if issubclass(w.category, IdentifierPrefixWarning)]
             assert id_warnings
             assert any("not a known identifier prefix" in str(w.message) for w in id_warnings)
+
+
+class TestFilingIndicatorValueValidation:
+    """Test suite for filing indicator value validation."""
+
+    def test_invalid_filing_indicator_value_uppercase_true(self):
+        """Test that uppercase 'TRUE' raises FilingIndicatorValueError."""
+        xml_content = """<?xml version='1.0' encoding='UTF-8'?>
+<xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"
+            xmlns:find="http://www.eurofiling.info/xbrl/ext/filing-indicators">
+  <find:fIndicators>
+    <find:filingIndicator contextRef="c1" find:filed="TRUE">R_01.00</find:filingIndicator>
+  </find:fIndicators>
+</xbrli:xbrl>"""
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            xml_path = temp_path / "test_invalid_uppercase.xbrl"
+            with open(xml_path, "w", encoding="utf-8") as f:
+                f.write(xml_content)
+
+            with pytest.raises(
+                FilingIndicatorValueError, match="Invalid filing indicator value"
+            ) as exc_info:
+                convert_instance(xml_path, temp_path, validate_filing_indicators=False)
+
+            assert "TRUE" in str(exc_info.value)
+            assert "'true' or 'false'" in str(exc_info.value)
+            assert exc_info.value.offending_value == "TRUE"
+
+    def test_invalid_filing_indicator_value_uppercase_false(self):
+        """Test that uppercase 'FALSE' raises FilingIndicatorValueError."""
+        xml_content = """<?xml version='1.0' encoding='UTF-8'?>
+<xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"
+            xmlns:find="http://www.eurofiling.info/xbrl/ext/filing-indicators">
+  <find:fIndicators>
+    <find:filingIndicator contextRef="c1" find:filed="FALSE">R_01.00</find:filingIndicator>
+  </find:fIndicators>
+</xbrli:xbrl>"""
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            xml_path = temp_path / "test_invalid_uppercase_false.xbrl"
+            with open(xml_path, "w", encoding="utf-8") as f:
+                f.write(xml_content)
+
+            with pytest.raises(
+                FilingIndicatorValueError, match="Invalid filing indicator value"
+            ) as exc_info:
+                convert_instance(xml_path, temp_path, validate_filing_indicators=False)
+
+            assert "FALSE" in str(exc_info.value)
+            assert "'true' or 'false'" in str(exc_info.value)
+            assert exc_info.value.offending_value == "FALSE"
+
+    def test_invalid_filing_indicator_value_numeric(self):
+        """Test that numeric values like '1' or '0' raise FilingIndicatorValueError."""
+        xml_content = """<?xml version='1.0' encoding='UTF-8'?>
+<xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"
+            xmlns:find="http://www.eurofiling.info/xbrl/ext/filing-indicators">
+  <find:fIndicators>
+    <find:filingIndicator contextRef="c1" find:filed="1">R_01.00</find:filingIndicator>
+  </find:fIndicators>
+</xbrli:xbrl>"""
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            xml_path = temp_path / "test_invalid_numeric.xbrl"
+            with open(xml_path, "w", encoding="utf-8") as f:
+                f.write(xml_content)
+
+            with pytest.raises(
+                FilingIndicatorValueError, match="Invalid filing indicator value"
+            ) as exc_info:
+                convert_instance(xml_path, temp_path, validate_filing_indicators=False)
+
+            assert "'1'" in str(exc_info.value)
+            assert "'true' or 'false'" in str(exc_info.value)
+            assert exc_info.value.offending_value == "1"
+
+    def test_invalid_filing_indicator_value_arbitrary_string(self):
+        """Test that arbitrary string values raise FilingIndicatorValueError."""
+        xml_content = """<?xml version='1.0' encoding='UTF-8'?>
+<xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"
+            xmlns:find="http://www.eurofiling.info/xbrl/ext/filing-indicators">
+  <find:fIndicators>
+    <find:filingIndicator contextRef="c1" find:filed="yes">R_01.00</find:filingIndicator>
+  </find:fIndicators>
+</xbrli:xbrl>"""
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            xml_path = temp_path / "test_invalid_string.xbrl"
+            with open(xml_path, "w", encoding="utf-8") as f:
+                f.write(xml_content)
+
+            with pytest.raises(
+                FilingIndicatorValueError, match="Invalid filing indicator value"
+            ) as exc_info:
+                convert_instance(xml_path, temp_path, validate_filing_indicators=False)
+
+            assert "'yes'" in str(exc_info.value)
+            assert "'true' or 'false'" in str(exc_info.value)
+            assert exc_info.value.offending_value == "yes"
+
+    def test_valid_filing_indicator_lowercase_true(self):
+        """Test that lowercase 'true' is accepted."""
+        # Use the existing helper function to create a valid XBRL
+        filing_indicators = [("R_01.00", True)]
+        facts = [
+            {
+                "metric": "ii937",
+                "value": "1000",
+                "dimensions": {"SCO": "eba_SC:x11", "BAS": "eba_BA:x17"},
+            }
+        ]
+
+        tree = create_test_xbrl(filing_indicators, facts)
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            xml_path = temp_path / "test_valid_lowercase_true.xbrl"
+            tree.write(str(xml_path), encoding="utf-8", xml_declaration=True)
+
+            # Should not raise any error
+            output_path = convert_instance(xml_path, temp_path, validate_filing_indicators=False)
+            assert output_path.exists()
+
+    def test_valid_filing_indicator_lowercase_false(self):
+        """Test that lowercase 'false' is accepted."""
+        filing_indicators = [("R_01.00", False)]
+        facts = []
+
+        tree = create_test_xbrl(filing_indicators, facts)
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            xml_path = temp_path / "test_valid_lowercase_false.xbrl"
+            tree.write(str(xml_path), encoding="utf-8", xml_declaration=True)
+
+            # Should not raise any error
+            output_path = convert_instance(xml_path, temp_path, validate_filing_indicators=False)
+            assert output_path.exists()
