@@ -871,19 +871,19 @@ class FilingIndicator:
         """Parse the XML node with the filing indicator.
 
         Raises:
-            FilingIndicatorValueError: If the filed attribute is not "true" or "false"
+            FilingIndicatorValueError: If the filed attribute is not "true", "false", "0", or "1"
         """
         value = self.filing_indicator_xml.attrib.get(
             "{http://www.eurofiling.info/xbrl/ext/filing-indicators}filed"
         )
         if value:
-            if value not in ("true", "false"):
+            if value not in ("true", "false", "0", "1"):
                 raise FilingIndicatorValueError(
                     f"Invalid filing indicator value: '{value}'. "
-                    f"The 'filed' attribute must be either 'true' or 'false'.",
+                    f"The 'filed' attribute must be either 'true', 'false', '0', or '1'.",
                     offending_value=value,
                 )
-            self.value = value == "true"
+            self.value = value in ("true", "1")
         else:
             self.value = True
         self.table = self.filing_indicator_xml.text

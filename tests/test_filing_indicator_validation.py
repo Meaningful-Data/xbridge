@@ -430,7 +430,7 @@ class TestFilingIndicatorValueValidation:
                 convert_instance(xml_path, temp_path, validate_filing_indicators=False)
 
             assert "TRUE" in str(exc_info.value)
-            assert "'true' or 'false'" in str(exc_info.value)
+            assert "'true', 'false', '0', or '1'" in str(exc_info.value)
             assert exc_info.value.offending_value == "TRUE"
 
     def test_invalid_filing_indicator_value_uppercase_false(self):
@@ -455,33 +455,91 @@ class TestFilingIndicatorValueValidation:
                 convert_instance(xml_path, temp_path, validate_filing_indicators=False)
 
             assert "FALSE" in str(exc_info.value)
-            assert "'true' or 'false'" in str(exc_info.value)
+            assert "'true', 'false', '0', or '1'" in str(exc_info.value)
             assert exc_info.value.offending_value == "FALSE"
 
-    def test_invalid_filing_indicator_value_numeric(self):
-        """Test that numeric values like '1' or '0' raise FilingIndicatorValueError."""
+    def test_valid_filing_indicator_value_numeric_one(self):
+        """Test that numeric value '1' is accepted as true."""
         xml_content = """<?xml version='1.0' encoding='UTF-8'?>
 <xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"
-            xmlns:find="http://www.eurofiling.info/xbrl/ext/filing-indicators">
+            xmlns:find="http://www.eurofiling.info/xbrl/ext/filing-indicators"
+            xmlns:link="http://www.xbrl.org/2003/linkbase"
+            xmlns:xlink="http://www.w3.org/1999/xlink"
+            xmlns:eba_met="http://www.eba.europa.eu/xbrl/crr/dict/met">
+  <link:schemaRef xlink:type="simple"
+                  xlink:href="http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/rem/gl-2022-06/2022-09-30/mod/rem_bm.xsd"/>
+  <xbrli:context id="c1">
+    <xbrli:entity>
+      <xbrli:identifier scheme="https://eurofiling.info/eu/rs">FR000.TEST</xbrli:identifier>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:instant>2022-12-31</xbrli:instant>
+    </xbrli:period>
+  </xbrli:context>
+  <xbrli:unit id="uPURE">
+    <xbrli:measure>xbrli:pure</xbrli:measure>
+  </xbrli:unit>
   <find:fIndicators>
     <find:filingIndicator contextRef="c1" find:filed="1">R_01.00</find:filingIndicator>
+  </find:fIndicators>
+  <xbrli:context id="c2">
+    <xbrli:entity>
+      <xbrli:identifier scheme="https://eurofiling.info/eu/rs">FR000.TEST</xbrli:identifier>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:instant>2022-12-31</xbrli:instant>
+    </xbrli:period>
+    <xbrli:scenario>
+      <xbrldi:explicitMember xmlns:xbrldi="http://xbrl.org/2006/xbrldi"
+                             dimension="eba_dim:SCO">eba_SC:x11</xbrldi:explicitMember>
+      <xbrldi:explicitMember xmlns:xbrldi="http://xbrl.org/2006/xbrldi"
+                             dimension="eba_dim:BAS">eba_BA:x17</xbrldi:explicitMember>
+    </xbrli:scenario>
+  </xbrli:context>
+  <eba_met:ii937 contextRef="c2" unitRef="uPURE" decimals="0">1000</eba_met:ii937>
+</xbrli:xbrl>"""
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            xml_path = temp_path / "test_valid_numeric_one.xbrl"
+            with open(xml_path, "w", encoding="utf-8") as f:
+                f.write(xml_content)
+
+            # Should not raise any error
+            output_path = convert_instance(xml_path, temp_path, validate_filing_indicators=False)
+            assert output_path.exists()
+
+    def test_valid_filing_indicator_value_numeric_zero(self):
+        """Test that numeric value '0' is accepted as false."""
+        xml_content = """<?xml version='1.0' encoding='UTF-8'?>
+<xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"
+            xmlns:find="http://www.eurofiling.info/xbrl/ext/filing-indicators"
+            xmlns:link="http://www.xbrl.org/2003/linkbase"
+            xmlns:xlink="http://www.w3.org/1999/xlink">
+  <link:schemaRef xlink:type="simple"
+                  xlink:href="http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/rem/gl-2022-06/2022-09-30/mod/rem_bm.xsd"/>
+  <xbrli:context id="c1">
+    <xbrli:entity>
+      <xbrli:identifier scheme="https://eurofiling.info/eu/rs">FR000.TEST</xbrli:identifier>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:instant>2022-12-31</xbrli:instant>
+    </xbrli:period>
+  </xbrli:context>
+  <find:fIndicators>
+    <find:filingIndicator contextRef="c1" find:filed="0">R_01.00</find:filingIndicator>
   </find:fIndicators>
 </xbrli:xbrl>"""
 
         with TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
-            xml_path = temp_path / "test_invalid_numeric.xbrl"
+            xml_path = temp_path / "test_valid_numeric_zero.xbrl"
             with open(xml_path, "w", encoding="utf-8") as f:
                 f.write(xml_content)
 
-            with pytest.raises(
-                FilingIndicatorValueError, match="Invalid filing indicator value"
-            ) as exc_info:
-                convert_instance(xml_path, temp_path, validate_filing_indicators=False)
-
-            assert "'1'" in str(exc_info.value)
-            assert "'true' or 'false'" in str(exc_info.value)
-            assert exc_info.value.offending_value == "1"
+            # Should not raise any error
+            output_path = convert_instance(xml_path, temp_path, validate_filing_indicators=False)
+            assert output_path.exists()
 
     def test_invalid_filing_indicator_value_arbitrary_string(self):
         """Test that arbitrary string values raise FilingIndicatorValueError."""
@@ -505,7 +563,7 @@ class TestFilingIndicatorValueValidation:
                 convert_instance(xml_path, temp_path, validate_filing_indicators=False)
 
             assert "'yes'" in str(exc_info.value)
-            assert "'true' or 'false'" in str(exc_info.value)
+            assert "'true', 'false', '0', or '1'" in str(exc_info.value)
             assert exc_info.value.offending_value == "yes"
 
     def test_valid_filing_indicator_lowercase_true(self):
