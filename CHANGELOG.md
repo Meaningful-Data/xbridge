@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0rc8] - 2026-01-08
+
+### Added
+- Support for "0" and "1" values in filing indicator `filed` attribute (in addition to "true" and "false").
+
+### Changed
+- Updated dependency urllib3 from 2.6.0 to 2.6.3.
+
 ## [1.5.0rc6] - 2025-12-12
 
 ### Added
@@ -142,7 +150,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0rc6...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0rc8...HEAD
+[1.5.0rc8]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0rc7...v1.5.0rc8
 [1.5.0rc6]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0rc2...v1.5.0rc6
 [1.5.0rc2]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0rc1...v1.5.0rc2
 [1.5.0rc1]: https://github.com/Meaningful-Data/xbridge/compare/v1.4.0...v1.5.0rc1
