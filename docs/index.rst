@@ -18,7 +18,7 @@ Overview
 
 **XBridge** is a Python library for converting XBRL-XML files into XBRL-CSV files using the EBA (European Banking Authority) taxonomy. It provides a simple, reliable way to transform regulatory reporting data from XML format to CSV format.
 
-The library currently supports **EBA Taxonomy version 4.1** and includes support for DORA (Digital Operational Resilience Act) CSV conversion.
+The library currently supports **EBA Taxonomy version 4.2** and includes support for DORA (Digital Operational Resilience Act) CSV conversion.
 
 Key Features
 ============
@@ -26,7 +26,7 @@ Key Features
 * **XBRL-XML to XBRL-CSV Conversion**: Seamlessly convert XBRL-XML instance files to XBRL-CSV format
 * **Command-Line Interface**: Quick conversions without writing code using the ``xbridge`` CLI
 * **Python API**: Programmatic conversion for integration with other tools and workflows
-* **EBA Taxonomy 4.1 Support**: Built for the latest EBA taxonomy specification
+* **EBA Taxonomy 4.2 Support**: Built for the latest EBA taxonomy specification
 * **DORA CSV Conversion**: Support for Digital Operational Resilience Act reporting
 * **Configurable Validation**: Flexible filing indicator validation with strict or warning modes
 * **Decimal Handling**: Intelligent decimal precision handling with configurable options
@@ -88,12 +88,13 @@ For programmatic use, import and use the Python API:
 What's New
 ==========
 
-**Version 1.5.0rc2** (Release Candidate)
+**Version 1.5.0**
 
-* Configurable filing indicator strictness and warnings
-* New ``strict_validation`` parameter for handling orphaned facts
-* Improved decimal handling
-* Bug fixes and performance improvements
+* Support for "0" and "1" values in filing indicators
+* Structured warnings for easier integration
+* Custom exceptions with detailed error information
+* Configurable filing indicator strictness
+* EBA Taxonomy 4.2 support
 
 See the `CHANGELOG <https://github.com/Meaningful-Data/xbridge/blob/main/CHANGELOG.md>`_ for complete version history.
 
@@ -118,6 +119,7 @@ Documentation Contents
    :caption: API Reference
 
    api.rst
+   cli.rst
    converter.rst
    taxonomy_loader.rst
    modules.rst

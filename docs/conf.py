@@ -25,13 +25,13 @@ rst_prolog = (
     """
 .. |eba_version| replace::
  """
-    + "4.0"
+    + "4.2"
 )
 
 # Get project information from pyproject.toml
 version: str = "unknown"
 project: str = "eba-xbridge"
-description: str = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.0)"
+description: str = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.2)"
 copyright: str = "2025 MeaningfulData"
 # adopt path to your pyproject.toml
 pyproject_toml_file = Path(__file__).parent / "pyproject.toml"
