@@ -13,6 +13,12 @@ from zipfile import ZipFile
 import pandas as pd
 from lxml import etree
 
+from xbridge.exceptions import (
+    FilingIndicatorValueError,
+    IdentifierPrefixWarning,
+    SchemaRefValueError,
+)
+
 # Cache namespace → CSV prefix derivations to avoid repeated string work during parse
 _namespace_prefix_cache: Dict[str, str] = {}
 
@@ -110,9 +116,7 @@ def _normalize_namespaced_value(
     return value
 
 
-def _normalize_metric_value(
-    value: Optional[str], nsmap: Dict[Optional[str], str]
-) -> Optional[str]:
+def _normalize_metric_value(value: Optional[str], nsmap: Dict[Optional[str], str]) -> Optional[str]:
     """
     Normalize a metric namespaced value to the CSV prefix convention.
     For metrics, we preserve version suffixes (e.g., eba_met_3.5, eba_met_4.0).
@@ -181,6 +185,7 @@ class Instance:
         self._contexts: Optional[Dict[str, Context]] = None
         self._facts: Optional[List[Fact]] = None
         self._facts_list_dict: Optional[List[Dict[str, Any]]] = None
+        self._df: Optional[pd.DataFrame] = None
         self._table_files: Optional[set[Path]] = None
         self._root_folder: Optional[str] = None
         self._report_file: Optional[Path] = None
@@ -270,7 +275,7 @@ class Instance:
         """
         if self.facts_list_dict is None:
             return
-        df = pd.DataFrame.from_dict(self.facts_list_dict)  # type: ignore[call-overload]
+        df = pd.DataFrame(self.facts_list_dict)
         df_columns = list(df.columns)
         ##Workaround
         # Dropping period an entity columns because in current EBA architecture,
@@ -296,7 +301,9 @@ class Instance:
                 (
                     f"{self._identifier_prefix} is not a known identifier prefix. "
                     "Default 'rs' will be used."
-                )
+                ),
+                category=IdentifierPrefixWarning,
+                stacklevel=2,
             )
             return "rs"
 
@@ -338,6 +345,10 @@ class Instance:
             self.get_filing_indicators()
         except etree.XMLSyntaxError:
             raise ValueError("Invalid XML format")
+        except SchemaRefValueError:
+            raise  # Let SchemaRefValueError propagate as-is
+        except FilingIndicatorValueError:
+            raise  # Let FilingIndicatorValueError propagate as-is
         except Exception as e:
             raise ValueError(f"Error parsing instance: {str(e)}")
 
@@ -354,16 +365,17 @@ class Instance:
             raise AttributeError("XML root not loaded.")
 
         contexts: Dict[str, Context] = {}
+        namespaces: Dict[str, str] = {key or "": value for key, value in self.namespaces.items()}
         for context in self.root.findall(
             "{http://www.xbrl.org/2003/instance}context",
-            self.namespaces,  # type: ignore[arg-type]
+            namespaces,
         ):
             context_object = Context(context)
             contexts[context_object.id] = context_object
 
         self._contexts = contexts
 
-        first_ctx = self.root.find("{http://www.xbrl.org/2003/instance}context", self.namespaces)  # type: ignore[arg-type]
+        first_ctx = self.root.find("{http://www.xbrl.org/2003/instance}context", namespaces)
         if first_ctx is not None:
             entity_elem = first_ctx.find("{http://www.xbrl.org/2003/instance}entity")
             if entity_elem is not None:
@@ -406,7 +418,8 @@ class Instance:
                 href_attr = "{http://www.w3.org/1999/xlink}href"
                 if href_attr not in child.attrib:
                     continue
-                value: str = child.attrib[href_attr]  # type: ignore[assignment]
+                raw_value = child.attrib[href_attr]
+                value = str(raw_value)
                 schema_refs.append(value)
 
         # Validate that only one schemaRef exists
@@ -414,11 +427,14 @@ class Instance:
             return  # No schema reference found, module_ref will remain None
 
         if len(schema_refs) > 1:
-            raise ValueError(
-                f"Multiple schemaRef elements found in the XBRL instance. "
-                f"Only one schemaRef is expected, but {len(schema_refs)} "
-                f"were found: {schema_refs}. "
-                f"This may indicate an invalid XBRL-XML file."
+            raise SchemaRefValueError(
+                (
+                    "Multiple schemaRef elements found in the XBRL instance. "
+                    f"Only one schemaRef is expected, but {len(schema_refs)} "
+                    f"were found: {schema_refs}. "
+                    "This may indicate an invalid XBRL-XML file."
+                ),
+                offending_value=schema_refs,
             )
 
         # Process the single schema reference
@@ -427,25 +443,34 @@ class Instance:
 
         # Validate href format and extract module code
         if "/mod/" not in value:
-            raise ValueError(
-                f"Invalid href format in schemaRef. Expected href to contain '/mod/' "
-                f"but got: '{value}'. Please verify the XBRL-XML file contains a "
-                f"valid schema reference."
+            raise SchemaRefValueError(
+                (
+                    "Invalid href format in schemaRef. Expected href to contain '/mod/' "
+                    f"but got: '{value}'. Please verify the XBRL-XML file contains a "
+                    "valid schema reference."
+                ),
+                offending_value=value,
             )
 
         split_parts = value.split("/mod/")
         if len(split_parts) < 2:
-            raise ValueError(
-                f"Invalid href format in schemaRef. Could not extract module name from: '{value}'. "
-                f"Expected format: 'http://.../mod/[module_name].xsd'"
+            raise SchemaRefValueError(
+                (
+                    "Invalid href format in schemaRef. Could not extract module name "
+                    f"from: '{value}'. Expected format: 'http://.../mod/[module_name].xsd'"
+                ),
+                offending_value=value,
             )
 
         module_part = split_parts[1]
         if ".xsd" not in module_part:
-            raise ValueError(
-                f"Invalid href format in schemaRef. Expected href to end with '.xsd' "
-                f"but got: '{value}'. Please verify the XBRL-XML file contains a valid "
-                f"schema reference."
+            raise SchemaRefValueError(
+                (
+                    "Invalid href format in schemaRef. Expected href to end with '.xsd' "
+                    f"but got: '{value}'. Please verify the XBRL-XML file contains a valid "
+                    "schema reference."
+                ),
+                offending_value=value,
             )
 
         xsd_split = module_part.split(".xsd")
@@ -485,7 +510,8 @@ class Instance:
 
         units: Dict[str, str] = {}
         for unit in self.root.findall("{http://www.xbrl.org/2003/instance}unit"):
-            unit_name: str = unit.attrib["id"]  # type: ignore[assignment]
+            unit_id = unit.attrib["id"]
+            unit_name = str(unit_id)
             measure = unit.find("{http://www.xbrl.org/2003/instance}measure")
             if measure is None or measure.text is None:
                 continue
@@ -633,6 +659,10 @@ class XmlInstance(Instance):
             self.get_filing_indicators()
         except etree.XMLSyntaxError:
             raise ValueError("Invalid XML format")
+        except SchemaRefValueError:
+            raise  # Let SchemaRefValueError propagate as-is
+        except FilingIndicatorValueError:
+            raise  # Let FilingIndicatorValueError propagate as-is
         except Exception as e:
             raise ValueError(f"Error parsing instance: {str(e)}")
 
@@ -739,7 +769,7 @@ class Context:
 
     def parse(self) -> None:
         """Parses the XML node with the :obj:`Context <xbridge.xml_instance.Context>`."""
-        self._id = self.context_xml.attrib["id"]  # type: ignore[assignment]
+        self._id = str(self.context_xml.attrib["id"])
 
         entity_elem = self.context_xml.find("{http://www.xbrl.org/2003/instance}entity")
         if entity_elem is not None:
@@ -838,12 +868,22 @@ class FilingIndicator:
         self.parse()
 
     def parse(self) -> None:
-        """Parse the XML node with the filing indicator."""
+        """Parse the XML node with the filing indicator.
+
+        Raises:
+            FilingIndicatorValueError: If the filed attribute is not "true", "false", "0", or "1"
+        """
         value = self.filing_indicator_xml.attrib.get(
             "{http://www.eurofiling.info/xbrl/ext/filing-indicators}filed"
         )
         if value:
-            self.value = value == "true"
+            if value not in ("true", "false", "0", "1"):
+                raise FilingIndicatorValueError(
+                    f"Invalid filing indicator value: '{value}'. "
+                    f"The 'filed' attribute must be either 'true', 'false', '0', or '1'.",
+                    offending_value=value,
+                )
+            self.value = value in ("true", "1")
         else:
             self.value = True
         self.table = self.filing_indicator_xml.text

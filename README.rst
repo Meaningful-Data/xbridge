@@ -126,6 +126,55 @@ Customize the conversion with additional parameters:
         strict_validation=False,  # Emit warnings instead of errors for orphaned facts
     )
 
+Python API - Handling Warnings
+------------------------------
+
+XBridge emits structured warnings that can be filtered or turned into errors from your code.
+The most common ones are:
+
+* ``IdentifierPrefixWarning``: Unknown entity identifier prefix; XBridge falls back to ``rs``.
+* ``FilingIndicatorWarning``: Filing indicator inconsistencies; some facts are excluded.
+
+To capture these warnings when using ``convert_instance``:
+
+.. code-block:: python
+
+    import warnings
+    from xbridge.api import convert_instance
+    from xbridge.exceptions import XbridgeWarning, FilingIndicatorWarning
+
+    input_path = "path/to/instance.xbrl"
+    output_path = "path/to/output"
+
+    with warnings.catch_warnings(record=True) as caught:
+        # Ensure all xbridge warnings are captured
+        warnings.simplefilter("always", XbridgeWarning)
+
+        zip_path = convert_instance(
+            instance_path=input_path,
+            output_path=output_path,
+            validate_filing_indicators=True,
+            strict_validation=False,  # Warnings instead of errors for orphaned facts
+        )
+
+    filing_warnings = [
+        w for w in caught if issubclass(w.category, FilingIndicatorWarning)
+    ]
+    for w in filing_warnings:
+        print(f"Filing indicator warning: {w.message}")
+
+To treat all XBridge warnings as errors:
+
+.. code-block:: python
+
+    import warnings
+    from xbridge.api import convert_instance
+    from xbridge.exceptions import XbridgeWarning
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", XbridgeWarning)
+        convert_instance("path/to/instance.xbrl", "path/to/output")
+
 Loading an Instance
 -------------------
 

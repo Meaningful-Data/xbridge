@@ -15,6 +15,11 @@ from zipfile import ZipFile
 
 import pandas as pd
 
+from xbridge.exceptions import (
+    DecimalValueError,
+    FilingIndicatorValueError,
+    FilingIndicatorWarning,
+)
 from xbridge.instance import CsvInstance, Instance, XmlInstance
 from xbridge.modules import Module, Table
 
@@ -376,31 +381,23 @@ class Converter:
 
                 data_type = row["data_type"][1:]
                 decimals = row["decimals"]
+                normalized_decimals = self._normalize_decimals_value(decimals)
 
                 if data_type not in self._decimals_parameters:
-                    self._decimals_parameters[data_type] = (
-                        int(decimals) if decimals not in {"INF", "#none"} else decimals
-                    )
+                    self._decimals_parameters[data_type] = normalized_decimals
                 else:
-                    # If new value is a special value, skip it (prefer numeric values)
-                    if decimals in {"INF", "#none"}:
-                        pass
-                    # If new value is numeric
-                    else:
-                        try:
-                            decimals = int(decimals)
-                        except ValueError:
-                            raise ValueError(
-                                f"Invalid decimals value: {decimals}, "
-                                "should be integer, 'INF' or '#none'"
-                            )
+                    # Skip special values when we already have an entry,
+                    # as numeric values take precedence.
+                    if normalized_decimals in {"INF", "#none"}:
+                        continue
 
-                        # If existing value is special, replace with numeric
-                        if (
-                            self._decimals_parameters[data_type] in {"INF", "#none"}
-                            or decimals < self._decimals_parameters[data_type]
-                        ):
-                            self._decimals_parameters[data_type] = decimals
+                    existing_value = self._decimals_parameters[data_type]
+                    if existing_value in {"INF", "#none"} or (
+                        isinstance(existing_value, int)
+                        and isinstance(normalized_decimals, int)
+                        and normalized_decimals < existing_value
+                    ):
+                        self._decimals_parameters[data_type] = normalized_decimals
 
             drop_columns = merge_cols + ["data_type", "decimals"]
         else:
@@ -421,6 +418,23 @@ class Converter:
             table_df["unit"] = table_df["unit"].map(self.instance.units, na_action="ignore")
 
         return table_df
+
+    def _normalize_decimals_value(self, decimals: Any) -> Union[int, str]:
+        """Return a validated decimals value or raise a DecimalValueError."""
+        candidate = decimals
+        if isinstance(candidate, str):
+            candidate = candidate.strip()
+
+        if candidate in {"INF", "#none"}:
+            return candidate
+
+        try:
+            return int(candidate)
+        except (TypeError, ValueError) as exc:
+            raise DecimalValueError(
+                f"Invalid decimals value: {decimals}, should be integer, 'INF' or '#none'",
+                offending_value=decimals,
+            ) from exc
 
     def _convert_tables(
         self,
@@ -503,7 +517,7 @@ class Converter:
         """Validate that no facts are orphaned (belong only to non-reported tables).
 
         Raises:
-            ValueError: If facts exist that belong only to tables with filed=false
+            FilingIndicatorValueError: If facts exist that belong only to tables with filed=false
         """
         if self.instance.instance_df is None or self.instance.instance_df.empty:
             return
@@ -551,13 +565,17 @@ class Converter:
                     "Either set filed=true for the relevant tables "
                     "or remove these facts from the XML."
                 )
-                raise ValueError(error_msg)
+                raise FilingIndicatorValueError(error_msg, orphaned_per_table)
             error_msg += (
                 "\nThese facts will be excluded from the output. "
                 "Consider setting filed=true for the relevant tables "
                 "or removing these facts from the XML."
             )
-            warnings.warn(error_msg)
+            warnings.warn(
+                error_msg,
+                category=FilingIndicatorWarning,
+                stacklevel=2,
+            )
 
     def _convert_parameters(self, temp_dir_path: Path) -> None:
         # Workaround;

@@ -1,6 +1,6 @@
 [project]
 name = "eba-xbridge"
-version = "1.5.0rc5"
+version = "1.5.0rc8"
 description = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.1)"
 license = 'Apache 2.0'
 readme = "README.rst"
