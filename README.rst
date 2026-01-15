@@ -22,7 +22,7 @@ Overview
 
 XBridge is a Python library for converting XBRL-XML files into XBRL-CSV files using the EBA (European Banking Authority) taxonomy. It provides a simple, reliable way to transform regulatory reporting data from XML format to CSV format.
 
-The library currently supports **EBA Taxonomy version 4.2** and includes support for DORA (Digital Operational Resilience Act) CSV conversion. The library must be updated with each new EBA taxonomy version release.
+The library supports **EBA Taxonomy version 4.2**, as published on the 14th January 2026 and includes support for DORA (Digital Operational Resilience Act) CSV conversion. The library must be updated with each new EBA taxonomy version release.
 
 Key Features
 ============
@@ -265,7 +265,7 @@ Common Issues
     Install the 7z command-line tool using your system's package manager (see Prerequisites).
 
 **Taxonomy version mismatch**
-    Ensure you're using the correct version of XBridge for your taxonomy version. XBridge 1.5.x supports EBA Taxonomy 4.1.
+    Ensure you're using the correct version of XBridge for your taxonomy version. XBridge 1.5.x supports EBA Taxonomy 4.2.
 
 **Orphaned facts warning/error**
     Facts that don't belong to any reported table. Set ``strict_validation=False`` to continue with warnings instead of errors.

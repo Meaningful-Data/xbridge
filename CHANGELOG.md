@@ -7,52 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.5.0rc8] - 2026-01-08
+## [1.5.0] - 2026-01-15
 
 ### Added
-- Support for "0" and "1" values in filing indicator `filed` attribute (in addition to "true" and "false").
+- **EBA Taxonomy 4.2 Support**: Updated to latest EBA taxonomy version published on 2026-01-14.
+- **DORA CSV Conversion**: Full support for Digital Operational Resilience Act reporting (#42).
+- **Schema References Validation**: Validate schema references in XBRL instances (#44).
+- **Configurable Filing Indicator Validation**: New `strict_validation` parameter for handling orphaned facts with configurable strictness.
+- **Custom Exception Types**: `SchemaRefValueError` and `DecimalValueError` exceptions that include offending values for better debugging.
+- **Structured Warning Types**: `XbridgeWarning`, `IdentifierPrefixWarning`, and `FilingIndicatorWarning` for easier integration with external tooling.
+- **Flexible Filing Indicator Parsing**: Support for "0" and "1" values in filing indicator `filed` attribute (in addition to "true" and "false").
+- **Documentation**: Examples for capturing or promoting XBridge warnings when using `convert_instance`.
 
 ### Changed
-- Updated dependency urllib3 from 2.6.0 to 2.6.3.
-
-## [1.5.0rc6] - 2025-12-12
-
-### Added
-- Custom `SchemaRefValueError` and `DecimalValueError` exceptions that include offending values.
-- Structured warning types (`XbridgeWarning`, `IdentifierPrefixWarning`, `FilingIndicatorWarning`) for easier integration with external tooling.
-- Documentation examples for capturing or promoting XBridge warnings when using `convert_instance`.
-
-### Changed
-- Centralized decimals validation logic to normalize and validate decimals values.
+- **New Namespaces Architecture**: Refactored internal namespace handling for improved maintainability (#50).
+- **Centralized Decimals Validation**: Unified decimals validation logic to normalize and validate decimal values.
+- **Improved Decimal Conversion**: Enhanced decimal handling with better precision management (#45).
+- Updated dependency urllib3 from 2.3.0 to 2.6.0.
 
 ### Fixed
+- Fixed filing indicators error handling (#43).
+- Fixed version consistency check (#46).
 - Fixed decimals handling edge cases.
-- Fixed issue with stripping.
-
-## [1.5.0rc2] - 2024-11-28
-
-### Added
-- Configurable filing indicator strictness and warnings
-- New `strict_validation` parameter for handling orphaned facts
-
-### Changed
-- Updated version to 1.5.0rc2
-
-### Fixed
-- Fixed issue with new architecture
-- Fixed decimals issues
-
-## [1.5.0rc1] - 2024-08-11
-
-### Added
-- Implemented DORA CSV conversion (#42)
-- Schema references validation (#44)
-- Allowed values to JSON mappings
-- Decimal conversion improvements (#45)
-
-### Fixed
-- Filing indicators error handling (#43)
-- Version consistency check (#46)
+- Fixed various issues with the new architecture.
 
 ## [1.4.0] - 2024-07-18
 
@@ -150,11 +127,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0rc8...HEAD
-[1.5.0rc8]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0rc7...v1.5.0rc8
-[1.5.0rc6]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0rc2...v1.5.0rc6
-[1.5.0rc2]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0rc1...v1.5.0rc2
-[1.5.0rc1]: https://github.com/Meaningful-Data/xbridge/compare/v1.4.0...v1.5.0rc1
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.3.1rc1...v1.4.0
 [1.3.1rc1]: https://github.com/Meaningful-Data/xbridge/compare/v1.3.0...v1.3.1rc1
 [1.3.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.2.0...v1.3.0
