@@ -378,7 +378,7 @@ Next Steps
 
 Now that you've completed the quickstart:
 
-1. **Read the API Reference**: Explore all available functions and parameters in :doc:`api`
+1. **Explore the Documentation**: Check the :doc:`cli` and :doc:`api` references
 2. **Understand the Architecture**: Learn how XBridge works internally in :doc:`technical_notes`
 3. **Check the FAQ**: Find answers to common questions in :doc:`faq`
 4. **Explore Examples**: See more examples in the GitHub repository
