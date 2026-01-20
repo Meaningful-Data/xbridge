@@ -231,6 +231,7 @@ class Table:
         self,
         code: Optional[str] = None,
         url: Optional[str] = None,
+        filing_indicator: Optional[str] = None,
         open_keys: Optional[List[str]] = None,
         variables: Optional[List[Variable]] = None,
         attributes: Optional[List[str]] = None,
@@ -242,6 +243,7 @@ class Table:
         self.table_zip_path: Optional[str] = input_zip_path
         self.code: Optional[str] = code
         self.url: Optional[str] = url
+        self.filing_indicator: Optional[str] = filing_indicator
         self._open_keys: List[str] = open_keys if open_keys else []
         self._variables: List[Variable] = variables if variables else []
         self._attributes: List[str] = attributes if attributes else []
@@ -289,6 +291,14 @@ class Table:
 
     @property
     def filing_indicator_code(self) -> Optional[str]:
+        """Returns the filing indicator code for the table.
+        
+        If a filing indicator was stored from the taxonomy JSON, it returns that.
+        Otherwise, it computes it from the table code.
+        """
+        if self.filing_indicator is not None:
+            return self.filing_indicator
+        
         normalised_table_code = self.code.replace("-", ".") if self.code else ""
 
         if normalised_table_code and normalised_table_code[-1].isalpha():
@@ -400,6 +410,7 @@ class Table:
         result = {
             "code": self.code,
             "url": self.url,
+            "filing_indicator": self.filing_indicator,
             "architecture": self.architecture,
             "open_keys": self.open_keys,
         }
@@ -460,6 +471,10 @@ class Table:
         for table_setup in module_setup_json.values():
             if table_setup["template"] == obj.code:
                 obj.url = table_setup["url"]
+                # Extract filing indicator from eba:documentation if available
+                eba_doc = table_setup.get("eba:documentation", {})
+                if isinstance(eba_doc, dict):
+                    obj.filing_indicator = eba_doc.get("FilingIndicator")
 
         obj.extract_open_keys()
 

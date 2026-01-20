@@ -300,7 +300,7 @@ class TestFilingIndicatorValidation:
         """Test that facts reported in one table don't raise errors even if in unreported table"""
         # This is essentially the same as test_validation_passes_with_multi_table_facts
         # but with different tables to ensure robustness
-        filing_indicators = [("R_02.00", True), ("R_02.01", False)]
+        filing_indicators = [("R_02.00.a", True), ("R_02.01", False)]
         facts = [
             # Fact that belongs to both R_02.00 and R_02.01
             {
