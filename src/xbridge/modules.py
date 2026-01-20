@@ -292,13 +292,13 @@ class Table:
     @property
     def filing_indicator_code(self) -> Optional[str]:
         """Returns the filing indicator code for the table.
-        
+
         If a filing indicator was stored from the taxonomy JSON, it returns that.
         Otherwise, it computes it from the table code.
         """
         if self.filing_indicator is not None:
             return self.filing_indicator
-        
+
         normalised_table_code = self.code.replace("-", ".") if self.code else ""
 
         if normalised_table_code and normalised_table_code[-1].isalpha():

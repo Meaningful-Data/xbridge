@@ -88,6 +88,10 @@ For programmatic use, import and use the Python API:
 What's New
 ==========
 
+**Version 1.5.1rc1**
+
+* Fixed handling of filing indicators codes by getting them from JSON files in the taxonomy
+
 **Version 1.5.0**
 
 * Support for "0" and "1" values in filing indicators
