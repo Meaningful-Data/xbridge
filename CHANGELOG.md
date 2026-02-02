@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1rc1] - 2026-01-XX
+
+### Fixed
+- Fixed handling of filing indicators codes by getting them from JSON files in the taxonomy instead of deriving them.
+
 ## [1.5.0] - 2026-01-15
 
 ### Added
@@ -127,7 +132,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.1rc1...HEAD
+[1.5.1rc1]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0...v1.5.1rc1
 [1.5.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.3.1rc1...v1.4.0
 [1.3.1rc1]: https://github.com/Meaningful-Data/xbridge/compare/v1.3.0...v1.3.1rc1
