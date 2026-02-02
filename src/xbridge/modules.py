@@ -279,6 +279,7 @@ class Table:
         cols.discard("datapoint")
         cols.discard("data_type")
         cols.discard("allowed_values")
+        cols.discard("_has_unit_dim")
         return cols
 
     @property
@@ -314,6 +315,7 @@ class Table:
         if self.architecture == "datapoints":
             for variable in self.variables:
                 variable_info: dict[str, Any] = {}
+                has_unit_dim = "unit" in variable.dimensions
                 for dim_k, dim_v in variable.dimensions.items():
                     if dim_k not in ("unit", "decimals"):
                         variable_info[dim_k] = dim_v
@@ -327,10 +329,12 @@ class Table:
                 variable_info["datapoint"] = variable.code
                 variable_info["data_type"] = variable._attributes
                 variable_info["allowed_values"] = variable._allowed_values
+                variable_info["_has_unit_dim"] = has_unit_dim
                 variables.append(copy.copy(variable_info))
         elif self.architecture == "headers":
             for column in self.columns:
                 variable_info = {"datapoint": column["variable_id"]}
+                has_unit_dim = "unit" in column.get("dimensions", {})
                 if "dimensions" in column:
                     for dim_k, dim_v in column["dimensions"].items():
                         if dim_k == "concept":
@@ -342,6 +346,7 @@ class Table:
 
                 if "decimals" in column:
                     variable_info["data_type"] = column["decimals"]
+                variable_info["_has_unit_dim"] = has_unit_dim
                 variables.append(copy.copy(variable_info))
 
         self._variable_df = pd.DataFrame(variables)
