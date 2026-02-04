@@ -7,13 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.5.1rc1] - 2026-01-XX
+## [1.5.1] - 2026-02-04
 
 ### Fixed
 - Fixed handling of filing indicators codes by getting them from JSON files in the taxonomy instead of deriving them.
-## [1.5.1rc2] - 2026-02-02
-
-### Fixed
 - Fixed unit attribute handling for variables without unit in dimensions. Unit values are now correctly cleared for datapoints that don't have `"unit": "$unit"` or `"unit": "$baseCurrency"` in their dimensions, preventing incorrect unit assignment in XBRL-CSV output.
 
 ## [1.5.0] - 2026-01-15
@@ -136,9 +133,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.1rc2...HEAD
-[1.5.1rc2]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.1rc1...v1.5.1rc2
-[1.5.1rc1]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0...v1.5.1rc1
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.3.1rc1...v1.4.0
 [1.3.1rc1]: https://github.com/Meaningful-Data/xbridge/compare/v1.3.0...v1.3.1rc1
