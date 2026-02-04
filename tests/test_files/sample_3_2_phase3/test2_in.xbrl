@@ -16,7 +16,7 @@
   <find:fIndicators>
     <find:filingIndicator contextRef="c1">R_01.00</find:filingIndicator>
     <find:filingIndicator contextRef="c1">R_01.01</find:filingIndicator>
-    <find:filingIndicator contextRef="c1">R_02.00</find:filingIndicator>
+    <find:filingIndicator contextRef="c1">R_02.00.a</find:filingIndicator>
     <find:filingIndicator contextRef="c1">R_02.01</find:filingIndicator>
     <find:filingIndicator contextRef="c1">R_02.02</find:filingIndicator>
     <find:filingIndicator contextRef="c1">R_03.00</find:filingIndicator>

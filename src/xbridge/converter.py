@@ -407,6 +407,12 @@ class Converter:
         if "allowed_values" in table_df.columns:
             drop_columns.append("allowed_values")
 
+        # Clear unit for rows where variable didn't have unit in dimensions
+        if "_has_unit_dim" in table_df.columns:
+            if "unit" in table.attributes and "unit" in table_df.columns:
+                table_df.loc[~table_df["_has_unit_dim"], "unit"] = pd.NA
+            drop_columns.append("_has_unit_dim")
+
         table_df.drop(columns=drop_columns, inplace=True)
 
         # Drop the datapoints that have null values in the open keys
