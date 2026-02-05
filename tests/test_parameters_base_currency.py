@@ -49,4 +49,3 @@ def test_parameters_include_base_currency_when_present(tmp_path: Path) -> None:
     assert by_name["entityID"] == "ENT1"
     assert by_name["refPeriod"] == "2024-01-01"
     assert by_name["baseCurrency"] == "iso4217:EUR"
-

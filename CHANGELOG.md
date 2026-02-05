@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed `baseCurrency` parameter handling: now only included in XBRL-CSV output when present in the source instance, preventing null values in parameters.csv.
+
 ## [1.5.1] - 2026-02-04
 
 ### Fixed
