@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 import pytest
 from lxml import etree
 
-from xbridge.api import convert_instance
+from xbridge.api import convert_instance, load_instance
 from xbridge.exceptions import (
     FilingIndicatorValueError,
     FilingIndicatorWarning,
@@ -604,3 +604,101 @@ class TestFilingIndicatorValueValidation:
             # Should not raise any error
             output_path = convert_instance(xml_path, temp_path, validate_filing_indicators=False)
             assert output_path.exists()
+
+
+class TestMultipleFilingIndicatorBlocks:
+    """Test suite for instances with multiple find:fIndicators blocks."""
+
+    def test_multiple_f_indicators_blocks_all_parsed(self):
+        """Test that filing indicators from multiple fIndicators blocks are all collected."""
+        xml_content = """<?xml version='1.0' encoding='UTF-8'?>
+<xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"
+            xmlns:link="http://www.xbrl.org/2003/linkbase"
+            xmlns:xlink="http://www.w3.org/1999/xlink"
+            xmlns:find="http://www.eurofiling.info/xbrl/ext/filing-indicators">
+  <link:schemaRef xlink:type="simple"
+                  xlink:href="http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/rem/gl-2022-06/2022-09-30/mod/rem_bm.xsd"/>
+  <xbrli:context id="c1">
+    <xbrli:entity>
+      <xbrli:identifier scheme="https://eurofiling.info/eu/rs">FR000.TEST</xbrli:identifier>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:instant>2022-12-31</xbrli:instant>
+    </xbrli:period>
+  </xbrli:context>
+  <find:fIndicators>
+    <find:filingIndicator contextRef="c1" find:filed="true">R_01.00</find:filingIndicator>
+    <find:filingIndicator contextRef="c1" find:filed="true">R_02.00.a</find:filingIndicator>
+  </find:fIndicators>
+  <find:fIndicators>
+    <find:filingIndicator contextRef="c1" find:filed="true">R_09.00</find:filingIndicator>
+    <find:filingIndicator contextRef="c1" find:filed="false">R_10.00</find:filingIndicator>
+  </find:fIndicators>
+</xbrli:xbrl>"""
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            xml_path = temp_path / "test_multiple_blocks.xbrl"
+            with open(xml_path, "w", encoding="utf-8") as f:
+                f.write(xml_content)
+
+            instance = load_instance(xml_path)
+            assert instance.filing_indicators is not None
+            tables = [fi.table for fi in instance.filing_indicators]
+            # All four indicators from both blocks must be present
+            assert "R_01.00" in tables
+            assert "R_02.00.a" in tables
+            assert "R_09.00" in tables
+            assert "R_10.00" in tables
+            assert len(tables) == 4
+
+    def test_multiple_f_indicators_blocks_validation(self):
+        """Test that validation works correctly when indicators span multiple blocks.
+
+        An indicator in the second block with filed=false should correctly
+        trigger orphaned fact detection if a fact belongs only to that table.
+        """
+        # R_01.00 filed=false is in the second block; the fact maps to R_01.00 only.
+        # This reuses the same metric/dimensions known to trigger orphaned-fact detection.
+        filing_indicators_block1 = [("R_09.00", True)]
+        filing_indicators_block2 = [("R_01.00", False)]
+        facts = [
+            {
+                "metric": "md103",
+                "value": "1000",
+                "dimensions": {"BAS": "eba_BA:x1", "MCY": "eba_MC:x276", "CCA": "eba_CA:x2"},
+            }
+        ]
+
+        # Build the XML with two separate fIndicators blocks
+        tree = create_test_xbrl(filing_indicators_block1, facts)
+        root = tree.getroot()
+        namespaces = {"find": "http://www.eurofiling.info/xbrl/ext/filing-indicators"}
+
+        # Add a second fIndicators block
+        second_block = etree.SubElement(
+            root, f"{{{namespaces['find']}}}fIndicators"
+        )
+        for table_code, filed in filing_indicators_block2:
+            attrib = {
+                "contextRef": "c1",
+                f"{{{namespaces['find']}}}filed": "true" if filed else "false",
+            }
+            fi = etree.SubElement(
+                second_block,
+                f"{{{namespaces['find']}}}filingIndicator",
+                attrib=attrib,
+            )
+            fi.text = table_code
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            xml_path = temp_path / "test_multiple_blocks_validation.xbrl"
+            tree.write(str(xml_path), encoding="utf-8", xml_declaration=True)
+
+            # The fact belongs only to R_01.00 (filed=false in the second block),
+            # so validation should detect the orphaned fact.
+            with pytest.raises(
+                FilingIndicatorValueError, match="Filing indicator inconsistency detected"
+            ):
+                convert_instance(xml_path, temp_path, validate_filing_indicators=True)
