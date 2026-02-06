@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed `baseCurrency` parameter handling: now only included in XBRL-CSV output when present in the source instance, preventing null values in parameters.csv.
+- Fixed filing indicators parsing to handle multiple `find:fIndicators` blocks in a single XBRL instance. Previously only the first block was processed, silently dropping indicators from subsequent blocks (#60).
 
 ## [1.5.1] - 2026-02-04
 

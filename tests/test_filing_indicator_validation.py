@@ -676,9 +676,7 @@ class TestMultipleFilingIndicatorBlocks:
         namespaces = {"find": "http://www.eurofiling.info/xbrl/ext/filing-indicators"}
 
         # Add a second fIndicators block
-        second_block = etree.SubElement(
-            root, f"{{{namespaces['find']}}}fIndicators"
-        )
+        second_block = etree.SubElement(root, f"{{{namespaces['find']}}}fIndicators")
         for table_code, filed in filing_indicators_block2:
             attrib = {
                 "contextRef": "c1",
