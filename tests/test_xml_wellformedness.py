@@ -1,6 +1,7 @@
 """Tests for XML-001: well-formed XML check."""
 
 import importlib
+import sys
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -8,22 +9,19 @@ from xbridge.validation._engine import run_validation
 from xbridge.validation._models import Severity
 from xbridge.validation._registry import _impl_registry
 
+_MOD = "xbridge.validation.rules.xml_wellformedness"
+
 
 class TestXML001WellFormedXML:
     """Tests for the XML-001 rule implementation."""
 
     def setup_method(self) -> None:
-        """Ensure the XML-001 implementation is registered.
-
-        Other test modules may call _clear_registry() in teardown,
-        which removes all implementations. Since importlib.import_module
-        won't re-execute already-imported modules, we need to reload
-        the rule module to re-register the decorator.
-        """
+        """Ensure the XML-001 implementation is registered."""
         if ("XML-001", None) not in _impl_registry:
-            import xbridge.validation.rules.xml_wellformedness as mod
-
-            importlib.reload(mod)
+            if _MOD in sys.modules:
+                importlib.reload(sys.modules[_MOD])
+            else:
+                importlib.import_module(_MOD)
 
     def test_valid_xbrl_no_findings(self):
         """A well-formed XBRL document produces no findings."""
