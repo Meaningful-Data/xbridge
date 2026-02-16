@@ -483,17 +483,18 @@ class Instance:
         if self.root is None:
             raise AttributeError("XML root not loaded.")
 
-        node_f_indicators = self.root.find(
+        nodes_f_indicators = self.root.findall(
             "{http://www.eurofiling.info/xbrl/ext/filing-indicators}fIndicators"
         )
-        if node_f_indicators is None:
+        if not nodes_f_indicators:
             return
-        all_ind = node_f_indicators.findall(
-            "{http://www.eurofiling.info/xbrl/ext/filing-indicators}filingIndicator"
-        )
         filing_indicators: List[FilingIndicator] = []
-        for fil_ind in all_ind:
-            filing_indicators.append(FilingIndicator(fil_ind))
+        for node_f_indicators in nodes_f_indicators:
+            all_ind = node_f_indicators.findall(
+                "{http://www.eurofiling.info/xbrl/ext/filing-indicators}filingIndicator"
+            )
+            for fil_ind in all_ind:
+                filing_indicators.append(FilingIndicator(fil_ind))
 
         if filing_indicators:
             self._filing_indicators = filing_indicators
