@@ -1,12 +1,15 @@
-"""Tests for XML-020, XML-021, XML-025, XML-026: filing indicator checks."""
+"""Tests for XML-020, XML-021, XML-024, XML-025, XML-026: filing indicator checks."""
 
 import importlib
 import sys
+from pathlib import Path
 from tempfile import NamedTemporaryFile
+from unittest.mock import MagicMock
 
+from xbridge.validation._context import ValidationContext
 from xbridge.validation._engine import run_validation
-from xbridge.validation._models import Severity
-from xbridge.validation._registry import _impl_registry
+from xbridge.validation._models import RuleDefinition, Severity
+from xbridge.validation._registry import _impl_registry, get_rule_impl
 
 _MOD = "xbridge.validation.rules.xml_filing_indicators"
 
@@ -487,4 +490,192 @@ class TestXML026FilingIndicatorContext:
             f.flush()
             results = run_validation(f.name, eba=False)
         findings = [r for r in results if r.rule_id == "XML-026"]
+        assert findings == []
+
+
+# ---------------------------------------------------------------------------
+# XML-024: Filing indicator values must match known module codes
+# ---------------------------------------------------------------------------
+
+
+def _make_module(valid_codes: list[str], module_code: str = "test_mod") -> MagicMock:
+    """Create a mock Module with tables having the given filing indicator codes."""
+    module = MagicMock()
+    module.code = module_code
+    tables = []
+    for code in valid_codes:
+        table = MagicMock()
+        table.filing_indicator_code = code
+        tables.append(table)
+    module.tables = tables
+    return module
+
+
+def _make_ctx(
+    raw_bytes: bytes,
+    module: object | None = None,
+) -> ValidationContext:
+    """Build a ValidationContext for direct rule invocation."""
+    rule_def = RuleDefinition(
+        code="XML-024",
+        message="Filing indicator value is not valid for the module: {detail}",
+        severity=Severity.ERROR,
+        xml=True,
+        csv=False,
+        eba=True,
+        post_conversion=False,
+        eba_ref="1.6",
+    )
+    return ValidationContext(
+        rule_set="xml",
+        rule_definition=rule_def,
+        file_path=Path("test.xbrl"),
+        raw_bytes=raw_bytes,
+        xml_instance=None,
+        csv_instance=None,
+        module=module,
+    )
+
+
+class TestXML024FilingIndicatorValues:
+    """Tests for the XML-024 rule implementation."""
+
+    def setup_method(self) -> None:
+        _ensure_registered("XML-024")
+
+    def _run(
+        self, body: str, valid_codes: list[str], module_code: str = "test_mod"
+    ) -> list[object]:
+        """Run XML-024 directly with a mock module."""
+        raw = _xbrl(body)
+        module = _make_module(valid_codes, module_code)
+        vctx = _make_ctx(raw, module=module)
+        impl = get_rule_impl("XML-024", "xml")
+        assert impl is not None
+        impl(vctx)
+        return vctx.findings
+
+    def test_valid_codes_no_findings(self) -> None:
+        """All codes match module tables — no findings."""
+        body = (
+            _context("c1")
+            + "<find:fIndicators>"
+            + '<find:filingIndicator contextRef="c1">R_01.00</find:filingIndicator>'
+            + '<find:filingIndicator contextRef="c1">R_09.00</find:filingIndicator>'
+            + "</find:fIndicators>"
+        )
+        findings = self._run(body, ["R_01.00", "R_09.00", "F_32.01"])
+        assert findings == []
+
+    def test_unknown_code(self) -> None:
+        """An unknown code produces an XML-024 finding."""
+        body = (
+            _context("c1")
+            + "<find:fIndicators>"
+            + '<find:filingIndicator contextRef="c1">UNKNOWN</find:filingIndicator>'
+            + "</find:fIndicators>"
+        )
+        findings = self._run(body, ["R_01.00", "R_09.00"])
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "UNKNOWN" in findings[0].message
+
+    def test_multiple_invalid_codes(self) -> None:
+        """Each invalid code gets its own finding."""
+        body = (
+            _context("c1")
+            + "<find:fIndicators>"
+            + '<find:filingIndicator contextRef="c1">BAD_1</find:filingIndicator>'
+            + '<find:filingIndicator contextRef="c1">R_01.00</find:filingIndicator>'
+            + '<find:filingIndicator contextRef="c1">BAD_2</find:filingIndicator>'
+            + "</find:fIndicators>"
+        )
+        findings = self._run(body, ["R_01.00"])
+        assert len(findings) == 2
+        messages = [f.message for f in findings]
+        assert any("BAD_1" in m for m in messages)
+        assert any("BAD_2" in m for m in messages)
+
+    def test_empty_indicator_text(self) -> None:
+        """An empty filingIndicator text is flagged as invalid."""
+        body = (
+            _context("c1")
+            + "<find:fIndicators>"
+            + '<find:filingIndicator contextRef="c1"/>'
+            + "</find:fIndicators>"
+        )
+        findings = self._run(body, ["R_01.00"])
+        assert len(findings) == 1
+
+    def test_module_none_skips(self) -> None:
+        """When module is not loaded, XML-024 produces no findings."""
+        body = (
+            _context("c1")
+            + "<find:fIndicators>"
+            + '<find:filingIndicator contextRef="c1">UNKNOWN</find:filingIndicator>'
+            + "</find:fIndicators>"
+        )
+        raw = _xbrl(body)
+        vctx = _make_ctx(raw, module=None)
+        impl = get_rule_impl("XML-024", "xml")
+        assert impl is not None
+        impl(vctx)
+        assert vctx.findings == []
+
+    def test_no_indicators_skips(self) -> None:
+        """When there are no filingIndicator elements, XML-024 skips."""
+        body = _context("c1") + "<find:fIndicators/>"
+        findings = self._run(body, ["R_01.00"])
+        assert findings == []
+
+    def test_malformed_xml_skips(self) -> None:
+        """Malformed XML produces no findings."""
+        raw = b"not xml"
+        module = _make_module(["R_01.00"])
+        vctx = _make_ctx(raw, module=module)
+        impl = get_rule_impl("XML-024", "xml")
+        assert impl is not None
+        impl(vctx)
+        assert vctx.findings == []
+
+    def test_message_contains_module_code(self) -> None:
+        """The finding message mentions the module code."""
+        body = (
+            _context("c1")
+            + "<find:fIndicators>"
+            + '<find:filingIndicator contextRef="c1">UNKNOWN</find:filingIndicator>'
+            + "</find:fIndicators>"
+        )
+        findings = self._run(body, ["R_01.00"], module_code="corep_lr")
+        assert len(findings) == 1
+        assert "corep_lr" in findings[0].message
+
+    def test_run_validation_no_module_no_findings(self) -> None:
+        """Through run_validation (no module loaded), XML-024 produces no findings."""
+        body = (
+            _context("c1")
+            + "<find:fIndicators>"
+            + '<find:filingIndicator contextRef="c1">UNKNOWN</find:filingIndicator>'
+            + "</find:fIndicators>"
+        )
+        with NamedTemporaryFile(suffix=".xbrl", delete=False) as f:
+            f.write(_xbrl(body))
+            f.flush()
+            results = run_validation(f.name, eba=True)
+        findings = [r for r in results if r.rule_id == "XML-024"]
+        assert findings == []
+
+    def test_eba_false_skips(self) -> None:
+        """XML-024 is EBA-only; eba=False skips it via run_validation."""
+        body = (
+            _context("c1")
+            + "<find:fIndicators>"
+            + '<find:filingIndicator contextRef="c1">UNKNOWN</find:filingIndicator>'
+            + "</find:fIndicators>"
+        )
+        with NamedTemporaryFile(suffix=".xbrl", delete=False) as f:
+            f.write(_xbrl(body))
+            f.flush()
+            results = run_validation(f.name, eba=False)
+        findings = [r for r in results if r.rule_id == "XML-024"]
         assert findings == []

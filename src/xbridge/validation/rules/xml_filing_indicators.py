@@ -88,6 +88,42 @@ def check_filing_indicator_exists(ctx: ValidationContext) -> None:
         )
 
 
+@rule_impl("XML-024")
+def check_filing_indicator_values(ctx: ValidationContext) -> None:
+    """Check that filing indicator values match known codes from the module."""
+    if ctx.module is None:
+        return  # Cannot validate without module data
+
+    root = _parse_root(ctx.raw_bytes)
+    if root is None:
+        return
+
+    blocks = _collect_f_indicators_blocks(root)
+    indicators = _collect_filing_indicators(blocks)
+    if len(indicators) == 0:
+        return  # XML-020/XML-021 handle missing indicators
+
+    valid_codes: set[str] = set()
+    for table in ctx.module.tables:
+        code = table.filing_indicator_code
+        if code:
+            valid_codes.add(code)
+
+    for ind in indicators:
+        value = ind.text.strip() if ind.text else ""
+        if value not in valid_codes:
+            module_code = ctx.module.code
+            ctx.add_finding(
+                location=str(ctx.file_path),
+                context={
+                    "detail": (
+                        f"Filing indicator '{value}' is not a valid "
+                        f"code for module '{module_code}'."
+                    )
+                },
+            )
+
+
 @rule_impl("XML-025")
 def check_duplicate_filing_indicators(ctx: ValidationContext) -> None:
     """Check that no duplicate filing indicator values exist."""

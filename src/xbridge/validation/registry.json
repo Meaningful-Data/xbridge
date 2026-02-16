@@ -70,6 +70,16 @@
     "eba_ref": "1.6"
   },
   {
+    "code": "XML-024",
+    "message": "Filing indicator value is not valid for the module: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
     "code": "XML-025",
     "message": "Duplicate filing indicators MUST NOT exist: {detail}",
     "severity": "ERROR",
