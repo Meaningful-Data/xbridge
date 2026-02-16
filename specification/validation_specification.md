@@ -1,7 +1,7 @@
 # xbridge Validation Module -- Specification
 
-**Version:** 0.2 (Draft)
-**Date:** 2026-02-05
+**Version:** 0.3 (Draft)
+**Date:** 2026-02-16
 
 ## 1. Overview
 
@@ -34,40 +34,48 @@ The caller controls validation behaviour through two optional flags:
 
 | Parameter          | Values             | Meaning                                                |
 |--------------------|--------------------|--------------------------------------------------------|
-| `eba`              | `True` \| `False`  | When `True`, additionally applies EBA Filing Rules.    |
-| `post_conversion`  | `True` \| `False`  | *(CSV only)* When `True`, skips CSV checks that are redundant with XML checks already performed during conversion. Ignored for `.xbrl` files. |
+| `eba`              | `True` \| `False`  | When `True`, additionally runs EBA-specific rules.     |
+| `post_conversion`  | `True` \| `False`  | *(CSV only)* When `True`, skips all structural, format, and taxonomy checks that are guaranteed by xbridge's converter, keeping only EBA semantic checks. Has no effect for `.xbrl` files. |
 
 This yields the following effective combinations:
 
-| File        | `eba`   | `post_conversion` | Rules applied                              | Typical use case |
-|-------------|---------|--------------------|--------------------------------------------|------------------|
-| `.xbrl`     | `False` | --                 | XML-\*                                     | Pre-conversion structural check of an xBRL-XML file. |
-| `.xbrl`     | `True`  | --                 | XML-\* + EBA-\*                            | Full EBA validation of an xBRL-XML file.   |
-| `.zip`      | `False` | `False`            | CSV-\* (all)                               | Validate a standalone xBRL-CSV package.    |
-| `.zip`      | `False` | `True`             | CSV-\* (minus redundant)                   | Validate an xBRL-CSV package produced by xbridge conversion. |
-| `.zip`      | `True`  | `False`            | CSV-\* (all) + EBA-\*                      | Full EBA validation of a standalone xBRL-CSV package. |
-| `.zip`      | `True`  | `True`             | CSV-\* (minus redundant) + EBA-\*          | Full EBA validation after xbridge conversion. |
+| File        | `eba`   | `post_conversion` | Rules applied                                          | Typical use case |
+|-------------|---------|-------------------|--------------------------------------------------------|------------------|
+| `.xbrl`     | `False` | --                 | XML rules (EBA = No)                                  | Basic XBRL structural check. |
+| `.xbrl`     | `True`  | --                 | All XML rules                                         | Full EBA validation of an xBRL-XML file.   |
+| `.zip`      | `False` | `False`            | CSV rules (EBA = No)                                  | Standard xBRL-CSV structural check.        |
+| `.zip`      | `True`  | `False`            | All CSV rules                                         | Full EBA validation of a standalone xBRL-CSV package. |
+| `.zip`      | `True`  | `True`             | EBA semantic checks only (Post-conv. = Yes)           | EBA compliance check after xbridge conversion. |
 
-### 1.3 Rule Sets
+### 1.3 Rule Organization
 
-Rules are grouped into three sets. See
+Rules are organized into two sets based on the input format. Each rule carries
+attributes that control when it is executed. See
 [validations_enumeration.md](validations_enumeration.md) for the full list.
 
-| Rule set              | Prefix   | Applies when               |
-|-----------------------|----------|----------------------------|
-| XML Instance Rules    | `XML-*`  | `.xbrl` file               |
-| CSV Package Rules     | `CSV-*`  | `.zip` file                |
-| EBA Filing Rules      | `EBA-*`  | `eba = True`               |
+| Rule set              | Prefixes          | Applies when               |
+|-----------------------|-------------------|----------------------------|
+| XML Instance Rules    | `XML-*`, `EBA-*`  | `.xbrl` file               |
+| CSV Package Rules     | `CSV-*`, `EBA-*`  | `.zip` file                |
+
+Each rule has the following attributes:
+
+| Attribute      | Values   | Meaning                                                                 |
+|----------------|----------|-------------------------------------------------------------------------|
+| **EBA**        | Yes / No | When Yes, the rule only runs if the `eba` parameter is `True`.          |
+| **EBA ref**    | Section  | Cross-reference to the EBA Filing Rules v5.7 section.                   |
+| **Post-conv.** | Yes / No | *(CSV only)* When No, the rule is skipped if `post_conversion` is `True`. |
 
 Key points:
 
-- **XML-\*** and **CSV-\*** are mutually exclusive -- they are selected by
-  the file extension.
-- **EBA-\*** is additive -- it runs on top of whichever format-specific set is
-  active.
-- Many EBA rules are already covered by the format-specific sets (the
-  enumeration document marks these as "delegated"). The EBA engine only checks
-  the rules that are **not** delegated.
+- **XML** and **CSV** rules are mutually exclusive -- they are selected by the
+  file extension.
+- Within each set, rules with `EBA = No` always run. Rules with `EBA = Yes`
+  only run when the `eba` parameter is `True`.
+- EBA-specific rules keep the `EBA-` prefix in their rule identifiers for
+  traceability (e.g. `EBA-ENTITY-001`, `EBA-DEC-001`).
+- Format-independent EBA rules (entity identification, decimals accuracy,
+  currency, etc.) appear in **both** rule sets with format-appropriate checks.
 
 ### 1.4 Severity Levels
 
@@ -84,9 +92,9 @@ Following the EBA Filing Rules language conventions (RFC 2119):
 Each individual finding is represented as:
 
 ```
-RuleId:       str     -- unique identifier, e.g. "XML-001", "CSV-012", "EBA-2.13"
+RuleId:       str     -- unique identifier, e.g. "XML-001", "CSV-012", "EBA-DEC-001"
 Severity:     ERROR | WARNING | INFO
-RuleSet:      xml | csv | eba
+RuleSet:      xml | csv
 Message:      str     -- human-readable description
 Location:     str     -- XPath (XML) or file:row:col (CSV) locator
 Context:      dict    -- optional key-value bag with offending values, expected values, etc.
@@ -101,70 +109,40 @@ Context:      dict    -- optional key-value bag with offending values, expected 
 ```
 validate(file, eba=False, post_conversion=False)
   │
-  ├─ file ends with ".xbrl" → format = XML
-  │    ├─ Run XML-* rules
-  │    └─ eba?
-  │         └─ Yes → Run EBA-* rules (XML-applicable subset)
+  ├─ file ends with ".xbrl" → ruleset = XML
   │
-  └─ file ends with ".zip" → format = CSV
-       ├─ post_conversion?
-       │    ├─ False → Run CSV-* rules (all)
-       │    └─ True  → Run CSV-* rules (skip redundant; see §2.2)
-       └─ eba?
-            └─ Yes → Run EBA-* rules (CSV-applicable subset)
+  └─ file ends with ".zip"  → ruleset = CSV
+
+  For each rule in the selected ruleset:
+    ├─ rule.eba = Yes  AND  eba = False          → SKIP
+    ├─ ruleset = CSV  AND  rule.post_conv = No  AND  post_conversion = True  → SKIP
+    └─ Otherwise                                  → RUN
 ```
 
 ### 2.2 Post-conversion Redundancy
 
-When xbridge converts an XML file to CSV, it first validates the XML input. A
-subsequent validation of the CSV output should not repeat checks that were
-already applied to the XML source.
+When xbridge converts an XML file to CSV, it first validates the XML input and
+then generates the CSV output. A subsequent validation of the CSV output should
+not repeat checks that are guaranteed by construction:
 
-The `post_conversion` flag controls this. When set to `True`, the following CSV
-rules are **skipped** because their logic was already enforced on the XML input:
+- **Structural and format checks** (sections 2.1–2.6): xbridge generates
+  correct package structure, metadata, parameters, filing indicators, data
+  tables, and fact-level encoding. These are redundant.
+- **Taxonomy conformance** (section 2.7): already validated on the XML source.
+- **Logical checks already applied to XML** (e.g. entity identification,
+  period validity, decimals validity, filing indicator codes): already enforced
+  on the XML input.
 
-| Skipped CSV Rule | Equivalent XML Rule(s) | What is checked                           |
-|------------------|------------------------|-------------------------------------------|
-| CSV-022          | XML-033                | Entity identifier present and consistent. |
-| CSV-023          | XML-030, XML-031       | Period is a valid instant date.            |
-| CSV-026          | XML-041                | Decimals values are valid.                 |
-| CSV-032          | XML-024                | Filing indicator codes match taxonomy.     |
-| CSV-034          | XML-021                | At least one filing indicator present.     |
-| CSV-035          | XML-025                | No duplicate filing indicators.            |
+The `post_conversion` flag controls this. When set to `True`, all CSV rules
+with **Post-conv. = No** are skipped. In practice, this means sections 2.1–2.7
+are skipped entirely. From the EBA semantic checks (sections 2.8–2.14), only
+the rules explicitly marked **Post-conv. = Yes** in the enumeration are
+executed — specifically the unit, representation, additional, and guidance
+checks from sections 2.11–2.14. Entity identification (§2.8), decimals
+accuracy (§2.9), and currency rules (§2.10) are also skipped because they were
+already enforced on the XML input.
 
-All other CSV rules always run regardless of `post_conversion`, because they
-validate the CSV artifact itself (package structure, metadata format, data
-table syntax, fact-level checks).
-
-The complete redundancy map is also documented in
-[validations_enumeration.md](validations_enumeration.md), Section 4.
-
-### 2.3 EBA Rules: Format Applicability
-
-Some EBA rules are format-specific:
-
-- **XML-only EBA rules:** EBA-2.1 (`@xml:base`), EBA-2.4 (`linkbaseRef`),
-  EBA-2.17 (`@precision`), EBA-GUIDE-001, EBA-GUIDE-005, EBA-GUIDE-006
-  (namespace-related). These are skipped for `.zip` files.
-
-- **CSV-only EBA rules:** EBA-CSV-001 through EBA-CSV-005 (CSV extra rules).
-  These are skipped for `.xbrl` files.
-
-- **Format-independent EBA rules:** Entity identification (EBA-ENTITY-\*),
-  decimals accuracy (EBA-DEC-\*), currency (EBA-CUR-\*), units
-  (EBA-UNIT-\*), decimal representation (EBA-REP-\*), and other
-  guidance rules. These apply regardless of format.
-
-### 2.4 Delegation
-
-Many EBA rules overlap with format-specific rules. To avoid duplication, the
-EBA engine delegates these checks to the format-specific validators. The
-delegation map is documented in the enumeration file (Section 3.2, "Delegated
-to" column). The EBA engine only executes rules that are:
-
-1. Not delegated to a format-specific rule, **and**
-2. Applicable to the detected input format.
-
+---
 
 ## 3. Public API (Sketch)
 
@@ -226,4 +204,4 @@ extended at build time rather than loading the full taxonomy at runtime.
 ## 6. Out of scope
 
 1. **XBRL Formula validation (EBA 1.10):** Full formula validation requires a
-   formula processor. 
+   formula processor.
