@@ -48,5 +48,45 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "1.5"
+  },
+  {
+    "code": "XML-020",
+    "message": "At least one find:fIndicators element MUST be present: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
+    "code": "XML-021",
+    "message": "At least one filing indicator MUST exist: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
+    "code": "XML-025",
+    "message": "Duplicate filing indicators MUST NOT exist: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
+    "code": "XML-026",
+    "message": "The context referenced by filing indicators MUST NOT contain xbrli:segment or xbrli:scenario: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
   }
 ]
