@@ -28,6 +28,7 @@ Key Features
 * **Python API**: Programmatic conversion for integration with other tools and workflows
 * **EBA Taxonomy 4.2 Support**: Built for the latest EBA taxonomy specification
 * **DORA CSV Conversion**: Support for Digital Operational Resilience Act reporting
+* **Standalone Validation API**: Validate XBRL-XML and XBRL-CSV files against structural and EBA rules
 * **Configurable Validation**: Flexible filing indicator validation with strict or warning modes
 * **Decimal Handling**: Intelligent decimal precision handling with configurable options
 * **Type Safety**: Fully typed codebase with MyPy strict mode compliance
@@ -124,6 +125,7 @@ Documentation Contents
    :caption: API Reference
 
    api.rst
+   validation.rst
    cli.rst
    converter.rst
    taxonomy_loader.rst
