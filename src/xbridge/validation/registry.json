@@ -28,5 +28,25 @@
     "eba": false,
     "post_conversion": false,
     "eba_ref": null
+  },
+  {
+    "code": "XML-010",
+    "message": "Exactly one link:schemaRef element MUST be present: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.5"
+  },
+  {
+    "code": "XML-012",
+    "message": "The schemaRef MUST resolve to a known entry point URL: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.5"
   }
 ]
