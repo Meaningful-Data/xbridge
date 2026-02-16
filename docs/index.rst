@@ -88,9 +88,10 @@ For programmatic use, import and use the Python API:
 What's New
 ==========
 
-**Version 1.5.1rc1**
+**Version 1.5.2rc2**
 
-* Fixed handling of filing indicators codes by getting them from JSON files in the taxonomy
+* Fixed ``baseCurrency`` parameter handling: now only included when present in the source instance
+* Fixed filing indicators parsing to handle multiple ``find:fIndicators`` blocks in a single XBRL instance
 
 **Version 1.5.0**
 

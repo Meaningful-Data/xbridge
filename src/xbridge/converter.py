@@ -590,8 +590,11 @@ class Converter:
         parameters: Dict[str, Any] = {
             "entityID": self.instance.entity,
             "refPeriod": self.instance.period,
-            "baseCurrency": self.instance.base_currency,
         }
+
+        # Only include baseCurrency if it is present in the instance
+        if self.instance.base_currency is not None:
+            parameters["baseCurrency"] = self.instance.base_currency
 
         for data_type, decimals in self._decimals_parameters.items():
             parameters[data_type] = decimals

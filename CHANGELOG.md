@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-02-13
+
+### Fixed
+- Fixed `baseCurrency` parameter handling: now only included in XBRL-CSV output when present in the source instance, preventing null values in parameters.csv.
+- Fixed filing indicators parsing to handle multiple `find:fIndicators` blocks in a single XBRL instance. Previously only the first block was processed, silently dropping indicators from subsequent blocks (#60).
+
 ## [1.5.1] - 2026-02-04
 
 ### Fixed
@@ -133,7 +139,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.2...HEAD
+[1.5.2]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.3.1rc1...v1.4.0
