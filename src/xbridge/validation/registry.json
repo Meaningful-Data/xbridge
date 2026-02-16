@@ -1,0 +1,12 @@
+[
+  {
+    "code": "XML-001",
+    "message": "The file is not well-formed XML: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  }
+]
