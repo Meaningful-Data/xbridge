@@ -8,5 +8,15 @@
     "eba": false,
     "post_conversion": false,
     "eba_ref": null
+  },
+  {
+    "code": "XML-002",
+    "message": "The file MUST use UTF-8 encoding: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.4"
   }
 ]
