@@ -1,6 +1,5 @@
 """Tests for the validation engine module."""
 
-from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import pytest
@@ -117,8 +116,8 @@ class TestRunValidation:
 
     def test_format_detection_zip(self):
         # Create a minimal ZIP file (just the ZIP end-of-central-directory)
-        import zipfile
         import io
+        import zipfile
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w") as zf:
             zf.writestr("dummy.txt", "test")

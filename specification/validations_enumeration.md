@@ -303,3 +303,70 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
 | EBA-GUIDE-002  | WARNING  | Yes | 3.4     | Yes        | Namespace prefixes SHOULD mirror canonical prefixes. (notRecommendedNamespacePrefix) |
 | EBA-GUIDE-004  | WARNING  | Yes | 3.4     | Yes        | String values SHOULD be as short as possible. (excessiveStringLength) |
 | EBA-GUIDE-007  | WARNING  | Yes | 3.4     | Yes        | String facts and domain values SHOULD NOT start/end with whitespace. (leadingOrTrailingSpacesInText) |
+
+---
+
+## 3. Submission Package Naming Rules
+
+**Scope:** File naming conventions for EBA report submissions (ZIP archives and
+their contents). These rules apply to both xBRL-XML and xBRL-CSV submissions
+when validating the submission package.
+
+The EBA requires submission files to follow a specific naming structure:
+`ReportSubject_Country_FrameworkCodeModuleVersion_Module_ReferenceDate_CreationTimestamp.zip`
+
+See EBA Filing Rules v5.7, "File naming structure for remittance to the EBA"
+(pp. 57-61).
+
+### 3.1 Overall File Name Structure
+
+| Rule ID       | Severity | EBA | EBA ref       | Description                                                                    |
+|---------------|----------|-----|---------------|--------------------------------------------------------------------------------|
+| EBA-NAME-001  | ERROR    | Yes | File naming   | The submission ZIP file name MUST follow the pattern `ReportSubject_Country_FrameworkCodeModuleVersion_Module_ReferenceDate_CreationTimestamp.zip` (exactly six underscore-separated components plus extension). |
+
+### 3.2 Report Subject
+
+| Rule ID       | Severity | EBA | EBA ref       | Description                                                                    |
+|---------------|----------|-----|---------------|--------------------------------------------------------------------------------|
+| EBA-NAME-010  | ERROR    | Yes | File naming   | For modules with `_con`/`_ind` in the name (or before reference date 31/12/2022): the ReportSubject MUST be the LEI (individual/consolidated) or LEI + `.CRDLIQSUBGRP` (liquidity subgroup). |
+| EBA-NAME-011  | ERROR    | Yes | File naming   | For modules without `_con`/`_ind` (from reference date 31/12/2022): individual reports MUST use LEI + `.IND`, consolidated MUST use LEI + `.CON`, liquidity subgroup MUST use LEI + `.CRDLIQSUBGRP`. |
+| EBA-NAME-012  | ERROR    | Yes | File naming   | For country-level aggregate reports: the ReportSubject MUST be the ISO country code (two capital letters) + `000` + the aggregation type suffix (`.MEMSTAAGGALL`, `.MEMSTAAGGCRDCREINS`, `.MEMSTAAGGINVFIR`). |
+| EBA-NAME-013  | ERROR    | Yes | File naming   | For authority-level aggregate reports: the ReportSubject MUST be the authority code (agreed with EBA) + `.AUTALL` (e.g. for MREL Decisions). |
+| EBA-NAME-014  | ERROR    | Yes | File naming   | For MICA reports: the ReportSubject MUST be IssuerID-TokenID + `.IND`. |
+
+### 3.3 Country
+
+| Rule ID       | Severity | EBA | EBA ref       | Description                                                                    |
+|---------------|----------|-----|---------------|--------------------------------------------------------------------------------|
+| EBA-NAME-020  | ERROR    | Yes | File naming   | The Country component MUST be a valid ISO 3166-1 alpha-2 country code in uppercase (e.g. `DE`, `IT`, `FR`). |
+
+### 3.4 Framework Code and Module Version
+
+| Rule ID       | Severity | EBA | EBA ref       | Description                                                                    |
+|---------------|----------|-----|---------------|--------------------------------------------------------------------------------|
+| EBA-NAME-030  | ERROR    | Yes | File naming   | The FrameworkCodeModuleVersion MUST be the DPM/XBRL framework code in uppercase followed by the module version as a 6-digit number `XXYYZZ` (e.g. `COREP020001` for COREP taxonomy 2.0.1: XX=02, YY=00, ZZ=01). |
+
+### 3.5 Module
+
+| Rule ID       | Severity | EBA | EBA ref       | Description                                                                    |
+|---------------|----------|-----|---------------|--------------------------------------------------------------------------------|
+| EBA-NAME-040  | ERROR    | Yes | File naming   | The Module component MUST be the taxonomy module name in uppercase without underscores (e.g. `corep_lcr_con` becomes `COREPLCRCON`). For liquidity subgroup reports, it MUST be the relevant consolidated module name in uppercase (e.g. `COREPLCRDACON`). |
+
+### 3.6 Reference Date
+
+| Rule ID       | Severity | EBA | EBA ref       | Description                                                                    |
+|---------------|----------|-----|---------------|--------------------------------------------------------------------------------|
+| EBA-NAME-050  | ERROR    | Yes | File naming   | The ReferenceDate component MUST be in `YYYY-MM-DD` format (e.g. `2025-12-31`). |
+
+### 3.7 Creation Timestamp
+
+| Rule ID       | Severity | EBA | EBA ref       | Description                                                                    |
+|---------------|----------|-----|---------------|--------------------------------------------------------------------------------|
+| EBA-NAME-060  | ERROR    | Yes | File naming   | The CreationTimestamp component MUST be in `YYYYMMDDhhmmssfff` format (e.g. `20250327095525486`). |
+
+### 3.8 Inner Content Naming
+
+| Rule ID       | Severity | EBA | EBA ref       | Description                                                                    |
+|---------------|----------|-----|---------------|--------------------------------------------------------------------------------|
+| EBA-NAME-070  | ERROR    | Yes | File naming   | (XML) The ZIP MUST contain exactly one `.xbrl` file whose base name matches the ZIP file name (with `.xbrl` extension instead of `.zip`). |
+| EBA-NAME-071  | ERROR    | Yes | File naming   | (CSV) The root folder inside the ZIP MUST be named identically to the ZIP file (without the `.zip` extension). |
