@@ -208,5 +208,105 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "2.23"
+  },
+  {
+    "code": "XML-060",
+    "message": "@xml:base MUST NOT appear anywhere in the document: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.1"
+  },
+  {
+    "code": "XML-061",
+    "message": "link:linkbaseRef MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.4"
+  },
+  {
+    "code": "XML-062",
+    "message": "xbrli:forever MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.11"
+  },
+  {
+    "code": "XML-063",
+    "message": "xsi:schemaLocation / xsi:noNamespaceSchemaLocation MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.14"
+  },
+  {
+    "code": "XML-064",
+    "message": "xi:include MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.15"
+  },
+  {
+    "code": "XML-065",
+    "message": "The XML standalone declaration SHOULD NOT be used: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.13"
+  },
+  {
+    "code": "XML-066",
+    "message": "Unused contexts SHOULD NOT be present: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.7"
+  },
+  {
+    "code": "XML-067",
+    "message": "Duplicate contexts SHOULD NOT be present: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.7"
+  },
+  {
+    "code": "XML-068",
+    "message": "Unused units SHOULD NOT be present: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.22"
+  },
+  {
+    "code": "XML-069",
+    "message": "Duplicate units SHOULD NOT be present: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.21"
   }
 ]
