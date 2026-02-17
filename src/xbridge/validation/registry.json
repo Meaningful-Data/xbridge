@@ -158,5 +158,45 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "2.15"
+  },
+  {
+    "code": "XML-040",
+    "message": "The @decimals attribute MUST be used (not @precision): {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.17"
+  },
+  {
+    "code": "XML-041",
+    "message": "The @decimals value MUST be a valid integer or INF: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "XML-042",
+    "message": "@xsi:nil MUST NOT be used on facts: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.19"
+  },
+  {
+    "code": "XML-043",
+    "message": "String-type facts MUST NOT be empty: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.19"
   }
 ]

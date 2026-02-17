@@ -3,6 +3,7 @@
 from xbridge.validation.rules import (
     xml_context,  # noqa: F401
     xml_encoding,  # noqa: F401
+    xml_facts,  # noqa: F401
     xml_filing_indicators,  # noqa: F401
     xml_root_element,  # noqa: F401
     xml_schema_ref,  # noqa: F401
