@@ -308,5 +308,35 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "2.21"
+  },
+  {
+    "code": "XML-070",
+    "message": "All fact concepts MUST be defined in the taxonomy: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "XML-071",
+    "message": "All explicit dimension QNames MUST be defined in the taxonomy: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "XML-072",
+    "message": "All dimension member values MUST be valid for their dimension: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
   }
 ]
