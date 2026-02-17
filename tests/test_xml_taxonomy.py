@@ -291,7 +291,8 @@ class TestXML071ValidDimensions:
     def setup_method(self) -> None:
         _ensure_registered()
 
-    def test_known_dimension_no_findings(self) -> None:
+    def test_known_dimension_prefixed_key(self) -> None:
+        """Dimension key with prefix (raw taxonomy path)."""
         module = _make_module(
             variables=[
                 _make_variable(
@@ -308,13 +309,31 @@ class TestXML071ValidDimensions:
         )
         assert _run_rule("XML-071", root, module) == []
 
+    def test_known_dimension_bare_localname_key(self) -> None:
+        """Dimension key as bare localname (from_dict / deserialized path)."""
+        module = _make_module(
+            variables=[
+                _make_variable(
+                    {
+                        "concept": "eba_met:ei4",
+                        "BAS": "eba_BA:x17",
+                    }
+                ),
+            ]
+        )
+        root = _parse(
+            _context_with_dim("c1", "eba_dim:BAS", "eba_BA:x17")
+            + '<eba_met:ei4 contextRef="c1" decimals="2">100</eba_met:ei4>'
+        )
+        assert _run_rule("XML-071", root, module) == []
+
     def test_unknown_dimension_detected(self) -> None:
         module = _make_module(
             variables=[
                 _make_variable(
                     {
                         "concept": "eba_met:ei4",
-                        "eba_dim:BAS": "eba_BA:x17",
+                        "BAS": "eba_BA:x17",
                     }
                 ),
             ]
@@ -353,7 +372,7 @@ class TestXML071ValidDimensions:
                 _make_variable(
                     {
                         "concept": "eba_met:ei4",
-                        "eba_dim:BAS": "eba_BA:x17",
+                        "BAS": "eba_BA:x17",
                     }
                 ),
             ],
@@ -388,12 +407,13 @@ class TestXML072ValidMembers:
         _ensure_registered()
 
     def test_valid_member_no_findings(self) -> None:
+        """Bare localname keys (deserialized modules)."""
         module = _make_module(
             variables=[
                 _make_variable(
                     {
                         "concept": "eba_met:ei4",
-                        "eba_dim:BAS": "eba_BA:x17",
+                        "BAS": "eba_BA:x17",
                     }
                 ),
             ]
@@ -410,7 +430,7 @@ class TestXML072ValidMembers:
                 _make_variable(
                     {
                         "concept": "eba_met:ei4",
-                        "eba_dim:BAS": "eba_BA:x17",
+                        "BAS": "eba_BA:x17",
                     }
                 ),
             ]
@@ -433,13 +453,13 @@ class TestXML072ValidMembers:
                 _make_variable(
                     {
                         "concept": "eba_met:ei4",
-                        "eba_dim:BAS": "eba_BA:x17",
+                        "BAS": "eba_BA:x17",
                     }
                 ),
                 _make_variable(
                     {
                         "concept": "eba_met:mi64",
-                        "eba_dim:BAS": "eba_BA:x1",
+                        "BAS": "eba_BA:x1",
                     }
                 ),
             ]
@@ -459,7 +479,7 @@ class TestXML072ValidMembers:
                 _make_variable(
                     {
                         "concept": "eba_met:ei4",
-                        "eba_dim:BAS": "eba_BA:x17",
+                        "BAS": "eba_BA:x17",
                     }
                 ),
             ],
@@ -494,7 +514,7 @@ class TestXML072ValidMembers:
                 _make_variable(
                     {
                         "concept": "eba_met:ei4",
-                        "eba_dim:BAS": "eba_BA:x17",
+                        "BAS": "eba_BA:x17",
                     }
                 ),
             ]

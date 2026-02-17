@@ -43,25 +43,30 @@ _UriLn = Tuple[str, str]
 # Taxonomy data extraction (cached per module)
 # ---------------------------------------------------------------------------
 class _TaxonomyData:
-    """Pre-computed taxonomy lookup sets extracted from a Module."""
+    """Pre-computed taxonomy lookup sets extracted from a Module.
+
+    Dimension keys are matched by **localname only** because
+    ``Variable.from_dict`` strips namespace prefixes from dimension
+    keys during deserialization (e.g. ``eba_dim:BAS`` → ``BAS``).
+    """
 
     __slots__ = (
         "valid_concepts",
-        "valid_dimensions",
-        "dimension_members",
+        "valid_dim_localnames",
+        "dim_members",
         "open_key_localnames",
     )
 
     def __init__(
         self,
         valid_concepts: FrozenSet[_UriLn],
-        valid_dimensions: FrozenSet[_UriLn],
-        dimension_members: Dict[_UriLn, FrozenSet[_UriLn]],
+        valid_dim_localnames: FrozenSet[str],
+        dim_members: Dict[str, FrozenSet[_UriLn]],
         open_key_localnames: FrozenSet[str],
     ) -> None:
         self.valid_concepts = valid_concepts
-        self.valid_dimensions = valid_dimensions
-        self.dimension_members = dimension_members
+        self.valid_dim_localnames = valid_dim_localnames
+        self.dim_members = dim_members
         self.open_key_localnames = open_key_localnames
 
 
@@ -81,12 +86,18 @@ def _resolve_qname(qname: str, nsmap: Dict[Optional[str], str]) -> Optional[_Uri
 
 
 def _extract_taxonomy(module: Module, nsmap: Dict[Optional[str], str]) -> _TaxonomyData:
-    """Build lookup sets from *module*, resolving QNames via *nsmap*."""
+    """Build lookup sets from *module*, resolving QNames via *nsmap*.
+
+    Dimension keys may be bare localnames (``BAS``) when the module was
+    loaded via ``from_serialized`` / ``Variable.from_dict``, or prefixed
+    QNames (``eba_dim:BAS``) when loaded from the raw taxonomy.  Both
+    forms are handled — the localname is always extracted and used as
+    the dimension identifier.
+    """
     concepts: set[_UriLn] = set()
-    dimensions: set[_UriLn] = set()
-    dim_members: Dict[_UriLn, set[_UriLn]] = {}
+    dim_localnames: set[str] = set()
+    dim_members: Dict[str, set[_UriLn]] = {}
     open_keys: set[str] = set()
-    dim_uris: set[str] = set()  # all namespace URIs used by dimensions
 
     for table in module.tables:
         # Collect open keys.
@@ -95,25 +106,24 @@ def _extract_taxonomy(module: Module, nsmap: Dict[Optional[str], str]) -> _Taxon
 
         # "datapoints" architecture — variables list.
         for var in table.variables:
-            _collect_dims(var.dimensions, nsmap, concepts, dimensions, dim_members, dim_uris)
+            _collect_dims(var.dimensions, nsmap, concepts, dim_localnames, dim_members)
 
         # "headers" architecture — columns list.
         if table.architecture == "headers" and table.columns:
             for col in table.columns:
                 col_dims = col.get("dimensions")
                 if isinstance(col_dims, dict):
-                    _collect_dims(col_dims, nsmap, concepts, dimensions, dim_members, dim_uris)
+                    _collect_dims(col_dims, nsmap, concepts, dim_localnames, dim_members)
 
     # Open key dimensions are valid dimensions but their members are not
-    # enumerated in the module.  Add them for every dimension namespace URI.
+    # enumerated in the module.  They are already bare localnames.
     for ok in open_keys:
-        for uri in dim_uris:
-            dimensions.add((uri, ok))
+        dim_localnames.add(ok)
 
     return _TaxonomyData(
         valid_concepts=frozenset(concepts),
-        valid_dimensions=frozenset(dimensions),
-        dimension_members={k: frozenset(v) for k, v in dim_members.items()},
+        valid_dim_localnames=frozenset(dim_localnames),
+        dim_members={k: frozenset(v) for k, v in dim_members.items()},
         open_key_localnames=frozenset(open_keys),
     )
 
@@ -122,11 +132,15 @@ def _collect_dims(
     dims: Dict[str, str],
     nsmap: Dict[Optional[str], str],
     concepts: set[_UriLn],
-    dimensions: set[_UriLn],
-    dim_members: Dict[_UriLn, set[_UriLn]],
-    dim_uris: set[str],
+    dim_localnames: set[str],
+    dim_members: Dict[str, set[_UriLn]],
 ) -> None:
-    """Collect concepts, dimensions, and members from a single dimensions dict."""
+    """Collect concepts, dimensions, and members from a single dimensions dict.
+
+    Dimension keys may be prefixed (``eba_dim:BAS``) or bare localnames
+    (``BAS``).  In either case the localname is extracted and used as the
+    dimension identifier.
+    """
     for key, value in dims.items():
         if key == "concept":
             resolved = _resolve_qname(value, nsmap)
@@ -135,13 +149,13 @@ def _collect_dims(
         elif key in _SKIP_DIM_KEYS or key.startswith("$"):
             continue
         else:
-            dim_resolved = _resolve_qname(key, nsmap)
-            if dim_resolved is not None:
-                dimensions.add(dim_resolved)
-                dim_uris.add(dim_resolved[0])
-                member_resolved = _resolve_qname(value, nsmap)
-                if member_resolved is not None:
-                    dim_members.setdefault(dim_resolved, set()).add(member_resolved)
+            # Extract localname: strip prefix if present.
+            colon = key.find(":")
+            dim_ln = key[colon + 1 :] if colon >= 1 else key
+            dim_localnames.add(dim_ln)
+            member_resolved = _resolve_qname(value, nsmap)
+            if member_resolved is not None:
+                dim_members.setdefault(dim_ln, set()).add(member_resolved)
 
 
 # Single-entry caches.
@@ -217,21 +231,24 @@ def _scan(root: etree._Element, taxonomy: _TaxonomyData) -> _ScanResult:
         dim_qname = em.get("dimension", "")
         dim_resolved = _resolve_qname(dim_qname, nsmap)
 
+        # Extract the dimension localname for matching.
+        dim_ln = dim_resolved[1] if dim_resolved is not None else None
+
         # XML-071: is the dimension known?
-        if dim_resolved is None or dim_resolved not in taxonomy.valid_dimensions:
+        if dim_ln is None or dim_ln not in taxonomy.valid_dim_localnames:
             r.unknown_dimensions.append((ctx_id, dim_qname))
             continue  # can't validate member if dimension unknown
 
         # XML-072: is the member valid?
         # Skip open key dimensions — members are not enumerated.
-        if dim_resolved[1] in taxonomy.open_key_localnames:
+        if dim_ln in taxonomy.open_key_localnames:
             continue
 
         member_text = (em.text or "").strip()
         if not member_text:
             continue
         member_resolved = _resolve_qname(member_text, nsmap)
-        valid_members = taxonomy.dimension_members.get(dim_resolved, frozenset())
+        valid_members = taxonomy.dim_members.get(dim_ln, frozenset())
         if member_resolved is None or member_resolved not in valid_members:
             r.invalid_members.append((ctx_id, dim_qname, member_text))
 
