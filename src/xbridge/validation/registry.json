@@ -98,5 +98,65 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "1.6"
+  },
+  {
+    "code": "XML-030",
+    "message": "Period date elements MUST be xs:date (no dateTime, no timezone): {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.10"
+  },
+  {
+    "code": "XML-031",
+    "message": "All periods MUST be instants (not durations): {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.13"
+  },
+  {
+    "code": "XML-032",
+    "message": "All periods MUST refer to the same reference date: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.13"
+  },
+  {
+    "code": "XML-033",
+    "message": "All entity identifiers MUST be identical across contexts: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.9"
+  },
+  {
+    "code": "XML-034",
+    "message": "xbrli:segment MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.14"
+  },
+  {
+    "code": "XML-035",
+    "message": "xbrli:scenario children MUST only be xbrldi:explicitMember or xbrldi:typedMember: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.15"
   }
 ]
