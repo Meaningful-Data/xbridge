@@ -92,6 +92,15 @@ def _make_variable(dims: dict[str, str]) -> Variable:
     return Variable(code="v1", dimensions=dims)
 
 
+def _make_variable_via_from_dict(dims: dict[str, str]) -> Variable:
+    """Build a Variable through from_dict, exercising real deserialization.
+
+    This is the code path used in production (Module.from_serialized).
+    Notably, from_dict strips namespace prefixes from dimension keys.
+    """
+    return Variable.from_dict({"code": "v1", "dimensions": dims, "attributes": None})
+
+
 def _parse(body: str = "") -> etree._Element:
     """Parse an xbrli:xbrl document and return root."""
     xml = f'<?xml version="1.0" encoding="utf-8"?><xbrli:xbrl {_NS}>{body}</xbrli:xbrl>'
@@ -572,3 +581,81 @@ class TestXML072ValidMembers:
         findings = _run_rule("XML-072", root, module)
         assert len(findings) == 1
         assert "WRONG" in findings[0].message
+
+
+# ===========================================================================
+# Deserialization integration — Variable.from_dict strips prefixes
+# ===========================================================================
+
+
+class TestDeserializedModuleIntegration:
+    """Regression tests ensuring rules work with Variable.from_dict.
+
+    Variable.from_dict strips namespace prefixes from dimension keys
+    (e.g., "eba_dim:BAS" → "BAS").  These tests construct variables
+    through from_dict to exercise the real production code path.
+    """
+
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_070_concept_via_from_dict(self) -> None:
+        """Concept values keep their prefix through from_dict."""
+        var = _make_variable_via_from_dict({"concept": "eba_met:ei4", "eba_dim:BAS": "eba_BA:x17"})
+        module = _make_module(variables=[var])
+        root = _parse(
+            _plain_context() + '<eba_met:ei4 contextRef="c1" decimals="2">100</eba_met:ei4>'
+        )
+        assert _run_rule("XML-070", root, module) == []
+
+    def test_071_dimension_via_from_dict(self) -> None:
+        """Dimension keys are stripped to bare localnames by from_dict."""
+        var = _make_variable_via_from_dict({"concept": "eba_met:ei4", "eba_dim:BAS": "eba_BA:x17"})
+        # Verify from_dict actually stripped the prefix.
+        assert "BAS" in var.dimensions
+        assert "eba_dim:BAS" not in var.dimensions
+
+        module = _make_module(variables=[var])
+        root = _parse(
+            _context_with_dim("c1", "eba_dim:BAS", "eba_BA:x17")
+            + '<eba_met:ei4 contextRef="c1" decimals="2">100</eba_met:ei4>'
+        )
+        assert _run_rule("XML-071", root, module) == []
+
+    def test_072_member_via_from_dict(self) -> None:
+        """Member values keep their prefix through from_dict."""
+        var = _make_variable_via_from_dict({"concept": "eba_met:ei4", "eba_dim:BAS": "eba_BA:x17"})
+        module = _make_module(variables=[var])
+
+        # Valid member — no finding.
+        root = _parse(
+            _context_with_dim("c1", "eba_dim:BAS", "eba_BA:x17")
+            + '<eba_met:ei4 contextRef="c1" decimals="2">100</eba_met:ei4>'
+        )
+        assert _run_rule("XML-072", root, module) == []
+
+        # Invalid member — finding expected.
+        root_bad = _parse(
+            _context_with_dim("c1", "eba_dim:BAS", "eba_BA:WRONG")
+            + '<eba_met:ei4 contextRef="c1" decimals="2">100</eba_met:ei4>'
+        )
+        findings = _run_rule("XML-072", root_bad, module)
+        assert len(findings) == 1
+        assert "WRONG" in findings[0].message
+
+    def test_071_versioned_prefix_via_from_dict(self) -> None:
+        """Versioned prefixes like 'eba_dim_4.0:BAS' are also stripped."""
+        var = _make_variable_via_from_dict(
+            {
+                "concept": "eba_met:ei4",
+                "eba_dim_4.0:BAS": "eba_BA:x17",
+            }
+        )
+        assert "BAS" in var.dimensions
+
+        module = _make_module(variables=[var])
+        root = _parse(
+            _context_with_dim("c1", "eba_dim:BAS", "eba_BA:x17")
+            + '<eba_met:ei4 contextRef="c1" decimals="2">100</eba_met:ei4>'
+        )
+        assert _run_rule("XML-071", root, module) == []
