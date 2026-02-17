@@ -1,6 +1,7 @@
 """Rule implementations for the xbridge validation module."""
 
 from xbridge.validation.rules import (
+    eba_additional,  # noqa: F401
     eba_currency,  # noqa: F401
     eba_entity,  # noqa: F401
     eba_units,  # noqa: F401

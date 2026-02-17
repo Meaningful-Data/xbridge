@@ -408,5 +408,45 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "3.2"
+  },
+  {
+    "code": "EBA-2.5",
+    "message": "XML comments are ignored; data SHOULD only appear in contexts, units, and facts: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.5"
+  },
+  {
+    "code": "EBA-2.16.1",
+    "message": "No multi-unit fact sets; facts MUST NOT differ only by unit: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.16"
+  },
+  {
+    "code": "EBA-2.24",
+    "message": "Monetary units MUST be basic ISO 4217 without scaling: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.24"
+  },
+  {
+    "code": "EBA-2.25",
+    "message": "Footnotes are ignored; link:footnoteLink SHOULD NOT be present: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.25"
   }
 ]
