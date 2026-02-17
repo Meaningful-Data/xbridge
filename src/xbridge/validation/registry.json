@@ -358,5 +358,35 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "2.8"
+  },
+  {
+    "code": "EBA-CUR-001",
+    "message": "All monetary facts without CCA dimension MUST use a single reporting currency: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.1"
+  },
+  {
+    "code": "EBA-CUR-002",
+    "message": "Facts with CCA dimension MUST be expressed in their currency of denomination: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.1"
+  },
+  {
+    "code": "EBA-CUR-003",
+    "message": "For facts with CUS or CUA dimension, the unit currency MUST be consistent with the dimension value: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.1"
   }
 ]
