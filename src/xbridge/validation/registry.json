@@ -198,5 +198,15 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "2.19"
+  },
+  {
+    "code": "XML-050",
+    "message": "xbrli:unit children MUST refer to the UTR: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.23"
   }
 ]

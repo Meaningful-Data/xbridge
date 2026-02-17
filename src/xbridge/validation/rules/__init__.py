@@ -7,5 +7,6 @@ from xbridge.validation.rules import (
     xml_filing_indicators,  # noqa: F401
     xml_root_element,  # noqa: F401
     xml_schema_ref,  # noqa: F401
+    xml_units,  # noqa: F401
     xml_wellformedness,  # noqa: F401
 )
