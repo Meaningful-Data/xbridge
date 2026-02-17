@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Optional
 
 from lxml import etree
 
@@ -15,11 +16,9 @@ _XLINK_HREF = "{http://www.w3.org/1999/xlink}href"
 _INDEX_FILE = Path(__file__).parents[2] / "modules" / "index.json"
 
 
-def _get_schema_refs(raw_bytes: bytes) -> list[etree._Element] | None:
-    """Parse XML and return schemaRef elements, or None if XML is malformed."""
-    try:
-        root = etree.fromstring(raw_bytes)
-    except etree.XMLSyntaxError:
+def _get_schema_refs(root: Optional[etree._Element]) -> list[etree._Element] | None:
+    """Return schemaRef elements from root, or None if root unavailable."""
+    if root is None:
         return None
     return [child for child in root if child.tag == _LINK_SCHEMA_REF]
 
@@ -36,7 +35,7 @@ def _load_known_entry_points() -> set[str]:
 @rule_impl("XML-010")
 def check_single_schema_ref(ctx: ValidationContext) -> None:
     """Check that exactly one link:schemaRef element is present."""
-    schema_refs = _get_schema_refs(ctx.raw_bytes)
+    schema_refs = _get_schema_refs(ctx.xml_root)
     if schema_refs is None:
         return  # Malformed XML — XML-001 handles it
 
@@ -59,7 +58,7 @@ def check_single_schema_ref(ctx: ValidationContext) -> None:
 @rule_impl("XML-012")
 def check_schema_ref_entry_point(ctx: ValidationContext) -> None:
     """Check that the schemaRef href resolves to a known entry point URL."""
-    schema_refs = _get_schema_refs(ctx.raw_bytes)
+    schema_refs = _get_schema_refs(ctx.xml_root)
     if schema_refs is None:
         return  # Malformed XML — XML-001 handles it
 

@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from lxml import etree
+
 from xbridge.validation._models import RuleDefinition, ValidationResult
 
 if TYPE_CHECKING:
@@ -39,6 +41,7 @@ class ValidationContext:
         xml_instance: Optional[XmlInstance] = None,
         csv_instance: Optional[CsvInstance] = None,
         module: Optional[Module] = None,
+        xml_root: Optional[etree._Element] = None,
     ) -> None:
         self.rule_set = rule_set
         self.rule_definition = rule_definition
@@ -47,6 +50,7 @@ class ValidationContext:
         self.xml_instance = xml_instance
         self.csv_instance = csv_instance
         self.module = module
+        self.xml_root = xml_root
         self._findings: List[ValidationResult] = []
 
     @property

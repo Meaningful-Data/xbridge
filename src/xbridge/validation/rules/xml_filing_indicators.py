@@ -21,14 +21,6 @@ _XBRLI_SEGMENT = f"{{{_XBRLI_NS}}}segment"
 _XBRLI_SCENARIO = f"{{{_XBRLI_NS}}}scenario"
 
 
-def _parse_root(raw_bytes: bytes) -> Optional[etree._Element]:
-    """Parse XML and return root, or None if malformed."""
-    try:
-        return etree.fromstring(raw_bytes)
-    except etree.XMLSyntaxError:
-        return None
-
-
 def _collect_f_indicators_blocks(root: etree._Element) -> List[etree._Element]:
     """Return all find:fIndicators elements (direct children of root)."""
     return [child for child in root if child.tag == _F_INDICATORS]
@@ -54,10 +46,15 @@ def _build_context_map(root: etree._Element) -> Dict[str, etree._Element]:
     return ctx_map
 
 
+def _get_root(ctx: ValidationContext) -> Optional[etree._Element]:
+    """Return the pre-parsed XML root, or None if unavailable."""
+    return ctx.xml_root
+
+
 @rule_impl("XML-020")
 def check_f_indicators_present(ctx: ValidationContext) -> None:
     """Check that at least one find:fIndicators element is present."""
-    root = _parse_root(ctx.raw_bytes)
+    root = _get_root(ctx)
     if root is None:
         return
 
@@ -72,7 +69,7 @@ def check_f_indicators_present(ctx: ValidationContext) -> None:
 @rule_impl("XML-021")
 def check_filing_indicator_exists(ctx: ValidationContext) -> None:
     """Check that at least one filingIndicator element exists."""
-    root = _parse_root(ctx.raw_bytes)
+    root = _get_root(ctx)
     if root is None:
         return
 
@@ -94,7 +91,7 @@ def check_filing_indicator_values(ctx: ValidationContext) -> None:
     if ctx.module is None:
         return  # Cannot validate without module data
 
-    root = _parse_root(ctx.raw_bytes)
+    root = _get_root(ctx)
     if root is None:
         return
 
@@ -127,7 +124,7 @@ def check_filing_indicator_values(ctx: ValidationContext) -> None:
 @rule_impl("XML-025")
 def check_duplicate_filing_indicators(ctx: ValidationContext) -> None:
     """Check that no duplicate filing indicator values exist."""
-    root = _parse_root(ctx.raw_bytes)
+    root = _get_root(ctx)
     if root is None:
         return
 
@@ -150,7 +147,7 @@ def check_duplicate_filing_indicators(ctx: ValidationContext) -> None:
 @rule_impl("XML-026")
 def check_filing_indicator_context(ctx: ValidationContext) -> None:
     """Check that contexts referenced by filing indicators have no segment or scenario."""
-    root = _parse_root(ctx.raw_bytes)
+    root = _get_root(ctx)
     if root is None:
         return
 

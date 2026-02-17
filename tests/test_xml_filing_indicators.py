@@ -6,6 +6,8 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest.mock import MagicMock
 
+from lxml import etree
+
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._engine import run_validation
 from xbridge.validation._models import RuleDefinition, Severity
@@ -526,6 +528,10 @@ def _make_ctx(
         post_conversion=False,
         eba_ref="1.6",
     )
+    try:
+        xml_root = etree.fromstring(raw_bytes)
+    except etree.XMLSyntaxError:
+        xml_root = None
     return ValidationContext(
         rule_set="xml",
         rule_definition=rule_def,
@@ -534,6 +540,7 @@ def _make_ctx(
         xml_instance=None,
         csv_instance=None,
         module=module,
+        xml_root=xml_root,
     )
 
 

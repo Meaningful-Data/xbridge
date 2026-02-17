@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import contextlib
 import importlib
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+
+from lxml import etree
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._models import RuleDefinition, ValidationResult
@@ -159,12 +162,19 @@ def run_validation(
     xml_instance = None
     csv_instance = None
     module = None
+    xml_root: Optional[etree._Element] = None
 
     if rule_set == "xml":
         xml_instance = _try_parse_xml(file_path, raw_bytes)
         if xml_instance is not None:
+            xml_root = getattr(xml_instance, "root", None)
             module_ref = getattr(xml_instance, "module_ref", None)
             module = _try_load_module(module_ref)
+        else:
+            # XmlInstance failed but XML may still be parseable.
+            # Parse once here so rule functions never need to.
+            with contextlib.suppress(etree.XMLSyntaxError):
+                xml_root = etree.fromstring(raw_bytes)
     else:
         csv_instance = _try_parse_csv(file_path)
         if csv_instance is not None:
@@ -189,6 +199,7 @@ def run_validation(
             xml_instance=xml_instance,
             csv_instance=csv_instance,
             module=module,
+            xml_root=xml_root,
         )
         impl(ctx)
         all_findings.extend(ctx.findings)

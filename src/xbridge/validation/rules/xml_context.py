@@ -1,14 +1,12 @@
 """XML-030..XML-035: Context structure checks.
 
-Performance note: all six rules reuse the already-parsed lxml tree from
-``ctx.xml_instance.root`` when available, avoiding redundant XML parsing.
-Fallback to ``etree.fromstring`` only when the XmlInstance was not created.
+All rules use ``ctx.xml_root`` — the lxml root parsed once by the engine —
+so no redundant XML parsing occurs across the entire validation run.
 """
 
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from lxml import etree
 
@@ -43,23 +41,6 @@ _DATE_TAGS = frozenset({_XBRLI_INSTANT, _XBRLI_START_DATE, _XBRLI_END_DATE})
 
 
 # ---------------------------------------------------------------------------
-# Shared helpers
-# ---------------------------------------------------------------------------
-
-
-def _get_root(ctx: ValidationContext) -> Optional[etree._Element]:
-    """Return the parsed XML root, reusing the instance tree when possible."""
-    if ctx.xml_instance is not None:
-        root: Optional[etree._Element] = getattr(ctx.xml_instance, "root", None)
-        if root is not None:
-            return root
-    try:
-        return etree.fromstring(ctx.raw_bytes)
-    except etree.XMLSyntaxError:
-        return None
-
-
-# ---------------------------------------------------------------------------
 # XML-030  Period date format
 # ---------------------------------------------------------------------------
 
@@ -67,7 +48,7 @@ def _get_root(ctx: ValidationContext) -> Optional[etree._Element]:
 @rule_impl("XML-030")
 def check_period_date_format(ctx: ValidationContext) -> None:
     """All period date elements must be xs:date (YYYY-MM-DD), no dateTime or timezone."""
-    root = _get_root(ctx)
+    root = ctx.xml_root
     if root is None:
         return
 
@@ -96,7 +77,7 @@ def check_period_date_format(ctx: ValidationContext) -> None:
 @rule_impl("XML-031")
 def check_periods_are_instants(ctx: ValidationContext) -> None:
     """All periods must use xbrli:instant, not startDate/endDate."""
-    root = _get_root(ctx)
+    root = ctx.xml_root
     if root is None:
         return
 
@@ -127,7 +108,7 @@ def check_periods_are_instants(ctx: ValidationContext) -> None:
 @rule_impl("XML-032")
 def check_single_reference_date(ctx: ValidationContext) -> None:
     """All instant dates across contexts must be the same."""
-    root = _get_root(ctx)
+    root = ctx.xml_root
     if root is None:
         return
 
@@ -159,7 +140,7 @@ def check_single_reference_date(ctx: ValidationContext) -> None:
 @rule_impl("XML-033")
 def check_identical_identifiers(ctx: ValidationContext) -> None:
     """All entity identifiers (scheme + value) must be identical across contexts."""
-    root = _get_root(ctx)
+    root = ctx.xml_root
     if root is None:
         return
 
@@ -191,7 +172,7 @@ def check_identical_identifiers(ctx: ValidationContext) -> None:
 @rule_impl("XML-034")
 def check_no_segments(ctx: ValidationContext) -> None:
     """xbrli:segment must not appear in any context."""
-    root = _get_root(ctx)
+    root = ctx.xml_root
     if root is None:
         return
 
@@ -215,7 +196,7 @@ def check_no_segments(ctx: ValidationContext) -> None:
 @rule_impl("XML-035")
 def check_scenario_dimension_only(ctx: ValidationContext) -> None:
     """Scenario children must only be xbrldi:explicitMember or xbrldi:typedMember."""
-    root = _get_root(ctx)
+    root = ctx.xml_root
     if root is None:
         return
 

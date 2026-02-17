@@ -12,9 +12,13 @@ from xbridge.validation._registry import rule_impl
 def check_xml_wellformedness(ctx: ValidationContext) -> None:
     """Check that the input file is well-formed XML.
 
-    Attempts to parse raw_bytes with lxml. On XMLSyntaxError the rule
-    emits an ERROR finding with the parser's diagnostic message.
+    If the engine already parsed the XML successfully (ctx.xml_root is
+    set), the file is well-formed and no work is needed.  Otherwise,
+    attempts to parse raw_bytes with lxml to capture the error details.
     """
+    if ctx.xml_root is not None:
+        return  # Already parsed successfully — well-formed
+
     try:
         etree.fromstring(ctx.raw_bytes)
     except etree.XMLSyntaxError as e:
