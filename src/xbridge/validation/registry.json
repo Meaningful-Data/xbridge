@@ -338,5 +338,25 @@
     "eba": false,
     "post_conversion": false,
     "eba_ref": null
+  },
+  {
+    "code": "EBA-ENTITY-001",
+    "message": "The entity identifier @scheme MUST be one of the accepted schemes: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.8"
+  },
+  {
+    "code": "EBA-ENTITY-002",
+    "message": "The entity identifier value MUST follow reporting subject conventions: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.8"
   }
 ]

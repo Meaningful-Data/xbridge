@@ -1,6 +1,7 @@
 """Rule implementations for the xbridge validation module."""
 
 from xbridge.validation.rules import (
+    eba_entity,  # noqa: F401
     xml_context,  # noqa: F401
     xml_document,  # noqa: F401
     xml_encoding,  # noqa: F401
