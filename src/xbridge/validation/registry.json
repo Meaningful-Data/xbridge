@@ -388,5 +388,25 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "3.1"
+  },
+  {
+    "code": "EBA-UNIT-001",
+    "message": "Non-monetary numeric values MUST use the pure unit: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.2"
+  },
+  {
+    "code": "EBA-UNIT-002",
+    "message": "Rates, percentages and ratios SHOULD use decimal notation: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.2"
   }
 ]
