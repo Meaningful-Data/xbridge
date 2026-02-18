@@ -89,8 +89,9 @@ class _ScanResult:
         self.unit_keys: Dict[str, Tuple[object, ...]] = {}
 
 
-# Single-entry cache: (id(root), result).  Valid for the lifetime of *root*.
-_last_scan: Optional[Tuple[int, _ScanResult]] = None
+# Single-entry cache: (root_ref, result).  Using object reference (not id)
+# prevents stale hits when Python recycles memory addresses after GC.
+_last_scan: Optional[Tuple[etree._Element, _ScanResult]] = None
 
 
 def _localname(elem: etree._Element) -> str:
@@ -155,8 +156,7 @@ def _unit_key(elem: etree._Element) -> Tuple[object, ...]:
 def _scan(root: etree._Element) -> _ScanResult:
     """Single-pass scan of every element; cached per *root*."""
     global _last_scan  # noqa: PLW0603
-    rid = id(root)
-    if _last_scan is not None and _last_scan[0] == rid:
+    if _last_scan is not None and _last_scan[0] is root:
         return _last_scan[1]
 
     r = _ScanResult()
@@ -210,7 +210,7 @@ def _scan(root: etree._Element) -> _ScanResult:
         r.unit_ids.append(uid)
         r.unit_keys[uid] = _unit_key(unit_elem)
 
-    _last_scan = (rid, r)
+    _last_scan = (root, r)
     return r
 
 

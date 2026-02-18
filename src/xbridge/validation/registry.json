@@ -518,5 +518,125 @@
     "eba": true,
     "post_conversion": true,
     "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-NAME-001",
+    "message": "The submission file name MUST follow the 6-component underscore-separated pattern: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-010",
+    "message": "ReportSubject MUST be a valid LEI (individual/consolidated modules): {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-011",
+    "message": "ReportSubject MUST include .IND/.CON/.CRDLIQSUBGRP suffix (modules without _con/_ind): {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-012",
+    "message": "ReportSubject for country-level aggregates MUST be country code + 000 + aggregation suffix: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-013",
+    "message": "ReportSubject for authority-level aggregates MUST be authority code + .AUTALL: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-014",
+    "message": "ReportSubject for MICA reports MUST be IssuerID-TokenID + .IND: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-020",
+    "message": "The Country component MUST be a valid ISO 3166-1 alpha-2 code: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-030",
+    "message": "The FrameworkCodeModuleVersion MUST be a valid framework code followed by a 6-digit version: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-040",
+    "message": "The Module component MUST be the taxonomy module name in uppercase without underscores: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-050",
+    "message": "The ReferenceDate component MUST be in YYYY-MM-DD format: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-060",
+    "message": "The CreationTimestamp component MUST be in YYYYMMDDhhmmssfff format: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-070",
+    "message": "The ZIP MUST contain exactly one .xbrl file whose name matches the ZIP: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
   }
 ]

@@ -6,7 +6,9 @@ import contextlib
 import importlib
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from tempfile import mkdtemp
+from typing import Any, Dict, List, Optional, Tuple, Union
+from zipfile import BadZipFile, ZipFile
 
 from lxml import etree
 
@@ -17,13 +19,6 @@ from xbridge.validation._registry import get_rule_impl, load_registry
 # Paths to taxonomy index and module files (same as converter.py)
 _MODULES_FOLDER = Path(__file__).parents[1] / "modules"
 _INDEX_FILE = _MODULES_FOLDER / "index.json"
-
-# Supported file extensions → rule_set mapping
-_FORMAT_MAP: Dict[str, str] = {
-    ".xbrl": "xml",
-    ".xml": "xml",
-    ".zip": "csv",
-}
 
 
 def select_rules(
@@ -53,18 +48,69 @@ def select_rules(
     return selected
 
 
-def _detect_format(file_path: Path) -> str:
-    """Detect rule_set from file extension (case-insensitive).
+def _detect_zip_format(zip_path: Path) -> str:
+    """Inspect a ZIP file to determine whether it contains CSV or XML.
 
-    Raises ValueError for unsupported extensions.
+    Returns ``"csv"`` or ``"xml"``.
+
+    Raises:
+        ValueError: If the ZIP content is not a recognized XBRL format.
+    """
+    try:
+        with ZipFile(zip_path) as zf:
+            entries = zf.namelist()
+    except BadZipFile as exc:
+        raise ValueError(f"Not a valid ZIP archive: {zip_path.name}") from exc
+
+    # CSV signature: reports/report.json at any nesting level.
+    if any(e == "reports/report.json" or e.endswith("/reports/report.json") for e in entries):
+        return "csv"
+
+    # XML signature: exactly one .xbrl file (at root level of the archive).
+    xbrl_files = [e for e in entries if e.lower().endswith((".xbrl", ".xml")) and "/" not in e]
+    if len(xbrl_files) == 1:
+        return "xml"
+    if len(xbrl_files) > 1:
+        raise ValueError(
+            f"ZIP contains {len(xbrl_files)} XBRL files; expected exactly one: {zip_path.name}"
+        )
+
+    raise ValueError(
+        f"ZIP does not contain a recognized XBRL instance or CSV report package: {zip_path.name}"
+    )
+
+
+def _extract_xml_from_zip(zip_path: Path) -> Tuple[Path, Path]:
+    """Extract a ZIP containing a single .xbrl file.
+
+    Returns:
+        A tuple of (temp_dir, extracted_xbrl_path).
+    """
+    temp_dir = Path(mkdtemp())
+    with ZipFile(zip_path) as zf:
+        zf.extractall(temp_dir)
+
+    xbrl_files = [
+        p for p in temp_dir.iterdir() if p.is_file() and p.suffix.lower() in (".xbrl", ".xml")
+    ]
+    if len(xbrl_files) != 1:
+        raise ValueError(f"Expected exactly one XBRL file in ZIP, found {len(xbrl_files)}")
+    return temp_dir, xbrl_files[0]
+
+
+def _detect_format(file_path: Path) -> str:
+    """Detect rule_set from file extension and, for ZIPs, content inspection.
+
+    Raises ValueError for unsupported extensions or unrecognized ZIP contents.
     """
     suffix = file_path.suffix.lower()
-    rule_set = _FORMAT_MAP.get(suffix)
-    if rule_set is None:
-        raise ValueError(
-            f"Unsupported file extension: {file_path.suffix!r}. Expected .xbrl or .zip."
-        )
-    return rule_set
+    if suffix in (".xbrl", ".xml"):
+        return "xml"
+    if suffix == ".zip":
+        return _detect_zip_format(file_path)
+    raise ValueError(
+        f"Unsupported file extension: {file_path.suffix!r}. Expected .xbrl, .xml or .zip."
+    )
 
 
 def _load_index() -> Dict[str, str]:
@@ -129,7 +175,7 @@ def run_validation(
     This is the main execution loop called by the public validate() API.
 
     Args:
-        file: Path to an .xbrl (XML) or .zip (CSV) file.
+        file: Path to an .xbrl/.xml (XML) or .zip (CSV or XML-in-ZIP) file.
         eba: When True, additionally runs EBA-specific rules.
         post_conversion: (CSV only) When True, skips structural and
             format checks guaranteed by xbridge's converter.
@@ -138,7 +184,8 @@ def run_validation(
         A list of ValidationResult findings.
 
     Raises:
-        ValueError: If the file extension is not supported.
+        ValueError: If the file extension is not supported or the ZIP
+            content is unrecognized.
         FileNotFoundError: If the file does not exist.
     """
     file_path = Path(file).resolve()
@@ -146,16 +193,24 @@ def run_validation(
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
 
-    # 1. Detect format
+    # 1. Detect format (inspects ZIP content when needed)
     rule_set = _detect_format(file_path)
 
-    # 2. Read raw bytes
-    raw_bytes = file_path.read_bytes()
+    # 2. Determine if input is a ZIP and resolve the actual XBRL file
+    zip_path: Optional[Path] = None
+    effective_path = file_path  # Path to the actual content to validate
 
-    # 3. Load registry
+    if file_path.suffix.lower() == ".zip":
+        zip_path = file_path
+        if rule_set == "xml":
+            # XML-in-ZIP: extract and use the inner .xbrl file
+            _temp_dir, effective_path = _extract_xml_from_zip(file_path)
+
+    # 3. Read raw bytes from the effective content file
+    raw_bytes = effective_path.read_bytes()
+
+    # 4. Load registry and filter rules
     registry = load_registry()
-
-    # 4. Filter rules
     selected = select_rules(registry, rule_set, eba, post_conversion)
 
     # 5. Attempt parsing
@@ -165,7 +220,7 @@ def run_validation(
     xml_root: Optional[etree._Element] = None
 
     if rule_set == "xml":
-        xml_instance = _try_parse_xml(file_path, raw_bytes)
+        xml_instance = _try_parse_xml(effective_path, raw_bytes)
         if xml_instance is not None:
             xml_root = getattr(xml_instance, "root", None)
             module_ref = getattr(xml_instance, "module_ref", None)
@@ -200,6 +255,7 @@ def run_validation(
             csv_instance=csv_instance,
             module=module,
             xml_root=xml_root,
+            zip_path=zip_path,
         )
         impl(ctx)
         all_findings.extend(ctx.findings)

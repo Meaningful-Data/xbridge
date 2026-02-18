@@ -5,6 +5,7 @@ from xbridge.validation.rules import (
     eba_currency,  # noqa: F401
     eba_entity,  # noqa: F401
     eba_guidance,  # noqa: F401
+    eba_naming,  # noqa: F401
     eba_units,  # noqa: F401
     xml_context,  # noqa: F401
     xml_document,  # noqa: F401

@@ -42,6 +42,7 @@ class ValidationContext:
         csv_instance: Optional[CsvInstance] = None,
         module: Optional[Module] = None,
         xml_root: Optional[etree._Element] = None,
+        zip_path: Optional[Path] = None,
     ) -> None:
         self.rule_set = rule_set
         self.rule_definition = rule_definition
@@ -51,6 +52,7 @@ class ValidationContext:
         self.csv_instance = csv_instance
         self.module = module
         self.xml_root = xml_root
+        self.zip_path = zip_path
         self._findings: List[ValidationResult] = []
 
     @property

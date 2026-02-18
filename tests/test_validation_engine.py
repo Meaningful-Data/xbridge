@@ -115,12 +115,12 @@ class TestRunValidation:
         assert isinstance(results, list)
 
     def test_format_detection_zip(self):
-        # Create a minimal ZIP file (just the ZIP end-of-central-directory)
+        # Create a ZIP with a CSV report package structure.
         import io
         import zipfile
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w") as zf:
-            zf.writestr("dummy.txt", "test")
+            zf.writestr("reports/report.json", "{}")
         with NamedTemporaryFile(suffix=".zip", delete=False) as f:
             f.write(buf.getvalue())
             f.flush()
