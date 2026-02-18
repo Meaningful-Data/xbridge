@@ -638,5 +638,45 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-DEC-001",
+    "message": "Monetary facts: @decimals MUST be >= {threshold}: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.18"
+  },
+  {
+    "code": "EBA-DEC-002",
+    "message": "Percentage facts: @decimals MUST be >= 4: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.18"
+  },
+  {
+    "code": "EBA-DEC-003",
+    "message": "Integer facts: @decimals MUST be 0: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.18"
+  },
+  {
+    "code": "EBA-DEC-004",
+    "message": "Decimals SHOULD be a realistic indication of accuracy: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.18"
   }
 ]

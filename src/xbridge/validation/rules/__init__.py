@@ -3,6 +3,7 @@
 from xbridge.validation.rules import (
     eba_additional,  # noqa: F401
     eba_currency,  # noqa: F401
+    eba_decimals,  # noqa: F401
     eba_entity,  # noqa: F401
     eba_guidance,  # noqa: F401
     eba_naming,  # noqa: F401
