@@ -448,5 +448,75 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "2.25"
+  },
+  {
+    "code": "EBA-GUIDE-001",
+    "message": "Unused namespace prefixes SHOULD NOT be declared: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-GUIDE-002",
+    "message": "Namespace prefixes SHOULD mirror canonical prefixes: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": true,
+    "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-GUIDE-003",
+    "message": "Unused @id on facts SHOULD NOT be present: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-GUIDE-004",
+    "message": "String values SHOULD be as short as possible: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": true,
+    "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-GUIDE-005",
+    "message": "Namespace declarations SHOULD be on the document element only: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-GUIDE-006",
+    "message": "Avoid multiple prefix declarations for the same namespace: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-GUIDE-007",
+    "message": "String facts and domain values SHOULD NOT start/end with whitespace: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": true,
+    "eba_ref": "3.4"
   }
 ]

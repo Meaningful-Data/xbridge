@@ -141,21 +141,15 @@ Rules (v5.7) that go beyond the base XBRL/xBRL-CSV specifications.
 | EBA-UNIT-001 | ERROR    | Yes | 3.2     | Non-monetary numeric values MUST use the "pure" unit. (pureUnitNotUsedForMonetaryValue) |
 | EBA-UNIT-002 | WARNING  | Yes | 3.2     | Rates, percentages and ratios SHOULD use decimal notation (e.g. 0.0931 not 9.31). A warning is raised when the absolute value exceeds 50, which strongly suggests percentage notation was used instead of decimal fractions. (useDecimalFractions) |
 
-### 1.14 Decimal Representation
-
-| Rule ID     | Severity | EBA | EBA ref | Description                                                           |
-|-------------|----------|-----|---------|-----------------------------------------------------------------------|
-| EBA-REP-001 | ERROR    | Yes | 3.3     | Numeric facts MUST be expressed in specified units without scaling. Values MUST NOT be truncated to fit the decimals setting (e.g. 2561000 not 2561 with decimals=-3). (reportValuesAsKnownAndUnscaled) |
 
 ### 1.15 Additional Checks
 
 | Rule ID     | Severity | EBA | EBA ref | Description                                                           |
 |-------------|----------|-----|---------|-----------------------------------------------------------------------|
-| EBA-2.5     | WARNING  | Yes | 2.5     | XML comments are ignored; data SHOULD only appear in contexts, units, and facts. |
-| EBA-2.16.1  | ERROR    | Yes | 2.16    | No multi-unit fact sets. (factsDifferingOnlyByUnit)                  |
-| EBA-2.24    | ERROR    | Yes | 2.24    | Monetary units MUST be basic ISO 4217, no scaling.                   |
-| EBA-2.25    | WARNING  | Yes | 2.25    | Footnotes are ignored. `link:footnoteLink` SHOULD NOT be present.    |
-| EBA-2.26    | WARNING  | Yes | 2.26    | Software generator information SHOULD be present.                    |
+| EBA-ADD-001  | ERROR    | Yes | 2.16    | No multi-unit fact sets. (factsDifferingOnlyByUnit)                  |
+| EBA-ADD-002  | ERROR    | Yes | 2.24    | Monetary units MUST be basic ISO 4217, no scaling.                   |
+| EBA-ADD-003  | WARNING  | Yes | 2.25    | Footnotes are ignored. `link:footnoteLink` SHOULD NOT be present.    |
+| EBA-ADD-004  | WARNING  | Yes | 2.26    | Software generator information SHOULD be present.                    |
 
 ### 1.16 Guidance
 
