@@ -142,27 +142,26 @@ def _validate_main() -> None:
         sys.exit(1)
 
     if args.json_output:
-        print(json.dumps([r.to_dict() for r in results], indent=2))
+        print(json.dumps(results, indent=2))
     else:
-        if not results:
+        errors = results["errors"]
+        warnings = results["warnings"]
+        all_findings = errors + warnings
+
+        if not all_findings:
             print("No issues found.")
         else:
-            errors = [r for r in results if r.severity == Severity.ERROR]
-            warnings = [r for r in results if r.severity == Severity.WARNING]
-            infos = [r for r in results if r.severity == Severity.INFO]
-
-            for finding in results:
-                print(f"[{finding.severity.value}] {finding.rule_id}: {finding.message}")
-                print(f"  Location: {finding.location}")
+            for finding in all_findings:
+                print(f"[{finding['severity']}] {finding['rule_id']}: {finding['message']}")
+                print(f"  Location: {finding['location']}")
 
             print()
             print(
-                f"Found {len(results)} issue(s): "
-                f"{len(errors)} error(s), {len(warnings)} warning(s), "
-                f"{len(infos)} info(s)"
+                f"Found {len(all_findings)} issue(s): "
+                f"{len(errors)} error(s), {len(warnings)} warning(s)"
             )
 
-    if any(r.severity == Severity.ERROR for r in results):
+    if results["errors"]:
         sys.exit(1)
 
 

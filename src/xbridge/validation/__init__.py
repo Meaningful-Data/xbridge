@@ -5,12 +5,13 @@ Public API::
     from xbridge.validation import validate, ValidationResult, Severity
 
     results = validate("path/to/instance.xbrl", eba=True)
+    # results == {"errors": [...], "warnings": [...]}
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Union
+from typing import Any, Dict, List, Union
 
 from xbridge.validation._engine import run_validation
 from xbridge.validation._models import Severity, ValidationResult
@@ -22,7 +23,7 @@ def validate(
     file: Union[str, Path],
     eba: bool = False,
     post_conversion: bool = False,
-) -> List[ValidationResult]:
+) -> Dict[str, List[Dict[str, Any]]]:
     """Validate an XBRL instance file.
 
     Args:
@@ -33,7 +34,15 @@ def validate(
             only EBA semantic checks. Has no effect for .xbrl files.
 
     Returns:
-        A list of ValidationResult findings, ordered by rule execution
-        sequence. An empty list means no issues were found.
+        A dictionary with two keys:
+
+        - ``"errors"`` — list of ERROR findings as dicts.
+        - ``"warnings"`` — list of WARNING (and INFO) findings as dicts.
+
+        Each dict entry is the ``to_dict()`` representation of a
+        :class:`ValidationResult`.
     """
-    return run_validation(file, eba=eba, post_conversion=post_conversion)
+    findings = run_validation(file, eba=eba, post_conversion=post_conversion)
+    errors = [f.to_dict() for f in findings if f.severity == Severity.ERROR]
+    warnings = [f.to_dict() for f in findings if f.severity in (Severity.WARNING, Severity.INFO)]
+    return {"errors": errors, "warnings": warnings}
