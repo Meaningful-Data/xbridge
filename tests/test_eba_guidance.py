@@ -128,6 +128,19 @@ class TestGuide001UnusedNamespacePrefixes:
         xml = _xbrl("", ns='xmlns:xbrli="http://www.xbrl.org/2003/instance"')
         assert _run(xml, "EBA-GUIDE-001") == []
 
+    def test_xsi_prefix_not_flagged(self) -> None:
+        """xsi is a standard XML namespace and should not be flagged as unused."""
+        ns_with_xsi = (
+            'xmlns:xbrli="http://www.xbrl.org/2003/instance" '
+            'xmlns:eba_met="http://www.eba.europa.eu/xbrl/crr/dict/met" '
+            'xmlns:iso4217="http://www.xbrl.org/2003/iso4217" '
+            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
+        )
+        body = _context() + _unit() + _fact()
+        xml = _xbrl(body, ns=ns_with_xsi)
+        findings = _run(xml, "EBA-GUIDE-001")
+        assert findings == []
+
     def test_prefix_used_only_in_text_content(self) -> None:
         """iso4217 prefix is used only in measure text content."""
         ns_minimal = (

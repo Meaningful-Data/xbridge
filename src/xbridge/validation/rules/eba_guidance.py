@@ -3,26 +3,25 @@
 Shared rules (XML + CSV).  Only the XML implementation is provided
 here; the CSV side will be added when the CSV infrastructure
 is available.
+
+EBA-GUIDE-001, 005, and 006 all need a full tree traversal.  A
+**single-pass** scan collects data for all three rules and caches
+the result per root.
 """
 
 from __future__ import annotations
 
-from typing import Dict, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from lxml import etree
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
+from xbridge.validation.rules._helpers import fact_label, is_fact
 
 # ---------------------------------------------------------------------------
-# Namespace constants
+# Constants
 # ---------------------------------------------------------------------------
-_XBRLI_NS = "http://www.xbrl.org/2003/instance"
-_LINK_NS = "http://www.xbrl.org/2003/linkbase"
-_FIND_NS = "http://www.eurofiling.info/xbrl/ext/filing-indicators"
-
-# Namespaces of infrastructure elements (not facts).
-_INFRA_NS = frozenset({_XBRLI_NS, _LINK_NS, _FIND_NS})
 
 # Well-known namespace URI → canonical prefix mapping.
 _CANONICAL_PREFIXES: Dict[str, str] = {
@@ -46,27 +45,6 @@ _EXCESSIVE_STRING_LENGTH = 10_000
 # ---------------------------------------------------------------------------
 
 
-def _is_fact(elem: etree._Element) -> bool:
-    """Return True if *elem* is a fact element (not infrastructure)."""
-    tag = elem.tag
-    if not isinstance(tag, str):
-        return False
-    if tag.startswith("{"):
-        ns = tag[1 : tag.index("}")]
-        return ns not in _INFRA_NS
-    return True
-
-
-def _fact_label(elem: etree._Element) -> str:
-    """Return a human-readable label for a fact element."""
-    tag = elem.tag
-    if not isinstance(tag, str):
-        return str(tag)
-    if tag.startswith("{"):
-        return etree.QName(tag).localname
-    return tag
-
-
 def _canonical_prefix_for_uri(uri: str) -> Optional[str]:
     """Return the canonical prefix for a namespace URI, or None if unknown."""
     static = _CANONICAL_PREFIXES.get(uri)
@@ -84,25 +62,56 @@ def _canonical_prefix_for_uri(uri: str) -> Optional[str]:
     return None
 
 
-def _collect_used_uris(root: etree._Element) -> Set[str]:
-    """Collect namespace URIs actually used in element tags, attributes, and QName values."""
-    used: Set[str] = set()
+# ---------------------------------------------------------------------------
+# Single-pass namespace scan for GUIDE-001, 005, 006
+# ---------------------------------------------------------------------------
+class _NsScanResult:
+    """Data collected in one pass over every element for namespace checks."""
+
+    __slots__ = ("used_uris", "local_decl_elements", "uri_to_prefixes")
+
+    def __init__(self) -> None:
+        # GUIDE-001: namespace URIs actually used in tags/attrs/QName values
+        self.used_uris: Set[str] = set()
+        # GUIDE-005: (tag_label, sorted_prefix_list_str) for non-root local decls
+        self.local_decl_elements: List[Tuple[str, str]] = []
+        # GUIDE-006: URI → set of prefixes declared anywhere
+        self.uri_to_prefixes: Dict[str, Set[str]] = {}
+
+
+# Single-entry cache keyed by root object reference.
+_last_ns_scan: Optional[Tuple[etree._Element, _NsScanResult]] = None
+
+
+def _ns_scan(root: etree._Element) -> _NsScanResult:
+    """Single-pass scan collecting namespace data for GUIDE-001/005/006; cached per *root*."""
+    global _last_ns_scan  # noqa: PLW0603
+    if _last_ns_scan is not None and _last_ns_scan[0] is root:
+        return _last_ns_scan[1]
+
+    r = _NsScanResult()
+
+    # Seed uri_to_prefixes with root-level declarations.
+    for prefix, uri in root.nsmap.items():
+        if prefix is not None:
+            r.uri_to_prefixes.setdefault(uri, set()).add(prefix)
 
     for elem in root.iter():
         tag = elem.tag
         if not isinstance(tag, str):
             continue
 
-        # Namespace from element tag.
+        # --- Collect used URIs (GUIDE-001) ---
+        # From element tag.
         if tag.startswith("{"):
-            used.add(tag[1 : tag.index("}")])
+            r.used_uris.add(tag[1 : tag.index("}")])
 
-        # Namespaces from attribute names.
+        # From attribute names.
         for attr_name in elem.attrib:
             if isinstance(attr_name, str) and attr_name.startswith("{"):
-                used.add(attr_name[1 : attr_name.index("}")])
+                r.used_uris.add(attr_name[1 : attr_name.index("}")])
 
-        # QName references in attribute values and text content.
+        # From QName references in attribute values and text content.
         nsmap = elem.nsmap
         texts: list[str] = [str(v) for v in elem.attrib.values()]
         if elem.text:
@@ -112,9 +121,28 @@ def _collect_used_uris(root: etree._Element) -> Set[str]:
                 prefix = val.split(":")[0]
                 resolved = nsmap.get(prefix)
                 if resolved is not None:
-                    used.add(resolved)
+                    r.used_uris.add(resolved)
 
-    return used
+        # --- Check for local namespace declarations (GUIDE-005 / GUIDE-006) ---
+        parent = elem.getparent()
+        if parent is None:
+            continue  # Root element — skip
+        parent_nsmap = parent.nsmap
+        local_prefixes: list[str] = []
+        for ns_prefix, uri in nsmap.items():
+            if parent_nsmap.get(ns_prefix) != uri:
+                # GUIDE-006: record this prefix→uri binding
+                if ns_prefix is not None:
+                    r.uri_to_prefixes.setdefault(uri, set()).add(ns_prefix)
+                local_prefixes.append(ns_prefix or "(default)")
+        if local_prefixes:
+            tag_label = etree.QName(tag).localname if tag.startswith("{") else tag
+            r.local_decl_elements.append(
+                (tag_label, ", ".join(sorted(local_prefixes)))
+            )
+
+    _last_ns_scan = (root, r)
+    return r
 
 
 # ---------------------------------------------------------------------------
@@ -129,16 +157,16 @@ def check_unused_namespace_prefixes(ctx: ValidationContext) -> None:
     if root is None:
         return
 
+    scan = _ns_scan(root)
     declared = root.nsmap
-    used_uris = _collect_used_uris(root)
 
     unused = []
     for prefix, uri in declared.items():
         if prefix is None:
             continue  # Default namespace — skip
-        if prefix == "xml":
-            continue  # Always implicitly available
-        if uri not in used_uris:
+        if prefix in ("xml", "xsi"):
+            continue  # Standard XML namespaces — always implicitly available
+        if uri not in scan.used_uris:
             unused.append(prefix)
 
     if unused:
@@ -191,11 +219,11 @@ def check_unused_fact_ids(ctx: ValidationContext) -> None:
 
     flagged = []
     for child in root:
-        if not _is_fact(child):
+        if not is_fact(child):
             continue
         fact_id = child.get("id")
         if fact_id is not None:
-            flagged.append(f"{_fact_label(child)} id={fact_id}")
+            flagged.append(f"{fact_label(child)} id={fact_id}")
 
     if flagged:
         n = len(flagged)
@@ -225,7 +253,7 @@ def check_excessive_string_length(ctx: ValidationContext) -> None:
             continue
         length = len(fact.value)
         if length > _EXCESSIVE_STRING_LENGTH:
-            label = _fact_label(fact.fact_xml)
+            label = fact_label(fact.fact_xml)
             ctx.add_finding(
                 location=f"fact:{label}",
                 context={
@@ -249,25 +277,12 @@ def check_namespace_declarations_on_root(ctx: ValidationContext) -> None:
     if root is None:
         return
 
-    offending = []
-    for elem in root.iter():
-        if not isinstance(elem.tag, str):
-            continue
-        parent = elem.getparent()
-        if parent is None:
-            continue  # Root element
-        parent_nsmap = parent.nsmap
-        local_decls = []
-        for prefix, uri in elem.nsmap.items():
-            if parent_nsmap.get(prefix) != uri:
-                local_decls.append(prefix or "(default)")
-        if local_decls:
-            tag_label = etree.QName(elem.tag).localname if elem.tag.startswith("{") else elem.tag
-            offending.append(f"{tag_label} declares {', '.join(sorted(local_decls))}")
+    scan = _ns_scan(root)
+    offending = scan.local_decl_elements
 
     if offending:
         n = len(offending)
-        examples = "; ".join(offending[:5])
+        examples = "; ".join(f"{tag} declares {pfx}" for tag, pfx in offending[:5])
         detail = f"{n} element(s) with local namespace declarations: {examples}"
         if n > 5:
             detail += f" (and {n - 5} more)"
@@ -286,31 +301,10 @@ def check_multiple_prefixes_same_namespace(ctx: ValidationContext) -> None:
     if root is None:
         return
 
-    # Collect all prefix → URI declarations across the document.
-    uri_to_prefixes: Dict[str, Set[str]] = {}
-
-    # Root-level declarations.
-    for prefix, uri in root.nsmap.items():
-        if prefix is None:
-            continue
-        uri_to_prefixes.setdefault(uri, set()).add(prefix)
-
-    # Local declarations on descendants.
-    for elem in root.iter():
-        if not isinstance(elem.tag, str):
-            continue
-        parent = elem.getparent()
-        if parent is None:
-            continue
-        parent_nsmap = parent.nsmap
-        for prefix, uri in elem.nsmap.items():
-            if prefix is None:
-                continue
-            if parent_nsmap.get(prefix) != uri:
-                uri_to_prefixes.setdefault(uri, set()).add(prefix)
+    scan = _ns_scan(root)
 
     duplicates = []
-    for uri, prefixes in sorted(uri_to_prefixes.items()):
+    for uri, prefixes in sorted(scan.uri_to_prefixes.items()):
         if len(prefixes) > 1:
             sorted_pfx = ", ".join(sorted(prefixes))
             duplicates.append(f"{sorted_pfx} \u2192 {uri}")
@@ -345,7 +339,7 @@ def check_leading_trailing_whitespace(ctx: ValidationContext) -> None:
             if val is None:
                 continue
             if val != val.strip():
-                label = _fact_label(fact.fact_xml)
+                label = fact_label(fact.fact_xml)
                 issues.append(f"fact {label}")
 
     # Check dimension values in contexts.
