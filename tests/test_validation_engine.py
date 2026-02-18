@@ -109,7 +109,9 @@ class TestRunValidation:
 
     def test_format_detection_xbrl(self):
         with NamedTemporaryFile(suffix=".xbrl", delete=False) as f:
-            f.write(b'<?xml version="1.0"?><xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"/>')
+            f.write(
+                b'<?xml version="1.0"?><xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"/>'
+            )
             f.flush()
             results = run_validation(f.name)
         assert isinstance(results, list)
@@ -118,6 +120,7 @@ class TestRunValidation:
         # Create a ZIP with a CSV report package structure.
         import io
         import zipfile
+
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w") as zf:
             zf.writestr("reports/report.json", "{}")
@@ -136,7 +139,9 @@ class TestRunValidation:
 
     def test_format_detection_case_insensitive(self):
         with NamedTemporaryFile(suffix=".XBRL", delete=False) as f:
-            f.write(b'<?xml version="1.0"?><xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"/>')
+            f.write(
+                b'<?xml version="1.0"?><xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"/>'
+            )
             f.flush()
             results = run_validation(f.name)
         assert isinstance(results, list)
@@ -150,7 +155,9 @@ class TestRunValidation:
         # (teardown clears registry). Run on a valid XML file — should
         # produce no findings since there's no implementation.
         with NamedTemporaryFile(suffix=".xbrl", delete=False) as f:
-            f.write(b'<?xml version="1.0"?><xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"/>')
+            f.write(
+                b'<?xml version="1.0"?><xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"/>'
+            )
             f.flush()
             _clear_registry()
             results = run_validation(f.name)

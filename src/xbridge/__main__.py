@@ -124,7 +124,7 @@ def _validate_main() -> None:
     # arguments that belong to this subcommand.
     args = parser.parse_args(sys.argv[2:])
 
-    from xbridge.validation import Severity, validate
+    from xbridge.validation import validate
 
     input_path = Path(args.input_file)
     if not input_path.exists():
@@ -146,20 +146,21 @@ def _validate_main() -> None:
     else:
         errors = results["errors"]
         warnings = results["warnings"]
-        all_findings = errors + warnings
+        error_count = sum(len(v) for v in errors.values())
+        warning_count = sum(len(v) for v in warnings.values())
+        total = error_count + warning_count
 
-        if not all_findings:
+        if not total:
             print("No issues found.")
         else:
-            for finding in all_findings:
-                print(f"[{finding['severity']}] {finding['rule_id']}: {finding['message']}")
-                print(f"  Location: {finding['location']}")
+            for findings_by_code in (errors, warnings):
+                for _code, occurrences in findings_by_code.items():
+                    for finding in occurrences:
+                        print(f"[{finding['severity']}] {finding['rule_id']}: {finding['message']}")
+                        print(f"  Location: {finding['location']}")
 
             print()
-            print(
-                f"Found {len(all_findings)} issue(s): "
-                f"{len(errors)} error(s), {len(warnings)} warning(s)"
-            )
+            print(f"Found {total} issue(s): {error_count} error(s), {warning_count} warning(s)")
 
     if results["errors"]:
         sys.exit(1)

@@ -1,6 +1,6 @@
 [project]
 name = "eba-xbridge"
-version = "1.5.2"
+version = "2.0.0rc1"
 description = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.2)"
 license = 'Apache 2.0'
 readme = "README.rst"
@@ -70,7 +70,7 @@ lint.ignore = ["B023", "B028", "B904", "C403", "D100", "D101", "D102", "D103", "
     "D400", "D401", "D404", "D411", "D413", "D415", "D419", "E203", "S320", "S608"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "PT006", "PT012", "PT013", "E501", "W605"]
+"tests/*" = ["S101", "S108", "PT006", "PT011", "PT012", "PT013", "E501", "W605"]
 
 [tool.mypy]
 files = "src/xbridge"

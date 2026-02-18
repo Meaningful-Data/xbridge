@@ -24,9 +24,7 @@ def _make_rule(**overrides: object) -> RuleDefinition:
     return RuleDefinition(**defaults)  # type: ignore[arg-type]
 
 
-def _make_context(
-    rule: RuleDefinition, rule_set: str = "xml"
-) -> ValidationContext:
+def _make_context(rule: RuleDefinition, rule_set: str = "xml") -> ValidationContext:
     """Helper to build a ValidationContext with minimal data."""
     return ValidationContext(
         rule_set=rule_set,

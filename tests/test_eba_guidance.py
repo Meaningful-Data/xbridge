@@ -129,7 +129,7 @@ class TestGuide001UnusedNamespacePrefixes:
         assert _run(xml, "EBA-GUIDE-001") == []
 
     def test_xsi_prefix_not_flagged(self) -> None:
-        """xsi is a standard XML namespace and should not be flagged as unused."""
+        """Xsi is a standard XML namespace and should not be flagged as unused."""
         ns_with_xsi = (
             'xmlns:xbrli="http://www.xbrl.org/2003/instance" '
             'xmlns:eba_met="http://www.eba.europa.eu/xbrl/crr/dict/met" '

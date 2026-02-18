@@ -137,9 +137,7 @@ def _ns_scan(root: etree._Element) -> _NsScanResult:
                 local_prefixes.append(ns_prefix or "(default)")
         if local_prefixes:
             tag_label = etree.QName(tag).localname if tag.startswith("{") else tag
-            r.local_decl_elements.append(
-                (tag_label, ", ".join(sorted(local_prefixes)))
-            )
+            r.local_decl_elements.append((tag_label, ", ".join(sorted(local_prefixes))))
 
     _last_ns_scan = (root, r)
     return r

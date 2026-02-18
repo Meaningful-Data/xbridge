@@ -2,4 +2,4 @@
 Init file for eba-xbridge library
 """
 
-__version__ = "1.5.2"
+__version__ = "2.0.0rc1"

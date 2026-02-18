@@ -102,7 +102,9 @@ class TestRegistryJson:
     """Tests for the registry.json data file."""
 
     def _load_raw(self) -> list:  # type: ignore[type-arg]
-        registry_path = Path(__file__).parent.parent / "src" / "xbridge" / "validation" / "registry.json"
+        registry_path = (
+            Path(__file__).parent.parent / "src" / "xbridge" / "validation" / "registry.json"
+        )
         with open(registry_path, encoding="utf-8") as f:
             return json.load(f)  # type: ignore[no-any-return]
 
@@ -114,10 +116,21 @@ class TestRegistryJson:
     def test_no_duplicate_codes(self):
         data = self._load_raw()
         codes = [entry["code"] for entry in data]
-        assert len(codes) == len(set(codes)), f"Duplicate codes: {[c for c in codes if codes.count(c) > 1]}"
+        assert len(codes) == len(set(codes)), (
+            f"Duplicate codes: {[c for c in codes if codes.count(c) > 1]}"
+        )
 
     def test_required_fields(self):
-        required = {"code", "message", "severity", "xml", "csv", "eba", "post_conversion", "eba_ref"}
+        required = {
+            "code",
+            "message",
+            "severity",
+            "xml",
+            "csv",
+            "eba",
+            "post_conversion",
+            "eba_ref",
+        }
         data = self._load_raw()
         for entry in data:
             missing = required - set(entry.keys())

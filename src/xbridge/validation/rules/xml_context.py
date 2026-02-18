@@ -260,8 +260,6 @@ def check_scenario_dimension_only(ctx: ValidationContext) -> None:
         ctx.add_finding(
             location=f"context[@id='{ctx_id}']/scenario",
             context={
-                "detail": (
-                    f"Context '{ctx_id}' scenario contains non-dimension element '{tag}'."
-                )
+                "detail": (f"Context '{ctx_id}' scenario contains non-dimension element '{tag}'.")
             },
         )

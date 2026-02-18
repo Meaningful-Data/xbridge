@@ -5,11 +5,12 @@ Public API::
     from xbridge.validation import validate, ValidationResult, Severity
 
     results = validate("path/to/instance.xbrl", eba=True)
-    # results == {"errors": [...], "warnings": [...]}
+    # results == {"errors": {"XML-001": [...]}, "warnings": {"XML-066": [...]}}
 """
 
 from __future__ import annotations
 
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
@@ -23,7 +24,7 @@ def validate(
     file: Union[str, Path],
     eba: bool = False,
     post_conversion: bool = False,
-) -> Dict[str, List[Dict[str, Any]]]:
+) -> Dict[str, Dict[str, List[Dict[str, Any]]]]:
     """Validate an XBRL instance file.
 
     Args:
@@ -36,13 +37,23 @@ def validate(
     Returns:
         A dictionary with two keys:
 
-        - ``"errors"`` — list of ERROR findings as dicts.
-        - ``"warnings"`` — list of WARNING (and INFO) findings as dicts.
+        - ``"errors"`` — dict keyed by rule code, each value a list of
+          ERROR findings as dicts.
+        - ``"warnings"`` — dict keyed by rule code, each value a list of
+          WARNING (and INFO) findings as dicts.
 
         Each dict entry is the ``to_dict()`` representation of a
         :class:`ValidationResult`.
     """
     findings = run_validation(file, eba=eba, post_conversion=post_conversion)
-    errors = [f.to_dict() for f in findings if f.severity == Severity.ERROR]
-    warnings = [f.to_dict() for f in findings if f.severity in (Severity.WARNING, Severity.INFO)]
-    return {"errors": errors, "warnings": warnings}
+
+    errors: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    warnings: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+
+    for f in findings:
+        if f.severity == Severity.ERROR:
+            errors[f.rule_id].append(f.to_dict())
+        else:
+            warnings[f.rule_id].append(f.to_dict())
+
+    return {"errors": dict(errors), "warnings": dict(warnings)}

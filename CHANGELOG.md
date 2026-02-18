@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0rc1] - 2026-02-18
+
+### Added
+- **Standalone Validation API**: New `xbridge.validation` module with `validate()` function for checking XBRL instance files against structural and regulatory rules.
+- **Validation CLI Command**: New `validate` subcommand for running validation checks from the command line.
+- **XML Structural Rules**: XML-001 (well-formedness), XML-002 (UTF-8 encoding), XML-003 (root element), XML-010/XML-012 (schemaRef checks), XML-020/XML-021/XML-024..XML-026 (filing indicator checks), XML-030..XML-035 (context structure), XML-040..XML-043 (fact structure), XML-050 (unit UTR reference), XML-060..XML-069 (document-level checks), XML-070..XML-072 (taxonomy conformance).
+- **EBA Entity Rules**: EBA-ENTITY-001, EBA-ENTITY-002 — entity identifier format checks.
+- **EBA Currency Rules**: EBA-CUR-001, EBA-CUR-002, EBA-CUR-003 — currency validation.
+- **EBA Unit Rules**: EBA-UNIT-001, EBA-UNIT-002 — non-monetary unit checks.
+- **EBA Decimals Rules**: EBA-DEC-001..EBA-DEC-004 — decimals accuracy checks.
+- **EBA Guidance Rules**: EBA-GUIDE-001..EBA-GUIDE-007 — guidance compliance checks.
+- **EBA Naming Rules**: EBA-NAME-001..EBA-NAME-070 — file naming convention rules with ZIP detection.
+- **Additional EBA Rules**: EBA-2.5, EBA-2.16.1, EBA-2.24, EBA-2.25 — supplementary regulatory checks.
+- **Validation Engine**: Rule selection and execution loop with JSON-based rule registry.
+- **Validation Models**: `Severity`, `RuleDefinition`, and `ValidationResult` data classes for structured findings.
+- **Validation Context**: `ValidationContext` for passing shared data to rule functions.
+- **Single-pass XML Scanning**: Performance optimization — XML is parsed once for the entire validation run.
+- **Validation Documentation**: New `docs/validation.rst` with full API reference, usage examples, and integration guide.
+
+### Changed
+- **Structured Validation Results**: `validate()` returns typed `ValidationResult` objects with `rule_id`, `severity`, `message`, `location`, and `context` fields.
+
 ## [1.5.2] - 2026-02-13
 
 ### Fixed
@@ -139,7 +161,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc1...HEAD
+[2.0.0rc1]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.2...v2.0.0rc1
 [1.5.2]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.4.0...v1.5.0
