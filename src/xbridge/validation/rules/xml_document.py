@@ -31,6 +31,7 @@ _XSI_SCHEMA_LOC = f"{{{_XSI_NS}}}schemaLocation"
 _XSI_NO_NS_SCHEMA_LOC = f"{{{_XSI_NS}}}noNamespaceSchemaLocation"
 
 _LINKBASE_REF_TAG = f"{{{_LINK_NS}}}linkbaseRef"
+_FOOTNOTE_LINK_TAG = f"{{{_LINK_NS}}}footnoteLink"
 _FOREVER_TAG = f"{{{_XBRLI_NS}}}forever"
 _XI_INCLUDE_TAG = f"{{{_XI_NS}}}include"
 _CONTEXT_TAG = f"{{{_XBRLI_NS}}}context"
@@ -64,9 +65,11 @@ class _ScanResult:
     __slots__ = (
         "xml_base_tags",
         "linkbase_ref_count",
+        "footnote_link_count",
         "forever_count",
         "schema_loc_tags",
         "xi_include_count",
+        "comment_count",
         "used_ctx_ids",
         "used_unit_ids",
         "ctx_ids",
@@ -78,9 +81,11 @@ class _ScanResult:
     def __init__(self) -> None:
         self.xml_base_tags: List[str] = []
         self.linkbase_ref_count: int = 0
+        self.footnote_link_count: int = 0
         self.forever_count: int = 0
         self.schema_loc_tags: List[str] = []
         self.xi_include_count: int = 0
+        self.comment_count: int = 0
         self.used_ctx_ids: FrozenSet[str] = frozenset()
         self.used_unit_ids: FrozenSet[str] = frozenset()
         self.ctx_ids: List[str] = []
@@ -167,13 +172,18 @@ def _scan(root: etree._Element) -> _ScanResult:
 
     for elem in root.iter():
         tag = elem.tag
-        # Skip comments / PIs whose tag is a callable, not a str.
+        # Comments / PIs have a callable tag, not a str.
         if not isinstance(tag, str):
+            # EBA-2.5: count XML comments
+            if callable(tag) and isinstance(elem, etree._Comment):
+                r.comment_count += 1
             continue
 
-        # -- Prohibited elements (XML-061, 062, 064) --
+        # -- Prohibited elements (XML-061, 062, 064) + EBA-2.25 --
         if tag == _LINKBASE_REF_TAG:
             r.linkbase_ref_count += 1
+        elif tag == _FOOTNOTE_LINK_TAG:
+            r.footnote_link_count += 1
         elif tag == _FOREVER_TAG:
             r.forever_count += 1
         elif tag == _XI_INCLUDE_TAG:

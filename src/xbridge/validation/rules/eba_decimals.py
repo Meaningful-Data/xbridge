@@ -12,10 +12,11 @@ xbrli:pure → percentage).
 
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
+from xbridge.validation.rules._helpers import PURE_VALUES
 
 # ---------------------------------------------------------------------------
 # Metric-type constants (values of Variable._attributes)
@@ -25,9 +26,8 @@ _TYPE_PERCENTAGE = "$decimalsPercentage"
 _TYPE_INTEGER = "$decimalsInteger"
 _TYPE_DECIMAL = "$decimalsDecimal"
 
-# Unit-measure prefixes used as fallback when no Module is available.
+# Unit-measure prefix used as fallback when no Module is available.
 _ISO4217_PREFIX = "iso4217:"
-_PURE_VALUES = frozenset({"xbrli:pure", "pure"})
 
 # Frameworks whose monetary-decimals threshold is -6 instead of -4.
 # Detected by inspecting the Module URL for these path segments.
@@ -43,14 +43,25 @@ _MAX_REALISTIC_DECIMALS = 20
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+# Single-entry cache for the metric type map: (module_ref, map).
+_last_type_map: Optional[Tuple[Any, Dict[str, str]]] = None
+
+
 def _build_metric_type_map(ctx: ValidationContext) -> Dict[str, str]:
     """Build a ``{metric_qname: type_string}`` lookup from the Module.
 
     Falls back to an empty dict if no Module is loaded.
+    The result is cached per module object so the three DEC rules
+    that call this share a single computation.
     """
+    global _last_type_map  # noqa: PLW0603
     module = ctx.module
     if module is None:
         return {}
+
+    if _last_type_map is not None and _last_type_map[0] is module:
+        return _last_type_map[1]
 
     result: Dict[str, str] = {}
     for table in module.tables:
@@ -59,6 +70,8 @@ def _build_metric_type_map(ctx: ValidationContext) -> Dict[str, str]:
             attr = variable._attributes
             if concept and attr:
                 result[concept] = attr
+
+    _last_type_map = (module, result)
     return result
 
 
@@ -102,7 +115,7 @@ def _infer_type_from_unit(unit_measure: str) -> Optional[str]:
     """Fallback type inference from the unit measure string."""
     if unit_measure[:8].lower() == _ISO4217_PREFIX[:8]:
         return _TYPE_MONETARY
-    if unit_measure in _PURE_VALUES:
+    if unit_measure in PURE_VALUES:
         return _TYPE_PERCENTAGE
     return None
 

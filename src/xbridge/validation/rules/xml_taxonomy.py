@@ -9,12 +9,13 @@ share the work.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, FrozenSet, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, FrozenSet, List, Optional, Tuple
 
 from lxml import etree
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
+from xbridge.validation.rules._helpers import INFRA_NS
 
 if TYPE_CHECKING:
     from xbridge.modules import Module
@@ -22,15 +23,9 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 # Namespace / tag constants
 # ---------------------------------------------------------------------------
-_XBRLI_NS = "http://www.xbrl.org/2003/instance"
-_LINK_NS = "http://www.xbrl.org/2003/linkbase"
-_FIND_NS = "http://www.eurofiling.info/xbrl/ext/filing-indicators"
 _XBRLDI_NS = "http://xbrl.org/2006/xbrldi"
 
 _EXPLICIT_MEMBER_TAG = f"{{{_XBRLDI_NS}}}explicitMember"
-
-# Infrastructure namespaces — children in these are not facts.
-_INFRA_NS = frozenset({_XBRLI_NS, _LINK_NS, _FIND_NS})
 
 # Special dimension keys that are not real dimensions.
 _SKIP_DIM_KEYS = frozenset({"concept", "unit", "decimals"})
@@ -158,18 +153,18 @@ def _collect_dims(
                 dim_members.setdefault(dim_ln, set()).add(member_resolved)
 
 
-# Single-entry caches.
-_last_taxonomy: Optional[Tuple[int, _TaxonomyData]] = None
+# Single-entry caches.  Use object references (not id()) to prevent
+# stale hits when Python recycles memory addresses after GC.
+_last_taxonomy: Optional[Tuple[Any, _TaxonomyData]] = None
 
 
 def _get_taxonomy(module: Module, nsmap: Dict[Optional[str], str]) -> _TaxonomyData:
     """Return cached taxonomy data for *module*."""
     global _last_taxonomy  # noqa: PLW0603
-    mid = id(module)
-    if _last_taxonomy is not None and _last_taxonomy[0] == mid:
+    if _last_taxonomy is not None and _last_taxonomy[0] is module:
         return _last_taxonomy[1]
     result = _extract_taxonomy(module, nsmap)
-    _last_taxonomy = (mid, result)
+    _last_taxonomy = (module, result)
     return result
 
 
@@ -190,14 +185,13 @@ class _ScanResult:
         self.invalid_members: List[Tuple[str, str, str]] = []
 
 
-_last_scan: Optional[Tuple[int, _ScanResult]] = None
+_last_scan: Optional[Tuple[etree._Element, _ScanResult]] = None
 
 
 def _scan(root: etree._Element, taxonomy: _TaxonomyData) -> _ScanResult:
     """Single-pass scan collecting findings for all three rules."""
     global _last_scan  # noqa: PLW0603
-    rid = id(root)
-    if _last_scan is not None and _last_scan[0] == rid:
+    if _last_scan is not None and _last_scan[0] is root:
         return _last_scan[1]
 
     r = _ScanResult()
@@ -212,7 +206,7 @@ def _scan(root: etree._Element, taxonomy: _TaxonomyData) -> _ScanResult:
             continue
         ns_end = tag.index("}")
         ns = tag[1:ns_end]
-        if ns in _INFRA_NS:
+        if ns in INFRA_NS:
             continue
         localname = tag[ns_end + 1 :]
         if (ns, localname) not in taxonomy.valid_concepts:
@@ -252,7 +246,7 @@ def _scan(root: etree._Element, taxonomy: _TaxonomyData) -> _ScanResult:
         if member_resolved is None or member_resolved not in valid_members:
             r.invalid_members.append((ctx_id, dim_qname, member_text))
 
-    _last_scan = (rid, r)
+    _last_scan = (root, r)
     return r
 
 

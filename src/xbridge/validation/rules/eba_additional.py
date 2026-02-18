@@ -2,6 +2,10 @@
 
 XML-only rules covering comments, multi-unit fact sets, basic ISO 4217
 monetary units, and footnote links.
+
+EBA-2.5 (comments) and EBA-2.25 (footnote links) reuse the single-pass
+document scan from ``xml_document._scan()`` instead of doing their own
+full tree traversals.
 """
 
 from __future__ import annotations
@@ -10,21 +14,18 @@ import re
 from collections import defaultdict
 from typing import Dict, Set, Tuple
 
-from lxml import etree
-
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
+from xbridge.validation.rules.xml_document import _scan
 
 # ---------------------------------------------------------------------------
 # Namespace / tag constants
 # ---------------------------------------------------------------------------
 _XBRLI_NS = "http://www.xbrl.org/2003/instance"
-_LINK_NS = "http://www.xbrl.org/2003/linkbase"
 
 _UNIT_TAG = f"{{{_XBRLI_NS}}}unit"
 _MEASURE_TAG = f"{{{_XBRLI_NS}}}measure"
 _DIVIDE_TAG = f"{{{_XBRLI_NS}}}divide"
-_FOOTNOTE_LINK_TAG = f"{{{_LINK_NS}}}footnoteLink"
 
 # Pattern: valid basic ISO 4217 currency code (3 uppercase letters)
 _ISO4217_CODE_RE = re.compile(r"^[A-Z]{3}$")
@@ -42,10 +43,8 @@ def check_no_comments(ctx: ValidationContext) -> None:
     if root is None:
         return
 
-    count = 0
-    for node in root.iter():
-        if callable(node.tag) and isinstance(node, etree._Comment):
-            count += 1
+    scan = _scan(root)
+    count = scan.comment_count
 
     if count:
         ctx.add_finding(
@@ -166,9 +165,8 @@ def check_no_footnote_links(ctx: ValidationContext) -> None:
     if root is None:
         return
 
-    count = 0
-    for _ in root.iter(_FOOTNOTE_LINK_TAG):
-        count += 1
+    scan = _scan(root)
+    count = scan.footnote_link_count
 
     if count:
         ctx.add_finding(

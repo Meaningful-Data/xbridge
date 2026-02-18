@@ -9,29 +9,15 @@ from __future__ import annotations
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
+from xbridge.validation.rules._helpers import is_monetary, is_pure
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-_PURE_VALUES = frozenset({"xbrli:pure", "pure"})
-
 # Threshold above which a pure-unit value is likely expressed as a percentage
 # rather than a decimal fraction (e.g. 93.1 instead of 0.931).
 _DECIMAL_NOTATION_THRESHOLD = 50.0
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-def _is_monetary(unit_measure: str) -> bool:
-    """Return True if the unit measure represents an ISO 4217 currency."""
-    return unit_measure[:8].lower() == "iso4217:"
-
-
-def _is_pure(unit_measure: str) -> bool:
-    """Return True if the unit measure is the dimensionless 'pure' unit."""
-    return unit_measure in _PURE_VALUES
 
 
 # ---------------------------------------------------------------------------
@@ -54,9 +40,9 @@ def check_pure_unit_xml(ctx: ValidationContext) -> None:
         if fact.unit is None:
             continue  # non-numeric (string/enum)
         unit_measure = units.get(fact.unit, "")
-        if _is_monetary(unit_measure):
+        if is_monetary(unit_measure):
             continue  # monetary — handled by CUR rules
-        if _is_pure(unit_measure):
+        if is_pure(unit_measure):
             continue  # correct
         metric = fact.metric or "?"
         ctx.add_finding(
@@ -90,7 +76,7 @@ def check_decimal_notation_xml(ctx: ValidationContext) -> None:
         if fact.unit is None:
             continue
         unit_measure = units.get(fact.unit, "")
-        if not _is_pure(unit_measure):
+        if not is_pure(unit_measure):
             continue
 
         raw = (fact.value or "").strip()

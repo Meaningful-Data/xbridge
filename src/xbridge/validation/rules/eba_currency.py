@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
+from xbridge.validation.rules._helpers import is_monetary
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -33,11 +34,6 @@ _ISO_CURRENCY_RE = re.compile(r"^[A-Z]{3}$")
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def _is_monetary(unit_measure: str) -> bool:
-    """Return True if the unit measure represents an ISO 4217 currency."""
-    return unit_measure[:8].lower() == "iso4217:"
-
-
 def _currency_code(unit_measure: str) -> str:
     """Extract the currency code from a unit measure like 'iso4217:EUR'."""
     return unit_measure[8:]
@@ -84,7 +80,7 @@ def _iter_monetary_facts(
         if fact.unit is None or fact.context is None:
             continue
         unit_measure = units.get(fact.unit, "")
-        if not _is_monetary(unit_measure):
+        if not is_monetary(unit_measure):
             continue
         context = contexts.get(fact.context)
         if context is None:
@@ -154,7 +150,7 @@ def check_denomination_currency_xml(ctx: ValidationContext) -> None:
 
         # This fact is flagged as "currency of denomination" — must be monetary
         unit_measure = units.get(fact.unit or "", "")
-        if not _is_monetary(unit_measure):
+        if not is_monetary(unit_measure):
             metric = fact.metric or "?"
             ctx.add_finding(
                 location=f"fact:{metric}:context:{fact.context}",

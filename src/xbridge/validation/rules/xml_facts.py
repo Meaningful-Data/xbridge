@@ -1,47 +1,22 @@
 """XML-040..XML-043: Fact structure checks.
 
 All rules use ``ctx.xml_root`` (parsed once by the engine).
-Fact elements are identified as direct children of the root whose
-namespace is NOT one of the XBRL infrastructure namespaces.
+A **single-pass** scan of the root's direct children collects data
+for all four rules.  The scan result is cached per root so subsequent
+rule functions reuse it.
 """
 
 from __future__ import annotations
+
+from typing import List, Optional, Tuple
 
 from lxml import etree
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
+from xbridge.validation.rules._helpers import fact_label, is_fact
 
-# ---------------------------------------------------------------------------
-# Namespace constants
-# ---------------------------------------------------------------------------
-_XBRLI_NS = "http://www.xbrl.org/2003/instance"
-_LINK_NS = "http://www.xbrl.org/2003/linkbase"
-_FIND_NS = "http://www.eurofiling.info/xbrl/ext/filing-indicators"
 _XSI_NIL = "{http://www.w3.org/2001/XMLSchema-instance}nil"
-
-# Namespaces of infrastructure elements (not facts).
-_INFRA_NS = frozenset({_XBRLI_NS, _LINK_NS, _FIND_NS})
-
-
-def _is_fact(elem: etree._Element) -> bool:
-    """Return True if *elem* is a fact element (not infrastructure)."""
-    tag = elem.tag
-    if not isinstance(tag, str):
-        return False  # Comments / PIs
-    if tag.startswith("{"):
-        ns = tag[1 : tag.index("}")]
-        return ns not in _INFRA_NS
-    # No namespace — treat as a fact (unusual but possible).
-    return True
-
-
-def _fact_label(elem: etree._Element) -> str:
-    """Return a human-readable label for a fact element."""
-    tag = elem.tag
-    if tag.startswith("{"):
-        return etree.QName(tag).localname
-    return tag
 
 
 def _is_valid_decimals(value: str) -> bool:
@@ -59,6 +34,71 @@ def _is_valid_decimals(value: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Scan result & single-pass scanner
+# ---------------------------------------------------------------------------
+class _ScanResult:
+    """Data collected in one pass over root's direct children."""
+
+    __slots__ = (
+        "precision_facts",
+        "bad_decimals_facts",
+        "xsi_nil_facts",
+        "empty_string_facts",
+    )
+
+    def __init__(self) -> None:
+        # XML-040: fact labels with @precision
+        self.precision_facts: List[str] = []
+        # XML-041: (label, decimals_value)
+        self.bad_decimals_facts: List[Tuple[str, str]] = []
+        # XML-042: fact labels with @xsi:nil
+        self.xsi_nil_facts: List[str] = []
+        # XML-043: fact labels of empty string facts
+        self.empty_string_facts: List[str] = []
+
+
+# Single-entry cache keyed by root object reference.
+_last_scan: Optional[Tuple[etree._Element, _ScanResult]] = None
+
+
+def _scan(root: etree._Element) -> _ScanResult:
+    """Single-pass scan of root children; cached per *root*."""
+    global _last_scan  # noqa: PLW0603
+    if _last_scan is not None and _last_scan[0] is root:
+        return _last_scan[1]
+
+    r = _ScanResult()
+
+    for child in root:
+        if not is_fact(child):
+            continue
+
+        label = fact_label(child)
+
+        # XML-040: no @precision
+        if child.get("precision") is not None:
+            r.precision_facts.append(label)
+
+        # XML-041: valid @decimals
+        decimals = child.get("decimals")
+        if decimals is not None and not _is_valid_decimals(decimals):
+            r.bad_decimals_facts.append((label, decimals))
+
+        # XML-042: no @xsi:nil
+        if child.get(_XSI_NIL) is not None:
+            r.xsi_nil_facts.append(label)
+
+        # XML-043: no empty string facts (non-numeric only)
+        if child.get("unitRef") is None:
+            text = (child.text or "").strip()
+            if text == "":
+                r.empty_string_facts.append(label)
+
+    _last_scan = (root, r)
+    return r
+
+
+# ---------------------------------------------------------------------------
 # XML-040  No precision attribute
 # ---------------------------------------------------------------------------
 
@@ -69,16 +109,12 @@ def check_no_precision(ctx: ValidationContext) -> None:
     root = ctx.xml_root
     if root is None:
         return
-
-    for child in root:
-        if not _is_fact(child):
-            continue
-        if child.get("precision") is not None:
-            label = _fact_label(child)
-            ctx.add_finding(
-                location=f"fact:{label}",
-                context={"detail": f"Fact '{label}' uses @precision instead of @decimals."},
-            )
+    scan = _scan(root)
+    for label in scan.precision_facts:
+        ctx.add_finding(
+            location=f"fact:{label}",
+            context={"detail": f"Fact '{label}' uses @precision instead of @decimals."},
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -92,24 +128,17 @@ def check_decimals_value(ctx: ValidationContext) -> None:
     root = ctx.xml_root
     if root is None:
         return
-
-    for child in root:
-        if not _is_fact(child):
-            continue
-        decimals = child.get("decimals")
-        if decimals is None:
-            continue  # Non-numeric fact — fine
-        if not _is_valid_decimals(decimals):
-            label = _fact_label(child)
-            ctx.add_finding(
-                location=f"fact:{label}",
-                context={
-                    "detail": (
-                        f"Fact '{label}' has invalid @decimals value "
-                        f"'{decimals}' (expected integer or 'INF')."
-                    )
-                },
-            )
+    scan = _scan(root)
+    for label, decimals in scan.bad_decimals_facts:
+        ctx.add_finding(
+            location=f"fact:{label}",
+            context={
+                "detail": (
+                    f"Fact '{label}' has invalid @decimals value "
+                    f"'{decimals}' (expected integer or 'INF')."
+                )
+            },
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -123,16 +152,12 @@ def check_no_xsi_nil(ctx: ValidationContext) -> None:
     root = ctx.xml_root
     if root is None:
         return
-
-    for child in root:
-        if not _is_fact(child):
-            continue
-        if child.get(_XSI_NIL) is not None:
-            label = _fact_label(child)
-            ctx.add_finding(
-                location=f"fact:{label}",
-                context={"detail": f"Fact '{label}' uses @xsi:nil."},
-            )
+    scan = _scan(root)
+    for label in scan.xsi_nil_facts:
+        ctx.add_finding(
+            location=f"fact:{label}",
+            context={"detail": f"Fact '{label}' uses @xsi:nil."},
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -146,17 +171,9 @@ def check_no_empty_string_facts(ctx: ValidationContext) -> None:
     root = ctx.xml_root
     if root is None:
         return
-
-    for child in root:
-        if not _is_fact(child):
-            continue
-        # Numeric facts have unitRef — skip them.
-        if child.get("unitRef") is not None:
-            continue
-        text = (child.text or "").strip()
-        if text == "":
-            label = _fact_label(child)
-            ctx.add_finding(
-                location=f"fact:{label}",
-                context={"detail": f"String-type fact '{label}' is empty."},
-            )
+    scan = _scan(root)
+    for label in scan.empty_string_facts:
+        ctx.add_finding(
+            location=f"fact:{label}",
+            context={"detail": f"String-type fact '{label}' is empty."},
+        )
