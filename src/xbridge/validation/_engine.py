@@ -196,6 +196,13 @@ def run_validation(
     except BadZipFile:
         # Invalid ZIP — fall through to CSV rules so CSV-001 can report it.
         rule_set = "csv"
+    except ValueError:
+        if file_path.suffix.lower() == ".zip":
+            # Valid ZIP but unrecognized content — run CSV structural rules
+            # so CSV-002/CSV-004 can report what is missing.
+            rule_set = "csv"
+        else:
+            raise
 
     # 2. Determine if input is a ZIP and resolve the actual XBRL file
     zip_path: Optional[Path] = None

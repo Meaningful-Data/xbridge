@@ -688,5 +688,45 @@
     "eba": false,
     "post_conversion": false,
     "eba_ref": null
+  },
+  {
+    "code": "CSV-002",
+    "message": "The ZIP MUST contain META-INF/reportPackage.json: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-003",
+    "message": "reportPackage.json documentType MUST be 'https://xbrl.org/report-package/2023': {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-004",
+    "message": "The ZIP MUST contain exactly one reports/report.json: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-005",
+    "message": "The ZIP archive MUST NOT contain extraneous files: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
   }
 ]
