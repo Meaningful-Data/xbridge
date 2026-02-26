@@ -56,11 +56,8 @@ def _detect_zip_format(zip_path: Path) -> str:
     Raises:
         ValueError: If the ZIP content is not a recognized XBRL format.
     """
-    try:
-        with ZipFile(zip_path) as zf:
-            entries = zf.namelist()
-    except BadZipFile as exc:
-        raise ValueError(f"Not a valid ZIP archive: {zip_path.name}") from exc
+    with ZipFile(zip_path) as zf:
+        entries = zf.namelist()
 
     # CSV signature: reports/report.json at any nesting level.
     if any(e == "reports/report.json" or e.endswith("/reports/report.json") for e in entries):
@@ -194,7 +191,11 @@ def run_validation(
         raise FileNotFoundError(f"File not found: {file_path}")
 
     # 1. Detect format (inspects ZIP content when needed)
-    rule_set = _detect_format(file_path)
+    try:
+        rule_set = _detect_format(file_path)
+    except BadZipFile:
+        # Invalid ZIP — fall through to CSV rules so CSV-001 can report it.
+        rule_set = "csv"
 
     # 2. Determine if input is a ZIP and resolve the actual XBRL file
     zip_path: Optional[Path] = None

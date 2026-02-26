@@ -678,5 +678,15 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "2.18"
+  },
+  {
+    "code": "CSV-001",
+    "message": "The report package MUST be a valid ZIP archive: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
   }
 ]

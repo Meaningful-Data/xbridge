@@ -3,7 +3,7 @@
 import importlib
 import sys
 from pathlib import Path
-from zipfile import ZipFile
+from zipfile import BadZipFile, ZipFile
 
 import pytest
 
@@ -99,7 +99,7 @@ class TestDetectZipFormat:
     def test_bad_zip_raises(self, tmp_path: Path) -> None:
         zp = tmp_path / "bad.zip"
         zp.write_bytes(b"not a zip")
-        with pytest.raises(ValueError, match="Not a valid ZIP archive"):
+        with pytest.raises(BadZipFile):
             _detect_zip_format(zp)
 
     def test_csv_takes_priority_over_xml(self, tmp_path: Path) -> None:
