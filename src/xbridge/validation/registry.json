@@ -728,5 +728,75 @@
     "eba": false,
     "post_conversion": false,
     "eba_ref": null
+  },
+  {
+    "code": "CSV-010",
+    "message": "report.json MUST be valid JSON: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-011",
+    "message": "documentInfo.documentType MUST be 'https://xbrl.org/2021/xbrl-csv': {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-012",
+    "message": "documentInfo.extends MUST contain exactly one entry point URL: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.5"
+  },
+  {
+    "code": "CSV-013",
+    "message": "The extends URL MUST resolve to a published entry point: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.5"
+  },
+  {
+    "code": "CSV-014",
+    "message": "JSON representation constraints MUST be met: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-015",
+    "message": "Namespace prefixes MUST be declared in documentInfo.namespaces: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-016",
+    "message": "All URI aliases MUST resolve to valid absolute URIs: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
   }
 ]

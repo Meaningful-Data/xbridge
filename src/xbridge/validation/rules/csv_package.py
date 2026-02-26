@@ -128,6 +128,8 @@ def _declared_table_files(zf: ZipFile) -> Set[str]:
     except (json.JSONDecodeError, UnicodeDecodeError, KeyError):
         return set()
     tables = data.get("tables", {})
+    if not isinstance(tables, dict):
+        return set()
     paths: Set[str] = set()
     for table in tables.values():
         url = table.get("url") if isinstance(table, dict) else None
