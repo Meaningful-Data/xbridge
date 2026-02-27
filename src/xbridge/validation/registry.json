@@ -798,5 +798,55 @@
     "eba": false,
     "post_conversion": false,
     "eba_ref": null
+  },
+  {
+    "code": "CSV-020",
+    "message": "parameters.csv MUST exist in the reports/ folder: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-021",
+    "message": "The parameters.csv header row MUST be 'name,value': {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-022",
+    "message": "entityID parameter MUST be present and non-empty: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-023",
+    "message": "refPeriod parameter MUST be a valid xs:date without timezone: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.10"
+  },
+  {
+    "code": "CSV-026",
+    "message": "Decimals values MUST be valid integers or 'INF': {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
   }
 ]
