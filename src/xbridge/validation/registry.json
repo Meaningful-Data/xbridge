@@ -868,5 +868,65 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": null
+  },
+  {
+    "code": "CSV-030",
+    "message": "FilingIndicators.csv MUST exist in the reports/ folder: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-031",
+    "message": "The FilingIndicators.csv header row MUST be 'templateID,reported': {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-032",
+    "message": "Filing indicator value is not valid for the module: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
+    "code": "CSV-033",
+    "message": "Filing indicator 'reported' value MUST be boolean (true/false): {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-034",
+    "message": "A filing indicator MUST be present for each template in the module: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
+    "code": "CSV-035",
+    "message": "Duplicate filing indicators MUST NOT exist: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
   }
 ]
