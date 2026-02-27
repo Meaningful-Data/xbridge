@@ -928,5 +928,95 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "1.6"
+  },
+  {
+    "code": "CSV-040",
+    "message": "CSV data table files MUST use UTF-8 encoding: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-041",
+    "message": "The first row MUST be the header row with no empty cells: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-042",
+    "message": "All columns defined in the JSON metadata MUST be present in the CSV header: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-043",
+    "message": "Each row MUST contain the same number of fields as the header: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-044",
+    "message": "Key columns MUST contain a value for each reported fact: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-045",
+    "message": "Special values (#empty, #none, #nil, etc.) MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-046",
+    "message": "The Decimals Suffix feature MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-047",
+    "message": "CSV quoting MUST follow RFC 4180 rules: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-049",
+    "message": "Data tables for non-reported templates SHOULD NOT exist: {detail}",
+    "severity": "WARNING",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
   }
 ]

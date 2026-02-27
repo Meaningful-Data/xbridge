@@ -1,6 +1,7 @@
 """Rule implementations for the xbridge validation module."""
 
 from xbridge.validation.rules import (
+    csv_data_tables,  # noqa: F401
     csv_metadata,  # noqa: F401
     csv_filing_indicators,  # noqa: F401
     csv_package,  # noqa: F401
