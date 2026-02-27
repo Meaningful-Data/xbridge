@@ -840,6 +840,26 @@
     "eba_ref": "2.10"
   },
   {
+    "code": "CSV-024",
+    "message": "baseCurrency parameter MUST be present when monetary metrics exist: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-025",
+    "message": "Decimals parameters MUST be present for each metric type: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
     "code": "CSV-026",
     "message": "Decimals values MUST be valid integers or 'INF': {detail}",
     "severity": "ERROR",

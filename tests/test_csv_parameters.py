@@ -1,4 +1,4 @@
-"""Tests for CSV-020..CSV-023, CSV-026: parameters.csv checks."""
+"""Tests for CSV-020..CSV-026: parameters.csv checks."""
 
 import importlib
 import io
@@ -57,6 +57,31 @@ _GOOD_PARAMS = (
 )
 
 
+# Entry point for if_tm module: has $decimalsMonetary + $baseCurrency.
+_IF_TM_EXTENDS = "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/if/4.2/mod/if_tm.json"
+_IF_TM_TABLES = ["i_10.01.csv", "i_10.02.csv"]
+
+# Entry point for rem_gap_ci module: has $decimalsInteger + $decimalsPercentage only.
+_REM_GAP_EXTENDS = "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/rem/4.2/mod/rem_gap_ci.json"
+_REM_GAP_TABLES = ["r_06.00.a.csv", "r_06.00.b.csv"]
+
+
+def _report_with_extends(extends_url: str) -> str:
+    return json.dumps(
+        {
+            "documentInfo": {
+                "documentType": "https://xbrl.org/2021/xbrl-csv",
+                "extends": [extends_url],
+                "namespaces": {
+                    "eba_dim": "http://www.eba.europa.eu/xbrl/crr/dict/dim",
+                    "eba_met": "http://www.eba.europa.eu/xbrl/crr/dict/met",
+                },
+            },
+            "tables": {},
+        }
+    )
+
+
 def _csv_zip(parameters: str | None = _GOOD_PARAMS) -> bytes:
     """Build a minimal valid CSV ZIP with parameters.csv."""
     files: dict[str, str] = {
@@ -65,6 +90,23 @@ def _csv_zip(parameters: str | None = _GOOD_PARAMS) -> bytes:
     }
     if parameters is not None:
         files["reports/parameters.csv"] = parameters
+    return _make_zip(**files)
+
+
+def _csv_zip_with_tables(
+    extends_url: str,
+    table_files: list[str],
+    parameters: str | None = _GOOD_PARAMS,
+) -> bytes:
+    """Build a CSV ZIP with specific entry point and data table files."""
+    files: dict[str, str] = {
+        "META-INF/reportPackage.json": _rpkg(),
+        "reports/report.json": _report_with_extends(extends_url),
+    }
+    if parameters is not None:
+        files["reports/parameters.csv"] = parameters
+    for tf in table_files:
+        files[f"reports/{tf}"] = "col1\nval1\n"
     return _make_zip(**files)
 
 
@@ -285,6 +327,149 @@ class TestCSV023RefPeriod:
         data = _csv_zip(parameters=None)
         results = _write_and_validate(data)
         assert _findings_for(results, "CSV-023") == []
+
+
+# ── CSV-024: baseCurrency MUST be present when monetary metrics exist ─
+
+
+class TestCSV024BaseCurrency:
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_monetary_module_with_base_currency_no_findings(self):
+        """if_tm has monetary metrics; baseCurrency is provided."""
+        params = _GOOD_PARAMS
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params)
+        results = _write_and_validate(data)
+        assert _findings_for(results, "CSV-024") == []
+
+    def test_monetary_module_missing_base_currency(self):
+        """if_tm has monetary metrics; baseCurrency is missing."""
+        params = "name,value\nentityID,LEI123\nrefPeriod,2025-12-31\ndecimalsMonetary,-3\n"
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params)
+        results = _write_and_validate(data)
+        findings = _findings_for(results, "CSV-024")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "baseCurrency" in findings[0].message
+
+    def test_monetary_module_empty_base_currency(self):
+        """if_tm has monetary metrics; baseCurrency is empty."""
+        params = "name,value\nentityID,LEI123\nrefPeriod,2025-12-31\nbaseCurrency,\n"
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params)
+        results = _write_and_validate(data)
+        findings = _findings_for(results, "CSV-024")
+        assert len(findings) == 1
+        assert "empty" in findings[0].message
+
+    def test_non_monetary_module_no_base_currency_no_findings(self):
+        """rem_gap has no monetary metrics; baseCurrency not required."""
+        params = (
+            "name,value\n"
+            "entityID,LEI123\n"
+            "refPeriod,2025-12-31\n"
+            "decimalsInteger,0\n"
+            "decimalsPercentage,4\n"
+        )
+        data = _csv_zip_with_tables(_REM_GAP_EXTENDS, _REM_GAP_TABLES, parameters=params)
+        results = _write_and_validate(data)
+        assert _findings_for(results, "CSV-024") == []
+
+    def test_no_data_tables_in_zip_no_findings(self):
+        """Module has monetary metrics but no data table files in the ZIP."""
+        params = "name,value\nentityID,LEI123\nrefPeriod,2025-12-31\n"
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, [], parameters=params)
+        results = _write_and_validate(data)
+        assert _findings_for(results, "CSV-024") == []
+
+    def test_only_matching_tables_checked(self):
+        """Only tables actually present in ZIP are checked, not all module tables."""
+        # Include only one of the two if_tm tables
+        params = _GOOD_PARAMS
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, ["i_10.01.csv"], parameters=params)
+        results = _write_and_validate(data)
+        assert _findings_for(results, "CSV-024") == []
+
+    def test_missing_file_skips(self):
+        data = _csv_zip(parameters=None)
+        results = _write_and_validate(data)
+        assert _findings_for(results, "CSV-024") == []
+
+
+# ── CSV-025: decimals parameters MUST match metric types ─────────────
+
+
+class TestCSV025DecimalsParametersPresent:
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_all_required_params_present_no_findings(self):
+        """if_tm needs decimalsMonetary; it's provided."""
+        params = (
+            "name,value\n"
+            "entityID,LEI123\n"
+            "refPeriod,2025-12-31\n"
+            "baseCurrency,EUR\n"
+            "decimalsMonetary,-3\n"
+        )
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params)
+        results = _write_and_validate(data)
+        assert _findings_for(results, "CSV-025") == []
+
+    def test_missing_decimals_monetary(self):
+        """if_tm needs decimalsMonetary but it's not provided."""
+        params = "name,value\nentityID,LEI123\nrefPeriod,2025-12-31\nbaseCurrency,EUR\n"
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params)
+        results = _write_and_validate(data)
+        findings = _findings_for(results, "CSV-025")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "decimalsMonetary" in findings[0].message
+
+    def test_non_monetary_module_needs_integer_and_percentage(self):
+        """rem_gap needs decimalsInteger and decimalsPercentage."""
+        params = (
+            "name,value\n"
+            "entityID,LEI123\n"
+            "refPeriod,2025-12-31\n"
+            "decimalsInteger,0\n"
+            "decimalsPercentage,4\n"
+        )
+        data = _csv_zip_with_tables(_REM_GAP_EXTENDS, _REM_GAP_TABLES, parameters=params)
+        results = _write_and_validate(data)
+        assert _findings_for(results, "CSV-025") == []
+
+    def test_non_monetary_module_missing_percentage(self):
+        """rem_gap needs decimalsPercentage but only decimalsInteger is provided."""
+        params = "name,value\nentityID,LEI123\nrefPeriod,2025-12-31\ndecimalsInteger,0\n"
+        data = _csv_zip_with_tables(_REM_GAP_EXTENDS, _REM_GAP_TABLES, parameters=params)
+        results = _write_and_validate(data)
+        findings = _findings_for(results, "CSV-025")
+        assert len(findings) == 1
+        assert "decimalsPercentage" in findings[0].message
+
+    def test_non_monetary_module_missing_both(self):
+        """rem_gap needs both decimalsInteger and decimalsPercentage; both missing."""
+        params = "name,value\nentityID,LEI123\nrefPeriod,2025-12-31\n"
+        data = _csv_zip_with_tables(_REM_GAP_EXTENDS, _REM_GAP_TABLES, parameters=params)
+        results = _write_and_validate(data)
+        findings = _findings_for(results, "CSV-025")
+        assert len(findings) == 2
+        messages = " ".join(f.message for f in findings)
+        assert "decimalsInteger" in messages
+        assert "decimalsPercentage" in messages
+
+    def test_no_data_tables_in_zip_no_findings(self):
+        """No data table files in ZIP → nothing to check."""
+        params = "name,value\nentityID,LEI123\nrefPeriod,2025-12-31\n"
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, [], parameters=params)
+        results = _write_and_validate(data)
+        assert _findings_for(results, "CSV-025") == []
+
+    def test_missing_file_skips(self):
+        data = _csv_zip(parameters=None)
+        results = _write_and_validate(data)
+        assert _findings_for(results, "CSV-025") == []
 
 
 # ── CSV-026: decimals values MUST be valid integers or 'INF' ─────────
