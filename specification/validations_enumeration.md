@@ -264,9 +264,9 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
 
 | Rule ID  | Severity | EBA | EBA ref | Post-conv. | Impl | Description                                                |
 |----------|----------|-----|---------|------------|------|------------------------------------------------------------|
-| CSV-060  | ERROR    | No  | --      | No         | --   | All metric references in data tables MUST be defined in the taxonomy for the referenced entry point. |
-| CSV-061  | ERROR    | No  | --      | No         | --   | All dimension columns MUST correspond to dimensions defined in the taxonomy. |
-| CSV-062  | ERROR    | No  | --      | No         | --   | All dimension member values MUST be valid members for their respective dimension as defined in the taxonomy. |
+| CSV-060  | ERROR    | No  | --      | No         | Done | All metric references in data tables MUST be defined in the taxonomy for the referenced entry point. |
+| CSV-061  | ERROR    | No  | --      | No         | Done | All dimension columns MUST correspond to dimensions defined in the taxonomy. |
+| CSV-062  | ERROR    | No  | --      | No         | Done | All dimension member values MUST be valid members for their respective dimension as defined in the taxonomy. |
 
 ### 2.8 Entity Identification
 

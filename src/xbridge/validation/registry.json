@@ -1048,5 +1048,35 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": "2.16"
+  },
+  {
+    "code": "CSV-060",
+    "message": "All metric references in data tables MUST be defined in the taxonomy: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-061",
+    "message": "All dimension columns MUST correspond to dimensions defined in the taxonomy: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-062",
+    "message": "All dimension member values MUST be valid for their dimension: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
   }
 ]
