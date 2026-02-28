@@ -250,7 +250,6 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
 | CSV-045  | ERROR    | Yes | --      | No         | --   | Special values (`#empty`, `#none`, `#nil`, any value starting with `#`) MUST NOT be used in fact or key columns. |
 | CSV-046  | ERROR    | Yes | --      | No         | --   | The "Decimals Suffix" feature MUST NOT be used; decimals MUST come from `parameters.csv`. |
 | CSV-047  | ERROR    | No  | --      | No         | --   | Strings containing commas, linefeeds, or double quotes MUST be enclosed in double quotes, with internal double quotes escaped by doubling. (xBRL-CSV 3.2.1) |
-| CSV-048  | ERROR    | Yes | --      | No         | --   | Data tables for reported templates (filing indicator = true) MUST exist. |
 | CSV-049  | WARNING  | Yes | --      | No         | --   | Data tables for non-reported templates (filing indicator = false) SHOULD NOT exist. |
 
 ### 2.6 Fact-level Validation

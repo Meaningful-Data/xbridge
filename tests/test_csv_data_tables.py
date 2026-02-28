@@ -1,4 +1,4 @@
-"""Tests for CSV-040..CSV-049: Data table checks (except CSV-048)."""
+"""Tests for CSV-040..CSV-049: Data table checks."""
 
 import importlib
 import io
