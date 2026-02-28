@@ -279,10 +279,10 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
 
 | Rule ID     | Severity | EBA | EBA ref | Post-conv. | Impl | Description                                               |
 |-------------|----------|-----|---------|------------|------|-----------------------------------------------------------|
-| EBA-DEC-001 | ERROR    | Yes | 2.18    | No        | --    | Monetary facts: decimals MUST be >= -4 (from 01/04/2025; >= -6 for FP, ESG, Pillar3, REM_DBM modules). |
-| EBA-DEC-002 | ERROR    | Yes | 2.18    | No        | --    | Percentage facts: decimals MUST be >= 4.                 |
-| EBA-DEC-003 | ERROR    | Yes | 2.18    | No        | --    | Integer facts: decimals MUST be 0.                       |
-| EBA-DEC-004 | WARNING  | Yes | 2.18    | No        | --    | Decimals SHOULD be a realistic indication of accuracy (not excessively high). |
+| EBA-DEC-001 | ERROR    | Yes | 2.18    | No        | Done  | Monetary facts: decimals MUST be >= -4 (from 01/04/2025; >= -6 for FP, ESG, Pillar3, REM_DBM modules). |
+| EBA-DEC-002 | ERROR    | Yes | 2.18    | No        | Done  | Percentage facts: decimals MUST be >= 4.                 |
+| EBA-DEC-003 | ERROR    | Yes | 2.18    | No        | Done  | Integer facts: decimals MUST be 0.                       |
+| EBA-DEC-004 | WARNING  | Yes | 2.18    | No        | Done  | Decimals SHOULD be a realistic indication of accuracy (not excessively high). |
 
 ### 2.10 Currency Rules
 

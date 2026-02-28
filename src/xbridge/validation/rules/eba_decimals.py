@@ -1,8 +1,11 @@
 """EBA-DEC-001..EBA-DEC-004: Decimals accuracy checks.
 
-Shared rules (XML + CSV).  Only the XML implementation is provided
-here; the CSV side will be added when the CSV fact infrastructure
-is available.
+Shared rules (XML + CSV).
+
+XML side inspects per-fact ``@decimals`` attributes.
+CSV side reads the global decimals parameters from ``parameters.csv``
+(``decimalsMonetary``, ``decimalsPercentage``, ``decimalsInteger``,
+``decimalsDecimal``).
 
 The checks rely on the taxonomy Module to classify each metric as
 monetary, percentage, integer, or decimal.  When no Module is
@@ -17,6 +20,7 @@ from typing import Any, Dict, Optional, Tuple
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
 from xbridge.validation.rules._helpers import PURE_VALUES
+from xbridge.validation.rules.csv_parameters import _parse_parameters
 
 # ---------------------------------------------------------------------------
 # Metric-type constants (values of Variable._attributes)
@@ -299,6 +303,123 @@ def check_realistic_decimals_xml(ctx: ValidationContext) -> None:
                         f"Fact '{metric}' has @decimals={fact.decimals} "
                         f"which exceeds {_MAX_REALISTIC_DECIMALS} and is not a "
                         f"realistic indication of accuracy."
+                    )
+                },
+            )
+
+
+# ---------------------------------------------------------------------------
+# CSV implementations
+# ---------------------------------------------------------------------------
+
+_PARAMETERS_CSV = "reports/parameters.csv"
+
+# Maps parameter name → human-readable label for error messages.
+_PARAM_LABELS = {
+    "decimalsMonetary": "monetary",
+    "decimalsPercentage": "percentage",
+    "decimalsInteger": "integer",
+    "decimalsDecimal": "decimal",
+}
+
+
+@rule_impl("EBA-DEC-001", format="csv")
+def check_monetary_decimals_csv(ctx: ValidationContext) -> None:
+    """Monetary decimals parameter MUST be >= threshold."""
+    params = _parse_parameters(ctx)
+    if params is None:
+        return
+    raw = params.get("decimalsMonetary")
+    if raw is None:
+        return  # CSV-025 handles missing params.
+
+    threshold = _monetary_threshold(ctx)
+    dec = _parse_decimals(raw)
+    if dec is not None and dec < threshold:
+        ctx.add_finding(
+            location=_PARAMETERS_CSV,
+            context={
+                "detail": (f"decimalsMonetary={raw} is below the minimum threshold of {threshold}.")
+            },
+        )
+
+
+@rule_impl("EBA-DEC-002", format="csv")
+def check_percentage_decimals_csv(ctx: ValidationContext) -> None:
+    """Percentage decimals parameter MUST be >= 4."""
+    params = _parse_parameters(ctx)
+    if params is None:
+        return
+    raw = params.get("decimalsPercentage")
+    if raw is None:
+        return
+
+    dec = _parse_decimals(raw)
+    if dec is not None and dec < 4:
+        ctx.add_finding(
+            location=_PARAMETERS_CSV,
+            context={
+                "detail": (
+                    f"decimalsPercentage={raw} is below the minimum of 4 for percentage facts."
+                )
+            },
+        )
+
+
+@rule_impl("EBA-DEC-003", format="csv")
+def check_integer_decimals_csv(ctx: ValidationContext) -> None:
+    """Integer decimals parameter MUST be 0."""
+    params = _parse_parameters(ctx)
+    if params is None:
+        return
+    raw = params.get("decimalsInteger")
+    if raw is None:
+        return
+
+    if _is_inf(raw):
+        ctx.add_finding(
+            location=_PARAMETERS_CSV,
+            context={"detail": "decimalsInteger=INF but integer facts MUST use decimals=0."},
+        )
+        return
+
+    dec = _parse_decimals(raw)
+    if dec is not None and dec != 0:
+        ctx.add_finding(
+            location=_PARAMETERS_CSV,
+            context={"detail": (f"decimalsInteger={raw} but integer facts MUST use decimals=0.")},
+        )
+
+
+@rule_impl("EBA-DEC-004", format="csv")
+def check_realistic_decimals_csv(ctx: ValidationContext) -> None:
+    """Decimals parameters SHOULD be realistic."""
+    params = _parse_parameters(ctx)
+    if params is None:
+        return
+
+    for param_name, _label in _PARAM_LABELS.items():
+        raw = params.get(param_name)
+        if raw is None:
+            continue
+
+        if _is_inf(raw):
+            ctx.add_finding(
+                location=_PARAMETERS_CSV,
+                context={
+                    "detail": (f"{param_name}=INF is not a realistic indication of accuracy.")
+                },
+            )
+            continue
+
+        dec = _parse_decimals(raw)
+        if dec is not None and dec > _MAX_REALISTIC_DECIMALS:
+            ctx.add_finding(
+                location=_PARAMETERS_CSV,
+                context={
+                    "detail": (
+                        f"{param_name}={raw} exceeds {_MAX_REALISTIC_DECIMALS} "
+                        f"and is not a realistic indication of accuracy."
                     )
                 },
             )

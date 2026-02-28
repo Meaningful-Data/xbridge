@@ -1,7 +1,10 @@
 """Tests for EBA-DEC-001..EBA-DEC-004: decimals accuracy checks."""
 
 import importlib
+import io
+import json
 import sys
+import zipfile
 from tempfile import NamedTemporaryFile
 
 from xbridge.validation._engine import run_validation
@@ -289,3 +292,267 @@ class TestEBADEC004RealisticDecimals:
     def test_empty_document_no_findings(self) -> None:
         xml = _xbrl("")
         assert _run(xml, "EBA-DEC-004") == []
+
+
+# ===================================================================
+# CSV helpers
+# ===================================================================
+
+_IF_TM_EXTENDS = "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/if/4.2/mod/if_tm.json"
+
+
+def _make_zip(**files: str | bytes) -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        for name, content in files.items():
+            zf.writestr(name, content if isinstance(content, bytes) else content)
+    return buf.getvalue()
+
+
+def _rpkg() -> str:
+    return json.dumps({"documentType": "https://xbrl.org/report-package/2023"})
+
+
+def _report() -> str:
+    return json.dumps(
+        {
+            "documentInfo": {
+                "documentType": "https://xbrl.org/2021/xbrl-csv",
+                "extends": [_IF_TM_EXTENDS],
+                "namespaces": {
+                    "eba_dim": "http://www.eba.europa.eu/xbrl/crr/dict/dim",
+                    "eba_met": "http://www.eba.europa.eu/xbrl/crr/dict/met",
+                },
+            },
+            "tables": {},
+        }
+    )
+
+
+def _csv_zip(
+    decimals_monetary: str = "-3",
+    decimals_percentage: str = "4",
+    decimals_integer: str = "0",
+    decimals_decimal: str = "2",
+    *,
+    omit: str = "",
+) -> bytes:
+    """Build a CSV ZIP with configurable decimals parameters.
+
+    Set *omit* to a parameter name (e.g. ``"decimalsMonetary"``) to exclude it.
+    """
+    rows = [
+        ("entityID", "lei:529900T8BM49AURSDO55"),
+        ("refPeriod", "2025-12-31"),
+        ("baseCurrency", "EUR"),
+    ]
+    if omit != "decimalsMonetary":
+        rows.append(("decimalsMonetary", decimals_monetary))
+    if omit != "decimalsPercentage":
+        rows.append(("decimalsPercentage", decimals_percentage))
+    if omit != "decimalsInteger":
+        rows.append(("decimalsInteger", decimals_integer))
+    if omit != "decimalsDecimal":
+        rows.append(("decimalsDecimal", decimals_decimal))
+
+    params = "name,value\n" + "\n".join(f"{k},{v}" for k, v in rows) + "\n"
+    fi = "templateID,reported\nI_10.01,true\n"
+    table = "datapoint,factValue\ndp410222,100\n"
+    return _make_zip(
+        **{
+            "META-INF/reportPackage.json": _rpkg(),
+            "reports/report.json": _report(),
+            "reports/parameters.csv": params,
+            "reports/FilingIndicators.csv": fi,
+            "reports/i_10.01.csv": table,
+        }
+    )
+
+
+def _run_csv(data: bytes, rule_id: str) -> list:
+    with NamedTemporaryFile(suffix=".zip", delete=False) as f:
+        f.write(data)
+        f.flush()
+        results = run_validation(f.name, eba=True)
+    return [r for r in results if r.rule_id == rule_id]
+
+
+# ===================================================================
+# EBA-DEC-001 CSV — Monetary decimals parameter
+# ===================================================================
+
+
+class TestEBADEC001MonetaryDecimalsCSV:
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_decimals_minus_3_ok(self) -> None:
+        data = _csv_zip(decimals_monetary="-3")
+        assert _run_csv(data, "EBA-DEC-001") == []
+
+    def test_decimals_minus_4_ok(self) -> None:
+        """Exactly at the threshold — no finding."""
+        data = _csv_zip(decimals_monetary="-4")
+        assert _run_csv(data, "EBA-DEC-001") == []
+
+    def test_decimals_0_ok(self) -> None:
+        data = _csv_zip(decimals_monetary="0")
+        assert _run_csv(data, "EBA-DEC-001") == []
+
+    def test_decimals_minus_5_error(self) -> None:
+        """Below the -4 threshold — error."""
+        data = _csv_zip(decimals_monetary="-5")
+        findings = _run_csv(data, "EBA-DEC-001")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "-5" in findings[0].message
+        assert "-4" in findings[0].message
+
+    def test_decimals_minus_10_error(self) -> None:
+        data = _csv_zip(decimals_monetary="-10")
+        findings = _run_csv(data, "EBA-DEC-001")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+
+    def test_missing_param_no_findings(self) -> None:
+        """Missing decimalsMonetary is handled by CSV-025, not DEC-001."""
+        data = _csv_zip(omit="decimalsMonetary")
+        assert _run_csv(data, "EBA-DEC-001") == []
+
+
+# ===================================================================
+# EBA-DEC-002 CSV — Percentage decimals parameter
+# ===================================================================
+
+
+class TestEBADEC002PercentageDecimalsCSV:
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_decimals_4_ok(self) -> None:
+        data = _csv_zip(decimals_percentage="4")
+        assert _run_csv(data, "EBA-DEC-002") == []
+
+    def test_decimals_6_ok(self) -> None:
+        data = _csv_zip(decimals_percentage="6")
+        assert _run_csv(data, "EBA-DEC-002") == []
+
+    def test_decimals_3_error(self) -> None:
+        data = _csv_zip(decimals_percentage="3")
+        findings = _run_csv(data, "EBA-DEC-002")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "3" in findings[0].message
+        assert "4" in findings[0].message
+
+    def test_decimals_0_error(self) -> None:
+        data = _csv_zip(decimals_percentage="0")
+        findings = _run_csv(data, "EBA-DEC-002")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+
+    def test_missing_param_no_findings(self) -> None:
+        data = _csv_zip(omit="decimalsPercentage")
+        assert _run_csv(data, "EBA-DEC-002") == []
+
+
+# ===================================================================
+# EBA-DEC-003 CSV — Integer decimals parameter
+# ===================================================================
+
+
+class TestEBADEC003IntegerDecimalsCSV:
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_decimals_0_ok(self) -> None:
+        data = _csv_zip(decimals_integer="0")
+        assert _run_csv(data, "EBA-DEC-003") == []
+
+    def test_decimals_non_zero_error(self) -> None:
+        data = _csv_zip(decimals_integer="3")
+        findings = _run_csv(data, "EBA-DEC-003")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "3" in findings[0].message
+
+    def test_decimals_inf_error(self) -> None:
+        data = _csv_zip(decimals_integer="INF")
+        findings = _run_csv(data, "EBA-DEC-003")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "INF" in findings[0].message
+
+    def test_decimals_negative_error(self) -> None:
+        data = _csv_zip(decimals_integer="-2")
+        findings = _run_csv(data, "EBA-DEC-003")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+
+    def test_missing_param_no_findings(self) -> None:
+        data = _csv_zip(omit="decimalsInteger")
+        assert _run_csv(data, "EBA-DEC-003") == []
+
+
+# ===================================================================
+# EBA-DEC-004 CSV — Unrealistically high decimals
+# ===================================================================
+
+
+class TestEBADEC004RealisticDecimalsCSV:
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_normal_values_ok(self) -> None:
+        """All decimals within realistic range — no findings."""
+        data = _csv_zip(
+            decimals_monetary="-3",
+            decimals_percentage="4",
+            decimals_integer="0",
+            decimals_decimal="2",
+        )
+        assert _run_csv(data, "EBA-DEC-004") == []
+
+    def test_decimals_20_ok(self) -> None:
+        """Exactly 20 — no finding."""
+        data = _csv_zip(decimals_monetary="20")
+        assert _run_csv(data, "EBA-DEC-004") == []
+
+    def test_decimals_21_warning(self) -> None:
+        """Exceeds 20 — warning."""
+        data = _csv_zip(decimals_monetary="21")
+        findings = _run_csv(data, "EBA-DEC-004")
+        assert len(findings) >= 1
+        dec_001_or_004 = [f for f in findings if f.rule_id == "EBA-DEC-004"]
+        assert len(dec_001_or_004) == 1
+        assert dec_001_or_004[0].severity == Severity.WARNING
+        assert "21" in dec_001_or_004[0].message
+
+    def test_inf_warning(self) -> None:
+        """INF is unrealistic — warning."""
+        data = _csv_zip(decimals_percentage="INF")
+        findings = _run_csv(data, "EBA-DEC-004")
+        assert len(findings) >= 1
+        assert any(f.severity == Severity.WARNING and "INF" in f.message for f in findings)
+
+    def test_multiple_unrealistic(self) -> None:
+        """Multiple unrealistic values — multiple findings."""
+        data = _csv_zip(decimals_monetary="25", decimals_percentage="30")
+        findings = _run_csv(data, "EBA-DEC-004")
+        assert len(findings) >= 2
+
+    def test_missing_params_no_findings(self) -> None:
+        """No decimals params at all — no findings from DEC-004."""
+        params = "name,value\nentityID,lei:529900T8BM49AURSDO55\nrefPeriod,2025-12-31\nbaseCurrency,EUR\n"
+        fi = "templateID,reported\nI_10.01,true\n"
+        table = "datapoint,factValue\ndp410222,100\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report(),
+                "reports/parameters.csv": params,
+                "reports/FilingIndicators.csv": fi,
+                "reports/i_10.01.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-DEC-004") == []
