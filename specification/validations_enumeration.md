@@ -272,8 +272,8 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
 
 | Rule ID        | Severity | EBA | EBA ref | Post-conv. | Impl | Description                                          |
 |----------------|----------|-----|---------|------------|------|------------------------------------------------------|
-| EBA-ENTITY-001 | ERROR    | Yes | 2.8     | No        | --    | The `entityID` parameter scheme MUST be one of the accepted schemes (`http://standards.iso.org/iso/17442` for LEI, `https://eurofiling.info/eu/rs` for qualified identifiers). (inappropriateScheme) |
-| EBA-ENTITY-002 | ERROR    | Yes | 2.8     | No        | --    | The `entityID` parameter value MUST follow the reporting subject conventions (LEI format, consolidation suffix, etc.). (unacceptableIdentifier) |
+| EBA-ENTITY-001 | ERROR    | Yes | 2.8     | No        | Done  | The `entityID` parameter scheme MUST be one of the accepted schemes (`http://standards.iso.org/iso/17442` for LEI, `https://eurofiling.info/eu/rs` for qualified identifiers). (inappropriateScheme) |
+| EBA-ENTITY-002 | ERROR    | Yes | 2.8     | No        | Done  | The `entityID` parameter value MUST follow the reporting subject conventions (LEI format, consolidation suffix, etc.). (unacceptableIdentifier) |
 
 ### 2.9 Decimals Accuracy
 
