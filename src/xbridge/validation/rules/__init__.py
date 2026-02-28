@@ -2,8 +2,9 @@
 
 from xbridge.validation.rules import (
     csv_data_tables,  # noqa: F401
-    csv_metadata,  # noqa: F401
+    csv_facts,  # noqa: F401
     csv_filing_indicators,  # noqa: F401
+    csv_metadata,  # noqa: F401
     csv_package,  # noqa: F401
     csv_parameters,  # noqa: F401
     eba_additional,  # noqa: F401

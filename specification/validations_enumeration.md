@@ -256,9 +256,9 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
 
 | Rule ID  | Severity | EBA | EBA ref | Post-conv. | Impl | Description                                                |
 |----------|----------|-----|---------|------------|------|------------------------------------------------------------|
-| CSV-050  | ERROR    | Yes | 2.19    | No         | --   | A fact MUST NOT be reported as `#nil`. (nilUsed)           |
-| CSV-051  | ERROR    | Yes | 2.19    | No         | --   | A fact MUST NOT be reported as `#empty`. (emptyUsed)       |
-| CSV-052  | ERROR    | Yes | 2.16    | No         | --   | Duplicate business facts (same concept, same dimensions) across tables are allowed only as complete duplicates (identical value and decimals). Inconsistent duplicates MUST NOT appear. (duplicateFactXBRL-CSV) |
+| CSV-050  | ERROR    | Yes | 2.19    | No         | Done | A fact MUST NOT be reported as `#nil`. (nilUsed)           |
+| CSV-051  | ERROR    | Yes | 2.19    | No         | Done | A fact MUST NOT be reported as `#empty`. (emptyUsed)       |
+| CSV-052  | ERROR    | Yes | 2.16    | No         | Done | Duplicate business facts (same concept, same dimensions) across tables are allowed only as complete duplicates (identical value and decimals). Inconsistent duplicates MUST NOT appear. (duplicateFactXBRL-CSV) |
 
 ### 2.7 Taxonomy Conformance
 

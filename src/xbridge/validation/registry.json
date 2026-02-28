@@ -1018,5 +1018,35 @@
     "eba": true,
     "post_conversion": false,
     "eba_ref": null
+  },
+  {
+    "code": "CSV-050",
+    "message": "A fact MUST NOT be reported as #nil: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.19"
+  },
+  {
+    "code": "CSV-051",
+    "message": "A fact MUST NOT be reported as #empty: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.19"
+  },
+  {
+    "code": "CSV-052",
+    "message": "Inconsistent duplicate fact: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.16"
   }
 ]
