@@ -48,7 +48,7 @@ def check_report_package_json_exists(ctx: ValidationContext) -> None:
     if zf is None:
         return  # CSV-001 handles bad ZIPs
     with zf:
-        if _REPORT_PACKAGE_JSON not in zf.namelist():
+        if ctx.resolve_zip_entry(_REPORT_PACKAGE_JSON) not in zf.namelist():
             ctx.add_finding(
                 location=ctx.file_path.name,
                 context={"detail": "META-INF/reportPackage.json not found in ZIP"},
@@ -65,10 +65,11 @@ def check_report_package_document_type(ctx: ValidationContext) -> None:
     if zf is None:
         return
     with zf:
-        if _REPORT_PACKAGE_JSON not in zf.namelist():
+        resolved = ctx.resolve_zip_entry(_REPORT_PACKAGE_JSON)
+        if resolved not in zf.namelist():
             return  # CSV-002 handles missing file
 
-        raw = zf.read(_REPORT_PACKAGE_JSON)
+        raw = zf.read(resolved)
 
     try:
         data = json.loads(raw)
@@ -79,7 +80,8 @@ def check_report_package_document_type(ctx: ValidationContext) -> None:
         )
         return
 
-    doc_type = data.get("documentType")
+    doc_info = data.get("documentInfo")
+    doc_type = doc_info.get("documentType") if isinstance(doc_info, dict) else None
     if doc_type != _EXPECTED_DOC_TYPE:
         ctx.add_finding(
             location=_REPORT_PACKAGE_JSON,
@@ -101,7 +103,8 @@ def check_report_json_exists(ctx: ValidationContext) -> None:
     with zf:
         entries = zf.namelist()
 
-    matches = [e for e in entries if e == _REPORT_JSON]
+    resolved = ctx.resolve_zip_entry(_REPORT_JSON)
+    matches = [e for e in entries if e == resolved]
     if len(matches) == 0:
         ctx.add_finding(
             location=ctx.file_path.name,
@@ -119,12 +122,13 @@ def check_report_json_exists(ctx: ValidationContext) -> None:
 # ── CSV-005 ──────────────────────────────────────────────────────────
 
 
-def _declared_table_files(zf: ZipFile) -> Set[str]:
-    """Read report.json and return the set of declared table file paths."""
-    if _REPORT_JSON not in zf.namelist():
+def _declared_table_files(ctx: ValidationContext, zf: ZipFile) -> Set[str]:
+    """Read report.json and return the set of declared table file paths (logical)."""
+    resolved = ctx.resolve_zip_entry(_REPORT_JSON)
+    if resolved not in zf.namelist():
         return set()
     try:
-        data = json.loads(zf.read(_REPORT_JSON))
+        data = json.loads(zf.read(resolved))
     except (json.JSONDecodeError, UnicodeDecodeError, KeyError):
         return set()
     tables = data.get("tables", {})
@@ -146,8 +150,9 @@ def check_no_extraneous_files(ctx: ValidationContext) -> None:
         return
     with zf:
         entries = zf.namelist()
-        table_files = _declared_table_files(zf)
+        table_files = _declared_table_files(ctx, zf)
 
+    # Allowed paths are logical (without root folder prefix).
     allowed: Set[str] = {
         _REPORT_PACKAGE_JSON,
         _REPORT_JSON,
@@ -155,11 +160,20 @@ def check_no_extraneous_files(ctx: ValidationContext) -> None:
         "reports/FilingIndicators.csv",
     } | table_files
 
+    # Tables may also be declared implicitly via the taxonomy module (extends).
+    if ctx.module is not None:
+        for table in ctx.module.tables:
+            if table.url:
+                allowed.add(f"reports/{table.url}")
+
+    prefix = ctx.zip_root_prefix
     for entry in entries:
         # Skip directory entries (trailing slash)
         if entry.endswith("/"):
             continue
-        if entry not in allowed:
+        # Strip root folder prefix for comparison against logical paths.
+        logical = entry[len(prefix) :] if prefix and entry.startswith(prefix) else entry
+        if logical not in allowed:
             ctx.add_finding(
                 location=entry,
                 context={"detail": f"extraneous file: {entry}"},

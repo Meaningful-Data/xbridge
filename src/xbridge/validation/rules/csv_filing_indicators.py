@@ -20,9 +20,10 @@ def _read_fi_raw(ctx: ValidationContext) -> Optional[bytes]:
     """Read reports/FilingIndicators.csv bytes from the ZIP."""
     try:
         with ZipFile(ctx.file_path) as zf:
-            if _FILING_INDICATORS_CSV not in zf.namelist():
+            resolved = ctx.resolve_zip_entry(_FILING_INDICATORS_CSV)
+            if resolved not in zf.namelist():
                 return None
-            return zf.read(_FILING_INDICATORS_CSV)
+            return zf.read(resolved)
     except BadZipFile:
         return None
 
@@ -90,7 +91,7 @@ def check_filing_indicators_file_exists(ctx: ValidationContext) -> None:
     """FilingIndicators.csv MUST exist in the reports/ folder."""
     try:
         with ZipFile(ctx.file_path) as zf:
-            if _FILING_INDICATORS_CSV not in zf.namelist():
+            if ctx.resolve_zip_entry(_FILING_INDICATORS_CSV) not in zf.namelist():
                 ctx.add_finding(
                     location=_FILING_INDICATORS_CSV,
                     context={"detail": "file not found in ZIP archive"},

@@ -26,9 +26,10 @@ def _read_report_json_raw(ctx: ValidationContext) -> Optional[bytes]:
     """Read reports/report.json bytes from the ZIP.  Returns None if unavailable."""
     try:
         with ZipFile(ctx.file_path) as zf:
-            if _REPORT_JSON not in zf.namelist():
+            resolved = ctx.resolve_zip_entry(_REPORT_JSON)
+            if resolved not in zf.namelist():
                 return None
-            return zf.read(_REPORT_JSON)
+            return zf.read(resolved)
     except BadZipFile:
         return None
 

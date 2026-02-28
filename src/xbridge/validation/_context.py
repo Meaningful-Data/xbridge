@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from zipfile import BadZipFile, ZipFile
 
 from lxml import etree
 
@@ -54,11 +55,58 @@ class ValidationContext:
         self.xml_root = xml_root
         self.zip_path = zip_path
         self._findings: List[ValidationResult] = []
+        self._zip_root_prefix: Optional[str] = None
 
     @property
     def findings(self) -> List[ValidationResult]:
         """The accumulated validation findings."""
         return self._findings
+
+    @property
+    def zip_root_prefix(self) -> str:
+        """Root folder prefix inside the ZIP (e.g. ``'FolderName/'``).
+
+        EBA submission ZIPs always nest contents under a single root folder
+        whose name matches the ZIP file stem.  This property detects that
+        prefix so rule implementations can resolve logical paths like
+        ``reports/report.json`` to their actual ZIP entry names.
+
+        Returns an empty string for flat ZIPs (no root folder).
+        """
+        if self._zip_root_prefix is None:
+            self._zip_root_prefix = self._detect_root_prefix()
+        return self._zip_root_prefix
+
+    def _detect_root_prefix(self) -> str:
+        zip_to_check = self.zip_path or (
+            self.file_path if self.file_path.suffix.lower() == ".zip" else None
+        )
+        if zip_to_check is None:
+            return ""
+        try:
+            with ZipFile(zip_to_check) as zf:
+                entries = zf.namelist()
+        except (BadZipFile, FileNotFoundError):
+            return ""
+        if not entries:
+            return ""
+        first_components: set[str] = set()
+        for entry in entries:
+            parts = entry.split("/")
+            if len(parts) <= 1:
+                return ""  # File at root level — no common prefix
+            first_components.add(parts[0])
+        if len(first_components) == 1:
+            return first_components.pop() + "/"
+        return ""
+
+    def resolve_zip_entry(self, logical_path: str) -> str:
+        """Prepend the ZIP root folder prefix to a logical path.
+
+        For flat ZIPs this is a no-op; for rooted ZIPs it prepends the
+        root folder name (e.g. ``'FolderName/reports/report.json'``).
+        """
+        return self.zip_root_prefix + logical_path
 
     def add_finding(
         self,

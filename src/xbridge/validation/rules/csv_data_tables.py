@@ -1,4 +1,4 @@
-"""CSV-040..CSV-049: Data table checks (except CSV-048)."""
+"""CSV-040..CSV-049: Data table checks."""
 
 from __future__ import annotations
 
@@ -116,7 +116,7 @@ def _parse_fi_map(ctx: ValidationContext) -> Optional[Dict[str, str]]:
     """Parse FilingIndicators.csv into {templateID: reported} dict."""
     try:
         with ZipFile(ctx.file_path) as zf:
-            fi_path = "reports/FilingIndicators.csv"
+            fi_path = ctx.resolve_zip_entry("reports/FilingIndicators.csv")
             if fi_path not in zf.namelist():
                 return None
             raw = zf.read(fi_path)

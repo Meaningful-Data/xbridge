@@ -38,9 +38,10 @@ def _read_parameters_raw(ctx: ValidationContext) -> Optional[bytes]:
     """Read reports/parameters.csv bytes from the ZIP.  Returns None if unavailable."""
     try:
         with ZipFile(ctx.file_path) as zf:
-            if _PARAMETERS_CSV not in zf.namelist():
+            resolved = ctx.resolve_zip_entry(_PARAMETERS_CSV)
+            if resolved not in zf.namelist():
                 return None
-            return zf.read(_PARAMETERS_CSV)
+            return zf.read(resolved)
     except BadZipFile:
         return None
 
@@ -149,7 +150,7 @@ def check_parameters_file_exists(ctx: ValidationContext) -> None:
     """parameters.csv MUST exist in the reports/ folder."""
     try:
         with ZipFile(ctx.file_path) as zf:
-            if _PARAMETERS_CSV not in zf.namelist():
+            if ctx.resolve_zip_entry(_PARAMETERS_CSV) not in zf.namelist():
                 ctx.add_finding(
                     location=_PARAMETERS_CSV,
                     context={"detail": "file not found in ZIP archive"},

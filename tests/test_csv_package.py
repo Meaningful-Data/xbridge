@@ -27,7 +27,7 @@ def _make_zip(**files: str) -> bytes:
 
 
 def _good_report_package_json() -> str:
-    return json.dumps({"documentType": _EXPECTED_DOC_TYPE})
+    return json.dumps({"documentInfo": {"documentType": _EXPECTED_DOC_TYPE}})
 
 
 def _good_report_json(**extra_tables: str) -> str:
@@ -199,7 +199,9 @@ class TestCSV003DocumentType:
         """A wrong documentType triggers CSV-003."""
         data = _make_zip(
             **{
-                "META-INF/reportPackage.json": json.dumps({"documentType": "wrong"}),
+                "META-INF/reportPackage.json": json.dumps(
+                    {"documentInfo": {"documentType": "wrong"}}
+                ),
                 "reports/report.json": _good_report_json(),
             }
         )
@@ -245,7 +247,9 @@ class TestCSV003DocumentType:
         """The finding location references the reportPackage.json path."""
         data = _make_zip(
             **{
-                "META-INF/reportPackage.json": json.dumps({"documentType": "bad"}),
+                "META-INF/reportPackage.json": json.dumps(
+                    {"documentInfo": {"documentType": "bad"}}
+                ),
                 "reports/report.json": _good_report_json(),
             }
         )
