@@ -215,11 +215,19 @@ def _build_variable_lookup(ctx: ValidationContext) -> Dict[str, Any]:
 
 
 def _resolve_unit(variable: Any, params: Dict[str, str], row_unit: str) -> str:
-    """Resolve the effective unit measure string for a CSV variable."""
+    """Resolve the effective unit measure string for a CSV variable.
+
+    The *baseCurrency* parameter may already carry the ``iso4217:`` prefix
+    (the converter writes the full measure string from the XBRL instance).
+    """
     unit = variable.dimensions.get("unit", "")
     if unit == "$baseCurrency":
         base = params.get("baseCurrency", "")
-        return f"iso4217:{base}" if base else ""
+        if not base:
+            return ""
+        if base[:8].lower() == "iso4217:":
+            return base
+        return f"iso4217:{base}"
     if unit == "$unit":
         return row_unit
     return unit
@@ -368,7 +376,9 @@ def check_basic_iso4217_csv(ctx: ValidationContext) -> None:
     # Check baseCurrency parameter.
     base = params.get("baseCurrency", "").strip()
     if base:
-        if not _ISO4217_CODE_RE.match(base):
+        # The value may be "EUR" or "iso4217:EUR" — strip the prefix.
+        code = base[8:] if base[:8].lower() == "iso4217:" else base
+        if not _ISO4217_CODE_RE.match(code):
             ctx.add_finding(
                 location=_PARAMETERS_CSV,
                 context={
@@ -378,7 +388,7 @@ def check_basic_iso4217_csv(ctx: ValidationContext) -> None:
                     )
                 },
             )
-        checked.add(f"iso4217:{base}")
+        checked.add(f"iso4217:{code}")
 
     # Check unit column values in data tables.
     module = ctx.module

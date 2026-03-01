@@ -411,6 +411,28 @@ class TestEBA2161MultiUnitCSV:
         assert "EUR" in findings[0].message
         assert "USD" in findings[0].message
 
+    def test_prefixed_base_currency_no_double_prefix(self) -> None:
+        """baseCurrency=iso4217:EUR must not cause double-prefix in unit resolution."""
+        params = (
+            "name,value\n"
+            "entityID,lei:529900T8BM49AURSDO55\n"
+            "refPeriod,2025-12-31\n"
+            "baseCurrency,iso4217:EUR\n"
+            "decimalsMonetary,-3\n"
+        )
+        fi = "templateID,reported\nI_10.01,true\n"
+        table = "datapoint,factValue\ndp410222,100\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": params,
+                "reports/FilingIndicators.csv": fi,
+                "reports/i_10.01.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-2.16.1") == []
+
     def test_different_dims_no_findings(self) -> None:
         """Same datapoint but different CUS dimension — different facts, no finding."""
         params = (
@@ -468,6 +490,53 @@ class TestEBA224BasicISO4217CSV:
             }
         )
         assert _run_csv(data, "EBA-2.24") == []
+
+    def test_valid_base_currency_prefixed_no_findings(self) -> None:
+        """baseCurrency=iso4217:EUR (prefixed) is valid — converter writes this format."""
+        params = (
+            "name,value\n"
+            "entityID,lei:529900T8BM49AURSDO55\n"
+            "refPeriod,2025-12-31\n"
+            "baseCurrency,iso4217:EUR\n"
+            "decimalsMonetary,-3\n"
+        )
+        fi = "templateID,reported\nI_10.01,true\n"
+        table = "datapoint,factValue\ndp410222,100\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": params,
+                "reports/FilingIndicators.csv": fi,
+                "reports/i_10.01.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-2.24") == []
+
+    def test_invalid_base_currency_prefixed_detected(self) -> None:
+        """baseCurrency=iso4217:EURO (prefixed but invalid code) — error."""
+        params = (
+            "name,value\n"
+            "entityID,lei:529900T8BM49AURSDO55\n"
+            "refPeriod,2025-12-31\n"
+            "baseCurrency,iso4217:EURO\n"
+            "decimalsMonetary,-3\n"
+        )
+        fi = "templateID,reported\nI_10.01,true\n"
+        table = "datapoint,factValue\ndp410222,100\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": params,
+                "reports/FilingIndicators.csv": fi,
+                "reports/i_10.01.csv": table,
+            }
+        )
+        findings = _run_csv(data, "EBA-2.24")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "EURO" in findings[0].message
 
     def test_invalid_base_currency_detected(self) -> None:
         """baseCurrency=EURO is not valid (4 letters)."""

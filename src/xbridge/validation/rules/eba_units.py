@@ -143,11 +143,18 @@ def _resolve_unit(variable: Any, params: Dict[str, str], row_unit: str) -> str:
     For ``$baseCurrency`` → ``iso4217:{baseCurrency}``.
     For ``$unit`` → use the row's ``unit`` column value.
     Otherwise → use the literal value from the variable definition.
+
+    The *baseCurrency* parameter may already carry the ``iso4217:`` prefix
+    (the converter writes the full measure string from the XBRL instance).
     """
     unit = variable.dimensions.get("unit", "")
     if unit == "$baseCurrency":
         base = params.get("baseCurrency", "")
-        return f"iso4217:{base}" if base else ""
+        if not base:
+            return ""
+        if base[:8].lower() == "iso4217:":
+            return base
+        return f"iso4217:{base}"
     if unit == "$unit":
         return row_unit
     return unit
