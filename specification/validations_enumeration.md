@@ -309,8 +309,8 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
 
 | Rule ID    | Severity | EBA | EBA ref | Post-conv. | Impl | Description                                                |
 |------------|----------|-----|---------|------------|------|------------------------------------------------------------|
-| EBA-2.16.1 | ERROR   | Yes | 2.16    | Yes        | --   | No multi-unit fact sets. (factsDifferingOnlyByUnit)        |
-| EBA-2.24   | ERROR   | Yes | 2.24    | Yes        | --   | Monetary units MUST be basic ISO 4217, no scaling.         |
+| EBA-2.16.1 | ERROR   | Yes | 2.16    | Yes        | Done | No multi-unit fact sets. (factsDifferingOnlyByUnit)        |
+| EBA-2.24   | ERROR   | Yes | 2.24    | Yes        | Done | Monetary units MUST be basic ISO 4217, no scaling.         |
 
 ### 2.14 Guidance
 

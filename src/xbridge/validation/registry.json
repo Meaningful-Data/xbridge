@@ -424,9 +424,9 @@
     "message": "No multi-unit fact sets; facts MUST NOT differ only by unit: {detail}",
     "severity": "ERROR",
     "xml": true,
-    "csv": false,
+    "csv": true,
     "eba": true,
-    "post_conversion": false,
+    "post_conversion": true,
     "eba_ref": "2.16"
   },
   {
@@ -434,9 +434,9 @@
     "message": "Monetary units MUST be basic ISO 4217 without scaling: {detail}",
     "severity": "ERROR",
     "xml": true,
-    "csv": false,
+    "csv": true,
     "eba": true,
-    "post_conversion": false,
+    "post_conversion": true,
     "eba_ref": "2.24"
   },
   {

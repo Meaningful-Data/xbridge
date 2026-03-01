@@ -1,7 +1,10 @@
 """Tests for EBA-2.5, EBA-2.16.1, EBA-2.24, EBA-2.25: additional checks."""
 
 import importlib
+import io
+import json
 import sys
+import zipfile
 from tempfile import NamedTemporaryFile
 
 from xbridge.validation._engine import run_validation
@@ -75,7 +78,7 @@ def _run(xml_bytes: bytes, rule_id: str) -> list:
 
 
 def _ensure_registered() -> None:
-    if ("EBA-2.5", None) not in _impl_registry:
+    if ("EBA-2.5", None) not in _impl_registry and ("EBA-2.16.1", "xml") not in _impl_registry:
         if _MOD in sys.modules:
             importlib.reload(sys.modules[_MOD])
         else:
@@ -268,3 +271,318 @@ class TestEBA225FootnoteLinks:
     def test_empty_document_no_findings(self) -> None:
         xml = _xbrl("")
         assert _run(xml, "EBA-2.25") == []
+
+
+# ===================================================================
+# CSV helpers
+# ===================================================================
+
+# COREP ALM module has $unit variables (unit comes from row's unit column).
+_COREP_ALM_EXTENDS = (
+    "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/corep/"
+    "its-005-2020/2020-11-15/mod/corep_alm_con.json"
+)
+
+# IF module has $baseCurrency variables only.
+_IF_TM_EXTENDS = "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/if/4.2/mod/if_tm.json"
+
+
+def _make_zip(**files: str | bytes) -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        for name, content in files.items():
+            zf.writestr(name, content if isinstance(content, bytes) else content)
+    return buf.getvalue()
+
+
+def _rpkg() -> str:
+    return json.dumps({"documentType": "https://xbrl.org/report-package/2023"})
+
+
+def _report_corep() -> str:
+    return json.dumps(
+        {
+            "documentInfo": {
+                "documentType": "https://xbrl.org/2021/xbrl-csv",
+                "extends": [_COREP_ALM_EXTENDS],
+                "namespaces": {
+                    "eba_dim": "http://www.eba.europa.eu/xbrl/crr/dict/dim",
+                    "eba_met": "http://www.eba.europa.eu/xbrl/crr/dict/met",
+                },
+            },
+            "tables": {},
+        }
+    )
+
+
+def _report_if() -> str:
+    return json.dumps(
+        {
+            "documentInfo": {
+                "documentType": "https://xbrl.org/2021/xbrl-csv",
+                "extends": [_IF_TM_EXTENDS],
+                "namespaces": {
+                    "eba_dim": "http://www.eba.europa.eu/xbrl/crr/dict/dim",
+                    "eba_met": "http://www.eba.europa.eu/xbrl/crr/dict/met",
+                },
+            },
+            "tables": {},
+        }
+    )
+
+
+def _run_csv(data: bytes, rule_id: str) -> list:
+    with NamedTemporaryFile(suffix=".zip", delete=False) as f:
+        f.write(data)
+        f.flush()
+        results = run_validation(f.name, eba=True)
+    return [r for r in results if r.rule_id == rule_id]
+
+
+# ===================================================================
+# EBA-2.16.1 CSV — No multi-unit fact sets
+# ===================================================================
+
+
+class TestEBA2161MultiUnitCSV:
+    """CSV side of EBA-2.16.1.
+
+    Uses COREP ALM module where table c_66.01.w has $unit variables
+    with open_keys=[CUS] and attributes=[unit]. The same datapoint
+    appearing twice with different unit values triggers the rule.
+    """
+
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_same_unit_no_findings(self) -> None:
+        """Same datapoint reported twice with same unit — no finding."""
+        params = (
+            "name,value\n"
+            "entityID,lei:529900T8BM49AURSDO55\n"
+            "refPeriod,2025-12-31\n"
+            "baseCurrency,EUR\n"
+            "decimalsMonetary,-3\n"
+        )
+        fi = "templateID,reported\nC_66.01.w,true\n"
+        table = (
+            "datapoint,factValue,CUS,unit\n"
+            "dp236558,100,eba_CU:EUR,iso4217:EUR\n"
+            "dp236558,200,eba_CU:EUR,iso4217:EUR\n"
+        )
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_corep(),
+                "reports/parameters.csv": params,
+                "reports/FilingIndicators.csv": fi,
+                "reports/c_66.01.w.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-2.16.1") == []
+
+    def test_different_units_detected(self) -> None:
+        """Same datapoint + dims but different units — error."""
+        params = (
+            "name,value\n"
+            "entityID,lei:529900T8BM49AURSDO55\n"
+            "refPeriod,2025-12-31\n"
+            "baseCurrency,EUR\n"
+            "decimalsMonetary,-3\n"
+        )
+        fi = "templateID,reported\nC_66.01.w,true\n"
+        table = (
+            "datapoint,factValue,CUS,unit\n"
+            "dp236558,100,eba_CU:EUR,iso4217:EUR\n"
+            "dp236558,200,eba_CU:EUR,iso4217:USD\n"
+        )
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_corep(),
+                "reports/parameters.csv": params,
+                "reports/FilingIndicators.csv": fi,
+                "reports/c_66.01.w.csv": table,
+            }
+        )
+        findings = _run_csv(data, "EBA-2.16.1")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "EUR" in findings[0].message
+        assert "USD" in findings[0].message
+
+    def test_different_dims_no_findings(self) -> None:
+        """Same datapoint but different CUS dimension — different facts, no finding."""
+        params = (
+            "name,value\n"
+            "entityID,lei:529900T8BM49AURSDO55\n"
+            "refPeriod,2025-12-31\n"
+            "baseCurrency,EUR\n"
+            "decimalsMonetary,-3\n"
+        )
+        fi = "templateID,reported\nC_66.01.w,true\n"
+        table = (
+            "datapoint,factValue,CUS,unit\n"
+            "dp236558,100,eba_CU:EUR,iso4217:EUR\n"
+            "dp236558,200,eba_CU:GBP,iso4217:GBP\n"
+        )
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_corep(),
+                "reports/parameters.csv": params,
+                "reports/FilingIndicators.csv": fi,
+                "reports/c_66.01.w.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-2.16.1") == []
+
+
+# ===================================================================
+# EBA-2.24 CSV — Basic ISO 4217 monetary units
+# ===================================================================
+
+
+class TestEBA224BasicISO4217CSV:
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_valid_base_currency_no_findings(self) -> None:
+        """baseCurrency=EUR is a valid basic ISO 4217 code."""
+        params = (
+            "name,value\n"
+            "entityID,lei:529900T8BM49AURSDO55\n"
+            "refPeriod,2025-12-31\n"
+            "baseCurrency,EUR\n"
+            "decimalsMonetary,-3\n"
+        )
+        fi = "templateID,reported\nI_10.01,true\n"
+        table = "datapoint,factValue\ndp410222,100\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": params,
+                "reports/FilingIndicators.csv": fi,
+                "reports/i_10.01.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-2.24") == []
+
+    def test_invalid_base_currency_detected(self) -> None:
+        """baseCurrency=EURO is not valid (4 letters)."""
+        params = (
+            "name,value\n"
+            "entityID,lei:529900T8BM49AURSDO55\n"
+            "refPeriod,2025-12-31\n"
+            "baseCurrency,EURO\n"
+            "decimalsMonetary,-3\n"
+        )
+        fi = "templateID,reported\nI_10.01,true\n"
+        table = "datapoint,factValue\ndp410222,100\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": params,
+                "reports/FilingIndicators.csv": fi,
+                "reports/i_10.01.csv": table,
+            }
+        )
+        findings = _run_csv(data, "EBA-2.24")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "EURO" in findings[0].message
+
+    def test_lowercase_base_currency_detected(self) -> None:
+        """baseCurrency=eur is not valid (lowercase)."""
+        params = (
+            "name,value\n"
+            "entityID,lei:529900T8BM49AURSDO55\n"
+            "refPeriod,2025-12-31\n"
+            "baseCurrency,eur\n"
+            "decimalsMonetary,-3\n"
+        )
+        fi = "templateID,reported\nI_10.01,true\n"
+        table = "datapoint,factValue\ndp410222,100\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": params,
+                "reports/FilingIndicators.csv": fi,
+                "reports/i_10.01.csv": table,
+            }
+        )
+        findings = _run_csv(data, "EBA-2.24")
+        assert len(findings) == 1
+        assert "eur" in findings[0].message
+
+    def test_valid_unit_column_no_findings(self) -> None:
+        """Valid iso4217:EUR in unit column — no finding."""
+        params = (
+            "name,value\n"
+            "entityID,lei:529900T8BM49AURSDO55\n"
+            "refPeriod,2025-12-31\n"
+            "baseCurrency,EUR\n"
+            "decimalsMonetary,-3\n"
+        )
+        fi = "templateID,reported\nC_66.01.w,true\n"
+        table = "datapoint,factValue,CUS,unit\ndp236558,100,eba_CU:EUR,iso4217:EUR\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_corep(),
+                "reports/parameters.csv": params,
+                "reports/FilingIndicators.csv": fi,
+                "reports/c_66.01.w.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-2.24") == []
+
+    def test_invalid_unit_column_detected(self) -> None:
+        """iso4217:EURO in unit column — error."""
+        params = (
+            "name,value\n"
+            "entityID,lei:529900T8BM49AURSDO55\n"
+            "refPeriod,2025-12-31\n"
+            "baseCurrency,EUR\n"
+            "decimalsMonetary,-3\n"
+        )
+        fi = "templateID,reported\nC_66.01.w,true\n"
+        table = "datapoint,factValue,CUS,unit\ndp236558,100,eba_CU:EUR,iso4217:EURO\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_corep(),
+                "reports/parameters.csv": params,
+                "reports/FilingIndicators.csv": fi,
+                "reports/c_66.01.w.csv": table,
+            }
+        )
+        findings = _run_csv(data, "EBA-2.24")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "EURO" in findings[0].message
+
+    def test_pure_unit_not_checked(self) -> None:
+        """xbrli:pure in unit column — not monetary, skip."""
+        params = (
+            "name,value\n"
+            "entityID,lei:529900T8BM49AURSDO55\n"
+            "refPeriod,2025-12-31\n"
+            "baseCurrency,EUR\n"
+            "decimalsMonetary,-3\n"
+        )
+        fi = "templateID,reported\nC_66.01.w,true\n"
+        table = "datapoint,factValue,CUS,unit\ndp236558,100,eba_CU:EUR,xbrli:pure\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_corep(),
+                "reports/parameters.csv": params,
+                "reports/FilingIndicators.csv": fi,
+                "reports/c_66.01.w.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-2.24") == []
