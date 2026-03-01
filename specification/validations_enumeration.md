@@ -296,8 +296,8 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
 
 | Rule ID      | Severity | EBA | EBA ref | Post-conv. | Impl | Description                                              |
 |--------------|----------|-----|---------|------------|------|----------------------------------------------------------|
-| EBA-UNIT-001 | ERROR    | Yes | 3.2     | Yes        | --   | Non-monetary numeric values MUST use the "pure" unit. (pureUnitNotUsedForMonetaryValue) |
-| EBA-UNIT-002 | WARNING  | Yes | 3.2     | Yes        | --   | Rates, percentages and ratios SHOULD use decimal notation (e.g. 0.0931 not 9.31). (useDecimalFractions) |
+| EBA-UNIT-001 | ERROR    | Yes | 3.2     | Yes        | Done | Non-monetary numeric values MUST use the "pure" unit. (pureUnitNotUsedForMonetaryValue) |
+| EBA-UNIT-002 | WARNING  | Yes | 3.2     | Yes        | Done | Rates, percentages and ratios SHOULD use decimal notation (e.g. 0.0931 not 9.31). (useDecimalFractions) |
 
 ### 2.12 Decimal Representation
 
