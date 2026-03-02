@@ -640,6 +640,16 @@
     "eba_ref": "File naming"
   },
   {
+    "code": "EBA-NAME-071",
+    "message": "The CSV ZIP root folder MUST match the ZIP filename: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
     "code": "EBA-DEC-001",
     "message": "Monetary facts: @decimals MUST be >= {threshold}: {detail}",
     "severity": "ERROR",

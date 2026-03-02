@@ -391,4 +391,4 @@ name and its inner content, and are skipped for bare files.
 | Rule ID       | Severity | EBA | EBA ref       | Impl | Description                                                                    |
 |---------------|----------|-----|---------------|------|--------------------------------------------------------------------------------|
 | EBA-NAME-070  | ERROR    | Yes | File naming   | Done | (XML) The ZIP MUST contain exactly one `.xbrl` file whose base name matches the ZIP file name (with `.xbrl` extension instead of `.zip`). |
-| EBA-NAME-071  | ERROR    | Yes | File naming   | --   | (CSV) The root folder inside the ZIP MUST be named identically to the ZIP file (without the `.zip` extension). |
+| EBA-NAME-071  | ERROR    | Yes | File naming   | Done | (CSV) The root folder inside the ZIP MUST be named identically to the ZIP file (without the `.zip` extension). |

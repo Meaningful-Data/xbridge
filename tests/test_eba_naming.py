@@ -56,10 +56,23 @@ def _make_xml_zip(directory: Path, zip_name: str, inner_name: str) -> Path:
 
 
 def _make_csv_zip(directory: Path, zip_name: str) -> Path:
-    """Create a ZIP that looks like a CSV report package."""
+    """Create a ZIP that looks like a CSV report package (flat, no root folder)."""
     zip_path = directory / zip_name
     with ZipFile(zip_path, "w") as zf:
         zf.writestr("reports/report.json", "{}")
+        zf.writestr("META-INF/reportPackage.json", "{}")
+    return zip_path
+
+
+def _make_csv_zip_rooted(directory: Path, zip_name: str, *, root_folder: str = "") -> Path:
+    """Create a CSV report package ZIP with a root folder.
+
+    If *root_folder* is empty, defaults to the ZIP stem.
+    """
+    zip_path = directory / zip_name
+    stem = root_folder if root_folder else zip_path.stem
+    with ZipFile(zip_path, "w") as zf:
+        zf.writestr(f"{stem}/reports/report.json", "{}")
     return zip_path
 
 
@@ -549,3 +562,71 @@ class TestEbaName070:
         findings = _run(str(zp), "EBA-NAME-070")
         assert len(findings) == 1
         assert findings[0].location.startswith("zip:")
+
+
+# ---------------------------------------------------------------------------
+# EBA-NAME CSV stem: smoke tests proving NAME-001..060 work on CSV ZIPs
+# ---------------------------------------------------------------------------
+
+
+class TestEbaNameCsvStem:
+    """Verify that naming rules (001, 020) fire correctly for CSV ZIPs."""
+
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_valid_csv_zip_name001(self, tmp_path: Path) -> None:
+        """A correctly-named CSV ZIP should pass EBA-NAME-001."""
+        zp = _make_csv_zip_rooted(tmp_path, _VALID_STEM + ".zip")
+        findings = _run(str(zp), "EBA-NAME-001")
+        assert len(findings) == 0
+
+    def test_bad_csv_stem_name001(self, tmp_path: Path) -> None:
+        """A CSV ZIP with wrong component count triggers EBA-NAME-001."""
+        zp = _make_csv_zip_rooted(tmp_path, "TOO_FEW_PARTS.zip")
+        findings = _run(str(zp), "EBA-NAME-001")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+
+    def test_bad_country_csv_name020(self, tmp_path: Path) -> None:
+        """An invalid country code in CSV ZIP triggers EBA-NAME-020."""
+        bad_name = "A1B2C3D4E5F6G7H8I9J0_ZZ_COREP020001_CACON_2024-12-31_20241231120000000.zip"
+        zp = _make_csv_zip_rooted(tmp_path, bad_name)
+        findings = _run(str(zp), "EBA-NAME-020")
+        assert len(findings) == 1
+
+
+# ---------------------------------------------------------------------------
+# EBA-NAME-071: CSV ZIP root folder matches ZIP name
+# ---------------------------------------------------------------------------
+
+
+class TestEbaName071:
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_matching_root_folder(self, tmp_path: Path) -> None:
+        """Root folder matches ZIP stem → no findings."""
+        zp = _make_csv_zip_rooted(tmp_path, _VALID_STEM + ".zip")
+        findings = _run(str(zp), "EBA-NAME-071")
+        assert len(findings) == 0
+
+    def test_mismatched_root_folder(self, tmp_path: Path) -> None:
+        """Root folder differs from ZIP stem → finding."""
+        zp = _make_csv_zip_rooted(tmp_path, _VALID_STEM + ".zip", root_folder="WRONG_FOLDER")
+        findings = _run(str(zp), "EBA-NAME-071")
+        assert len(findings) == 1
+        assert "does not match" in findings[0].message
+
+    def test_flat_zip_no_root(self, tmp_path: Path) -> None:
+        """Flat CSV ZIP (no root folder) → finding."""
+        zp = _make_csv_zip(tmp_path, _VALID_STEM + ".zip")
+        findings = _run(str(zp), "EBA-NAME-071")
+        assert len(findings) == 1
+        assert "no root folder" in findings[0].message
+
+    def test_skipped_for_bare_file(self, tmp_path: Path) -> None:
+        """Not a ZIP → no findings."""
+        p = _write_xbrl(tmp_path, _VALID_NAME)
+        findings = _run(str(p), "EBA-NAME-071")
+        assert len(findings) == 0

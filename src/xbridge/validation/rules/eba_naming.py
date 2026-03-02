@@ -1,8 +1,8 @@
-"""EBA-NAME-001..EBA-NAME-070: Submission package naming rules.
+"""EBA-NAME-001..EBA-NAME-071: Submission package naming rules.
 
 These rules validate the file naming convention required by the
 EBA Filing Rules v5.7.  They apply to both bare .xbrl files and
-ZIP archives.  EBA-NAME-070 is ZIP-only.
+ZIP archives.  EBA-NAME-070 is XML-ZIP-only; EBA-NAME-071 is CSV-ZIP-only.
 """
 
 from __future__ import annotations
@@ -27,8 +27,8 @@ _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # Creation timestamp: YYYYMMDDhhmmssfff (17 digits)
 _TIMESTAMP_RE = re.compile(r"^\d{17}$")
 
-# Framework code + 6-digit version (e.g. COREP020001)
-_FRAMEWORK_VERSION_RE = re.compile(r"^[A-Z]+\d{6}$")
+# Framework code + 6-digit version (e.g. COREP020001, PILLAR3010100)
+_FRAMEWORK_VERSION_RE = re.compile(r"^[A-Z][A-Z0-9]+\d{6}$")
 
 # LEI: exactly 20 alphanumeric characters.
 _LEI_RE = re.compile(r"^[A-Z0-9]{20}$")
@@ -727,6 +727,41 @@ def check_inner_xbrl_name(ctx: ValidationContext) -> None:
             context={
                 "detail": (
                     f"inner file '{actual_name}' does not match expected name '{expected_xbrl}'"
+                )
+            },
+        )
+
+
+# ---------------------------------------------------------------------------
+# EBA-NAME-071: CSV ZIP root folder matches ZIP name (CSV-ZIP-only)
+# ---------------------------------------------------------------------------
+
+
+@rule_impl("EBA-NAME-071")
+def check_csv_root_folder_name(ctx: ValidationContext) -> None:
+    """Validate that the CSV ZIP root folder matches the ZIP filename stem."""
+    if ctx.zip_path is None:
+        return  # Not a ZIP — skip
+
+    root_prefix = ctx.zip_root_prefix  # e.g. "FolderName/" or ""
+    zip_stem = ctx.file_path.stem
+
+    if not root_prefix:
+        ctx.add_finding(
+            location=f"zip:{ctx.zip_path.name}",
+            context={
+                "detail": (f"CSV ZIP has no root folder; expected all entries under '{zip_stem}/'")
+            },
+        )
+        return
+
+    root_folder = root_prefix.rstrip("/")
+    if root_folder != zip_stem:
+        ctx.add_finding(
+            location=f"zip:{ctx.zip_path.name}",
+            context={
+                "detail": (
+                    f"root folder '{root_folder}' does not match ZIP filename stem '{zip_stem}'"
                 )
             },
         )
