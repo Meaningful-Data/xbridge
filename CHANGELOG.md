@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0rc2] - 2026-03-02
+
+### Added
+- **CSV Structural Rules**: CSV-001..CSV-005 (report package structure), CSV-010..CSV-016 (report.json metadata), CSV-020..CSV-026 (parameters.csv), CSV-030..CSV-035 (FilingIndicators.csv), CSV-040..CSV-049 (data table checks), CSV-050..CSV-052 (fact-level checks), CSV-060..CSV-062 (taxonomy conformance).
+- **CSV EBA Rules**: CSV-side implementations for EBA-ENTITY-001/002, EBA-DEC-001..004, EBA-UNIT-001/002, EBA-CUR-003, EBA-2.16.1, EBA-2.24, EBA-GUIDE-002/004/007, EBA-NAME-071.
+
+### Changed
+- **Validation Performance**: Added shared cache across rules to eliminate redundant ZIP I/O (~60-65% faster for CSV validation). Cached data includes ZIP namelist, report.json, parameters.csv, FilingIndicators.csv, data tables, namespace map, and variable lookups.
+- **Centralised Variable Lookup**: Consolidated five duplicate `_build_variable_lookup` implementations into a single cached helper in `_helpers.py`.
+
+### Fixed
+- Fixed `iso4217:`-prefixed `baseCurrency` parameter handling in CSV validation rules.
+- Fixed ZIP root folder prefix detection affecting CSV-003 and CSV-005.
+- Removed redundant double ZIP extraction in `CsvInstance.parse()`.
+
 ## [2.0.0rc1] - 2026-02-18
 
 ### Added
@@ -161,7 +176,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc1...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc2...HEAD
+[2.0.0rc2]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc1...v2.0.0rc2
 [2.0.0rc1]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.2...v2.0.0rc1
 [1.5.2]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0...v1.5.1
