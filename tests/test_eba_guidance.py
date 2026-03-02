@@ -1,7 +1,10 @@
 """Tests for EBA-GUIDE-001..EBA-GUIDE-007: guidance checks."""
 
 import importlib
+import io
+import json
 import sys
+import zipfile
 from tempfile import NamedTemporaryFile
 
 from xbridge.validation._engine import run_validation
@@ -450,3 +453,333 @@ class TestGuide007LeadingTrailingWhitespace:
         findings = _run(xml, "EBA-GUIDE-007")
         assert len(findings) == 1
         assert "2 value(s)" in findings[0].message
+
+
+# ===================================================================
+# CSV helpers
+# ===================================================================
+
+# IF module has both string (dp410222) and numeric (dp32354) variables.
+_IF_TM_EXTENDS = "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/if/4.2/mod/if_tm.json"
+
+
+def _make_zip(**files: str | bytes) -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        for name, content in files.items():
+            zf.writestr(name, content if isinstance(content, bytes) else content)
+    return buf.getvalue()
+
+
+def _rpkg() -> str:
+    return json.dumps({"documentType": "https://xbrl.org/report-package/2023"})
+
+
+def _report_if(namespaces: dict[str, str] | None = None) -> str:
+    ns = namespaces or {
+        "eba_dim": "http://www.eba.europa.eu/xbrl/crr/dict/dim",
+        "eba_met": "http://www.eba.europa.eu/xbrl/crr/dict/met",
+    }
+    return json.dumps(
+        {
+            "documentInfo": {
+                "documentType": "https://xbrl.org/2021/xbrl-csv",
+                "extends": [_IF_TM_EXTENDS],
+                "namespaces": ns,
+            },
+            "tables": {},
+        }
+    )
+
+
+def _std_params() -> str:
+    return (
+        "name,value\n"
+        "entityID,lei:529900T8BM49AURSDO55\n"
+        "refPeriod,2025-12-31\n"
+        "baseCurrency,EUR\n"
+        "decimalsMonetary,-3\n"
+    )
+
+
+def _run_csv(data: bytes, rule_id: str) -> list:
+    with NamedTemporaryFile(suffix=".zip", delete=False) as f:
+        f.write(data)
+        f.flush()
+        results = run_validation(f.name, eba=True)
+    return [r for r in results if r.rule_id == rule_id]
+
+
+# ===================================================================
+# EBA-GUIDE-002 CSV — Canonical namespace prefixes
+# ===================================================================
+
+
+class TestGuide002CanonicalPrefixesCSV:
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_canonical_prefixes_no_findings(self) -> None:
+        """Standard eba_dim / eba_met prefixes — no finding."""
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": "datapoint,factValue\ndp410222,ok\n",
+            }
+        )
+        assert _run_csv(data, "EBA-GUIDE-002") == []
+
+    def test_non_canonical_prefix_detected(self) -> None:
+        """Using 'metrics' instead of 'eba_met' — warning."""
+        ns = {
+            "eba_dim": "http://www.eba.europa.eu/xbrl/crr/dict/dim",
+            "metrics": "http://www.eba.europa.eu/xbrl/crr/dict/met",
+        }
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(namespaces=ns),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": "datapoint,factValue\ndp410222,ok\n",
+            }
+        )
+        findings = _run_csv(data, "EBA-GUIDE-002")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.WARNING
+        assert "metrics" in findings[0].message
+        assert "eba_met" in findings[0].message
+
+    def test_unknown_namespace_no_finding(self) -> None:
+        """Custom namespace with no canonical mapping — should not trigger."""
+        ns = {
+            "eba_dim": "http://www.eba.europa.eu/xbrl/crr/dict/dim",
+            "eba_met": "http://www.eba.europa.eu/xbrl/crr/dict/met",
+            "custom": "http://example.com/custom",
+        }
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(namespaces=ns),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": "datapoint,factValue\ndp410222,ok\n",
+            }
+        )
+        assert _run_csv(data, "EBA-GUIDE-002") == []
+
+    def test_multiple_non_canonical_prefixes(self) -> None:
+        """Multiple non-canonical prefixes — single finding listing all."""
+        ns = {
+            "dims": "http://www.eba.europa.eu/xbrl/crr/dict/dim",
+            "metrics": "http://www.eba.europa.eu/xbrl/crr/dict/met",
+        }
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(namespaces=ns),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": "datapoint,factValue\ndp410222,ok\n",
+            }
+        )
+        findings = _run_csv(data, "EBA-GUIDE-002")
+        assert len(findings) == 1
+        assert "dims" in findings[0].message
+        assert "metrics" in findings[0].message
+
+
+# ===================================================================
+# EBA-GUIDE-004 CSV — Excessive string length
+# ===================================================================
+
+
+class TestGuide004ExcessiveStringLengthCSV:
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_short_string_no_findings(self) -> None:
+        """Short string fact value — no finding."""
+        table = "datapoint,factValue\ndp410222,short text\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-GUIDE-004") == []
+
+    def test_long_string_detected(self) -> None:
+        """String value exceeding 10,000 characters — warning."""
+        long_text = "x" * 15_000
+        table = f"datapoint,factValue\ndp410222,{long_text}\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": table,
+            }
+        )
+        findings = _run_csv(data, "EBA-GUIDE-004")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.WARNING
+        assert "15,000" in findings[0].message
+
+    def test_exactly_at_threshold_no_finding(self) -> None:
+        """Exactly 10,000 characters — no finding (threshold is strictly >)."""
+        table = f"datapoint,factValue\ndp410222,{'a' * 10_000}\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-GUIDE-004") == []
+
+    def test_numeric_fact_not_checked(self) -> None:
+        """Numeric variable (dp32354, has unit dimension) — long value not flagged."""
+        long_val = "9" * 20_000
+        table = f"datapoint,factValue\ndp32354,{long_val}\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-GUIDE-004") == []
+
+
+# ===================================================================
+# EBA-GUIDE-007 CSV — Leading/trailing whitespace
+# ===================================================================
+
+
+class TestGuide007LeadingTrailingWhitespaceCSV:
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_clean_string_no_findings(self) -> None:
+        """Clean string fact value — no finding."""
+        table = "datapoint,factValue\ndp410222,clean\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-GUIDE-007") == []
+
+    def test_leading_space_detected(self) -> None:
+        """String fact value with leading space — warning."""
+        table = 'datapoint,factValue\ndp410222," leading"\n'
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": table,
+            }
+        )
+        findings = _run_csv(data, "EBA-GUIDE-007")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.WARNING
+        assert "factValue" in findings[0].message
+
+    def test_trailing_space_detected(self) -> None:
+        """String fact value with trailing space — warning."""
+        table = 'datapoint,factValue\ndp410222,"trailing "\n'
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": table,
+            }
+        )
+        findings = _run_csv(data, "EBA-GUIDE-007")
+        assert len(findings) == 1
+
+    def test_numeric_fact_not_checked(self) -> None:
+        """Numeric variable — whitespace-padded value should not be flagged."""
+        table = 'datapoint,factValue\ndp32354," 100 "\n'
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-GUIDE-007") == []
+
+    def test_dimension_column_whitespace_detected(self) -> None:
+        """Dimension column value with whitespace — warning."""
+        # I_10.01 has eba_dim_4.0:qBEA dimension column for dp410222
+        table = 'datapoint,factValue,eba_dim_4.0:qBEA\ndp410222,ok," eba_BA:x1 "\n'
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": table,
+            }
+        )
+        findings = _run_csv(data, "EBA-GUIDE-007")
+        assert len(findings) == 1
+        assert "qBEA" in findings[0].message
+
+    def test_empty_value_not_flagged(self) -> None:
+        """Empty string fact value — not flagged."""
+        table = "datapoint,factValue\ndp410222,\n"
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": table,
+            }
+        )
+        assert _run_csv(data, "EBA-GUIDE-007") == []
+
+    def test_multiple_issues_consolidated(self) -> None:
+        """Multiple whitespace issues — single finding."""
+        table = (
+            "datapoint,factValue,eba_dim_4.0:qBEA\n"
+            'dp410222," first ",ok\n'
+            'dp410399,"second "," dim "\n'
+        )
+        data = _make_zip(
+            **{
+                "META-INF/reportPackage.json": _rpkg(),
+                "reports/report.json": _report_if(),
+                "reports/parameters.csv": _std_params(),
+                "reports/FilingIndicators.csv": "templateID,reported\nI_10.01,true\n",
+                "reports/i_10.01.csv": table,
+            }
+        )
+        findings = _run_csv(data, "EBA-GUIDE-007")
+        assert len(findings) == 1
+        # 3 issues: row 2 factValue, row 3 factValue, row 3 qBEA
+        assert "3 value(s)" in findings[0].message

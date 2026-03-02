@@ -316,9 +316,9 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
 
 | Rule ID        | Severity | EBA | EBA ref | Post-conv. | Impl | Description                                          |
 |----------------|----------|-----|---------|------------|------|------------------------------------------------------|
-| EBA-GUIDE-002  | WARNING  | Yes | 3.4     | Yes        | --   | Namespace prefixes SHOULD mirror canonical prefixes. (notRecommendedNamespacePrefix) |
-| EBA-GUIDE-004  | WARNING  | Yes | 3.4     | Yes        | --   | String values SHOULD be as short as possible. (excessiveStringLength) |
-| EBA-GUIDE-007  | WARNING  | Yes | 3.4     | Yes        | --   | String facts and domain values SHOULD NOT start/end with whitespace. (leadingOrTrailingSpacesInText) |
+| EBA-GUIDE-002  | WARNING  | Yes | 3.4     | Yes        | Done | Namespace prefixes SHOULD mirror canonical prefixes. (notRecommendedNamespacePrefix) |
+| EBA-GUIDE-004  | WARNING  | Yes | 3.4     | Yes        | Done | String values SHOULD be as short as possible. (excessiveStringLength) |
+| EBA-GUIDE-007  | WARNING  | Yes | 3.4     | Yes        | Done | String facts and domain values SHOULD NOT start/end with whitespace. (leadingOrTrailingSpacesInText) |
 
 ---
 

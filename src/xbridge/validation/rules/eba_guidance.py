@@ -1,8 +1,8 @@
 """EBA-GUIDE-001..EBA-GUIDE-007: Guidance checks.
 
-Shared rules (XML + CSV).  Only the XML implementation is provided
-here; the CSV side will be added when the CSV infrastructure
-is available.
+EBA-GUIDE-002, EBA-GUIDE-004 and EBA-GUIDE-007 are shared rules with
+both XML and CSV implementations.  The remaining rules (001, 003, 005,
+006) are XML-only.
 
 EBA-GUIDE-001, 005, and 006 all need a full tree traversal.  A
 **single-pass** scan collects data for all three rules and caches
@@ -11,13 +11,22 @@ the result per root.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Set, Tuple
+import csv
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from lxml import etree
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
 from xbridge.validation.rules._helpers import fact_label, is_fact
+from xbridge.validation.rules.csv_data_tables import (
+    _basename,
+    _decode_utf8,
+    _find_table_for_file,
+    _iter_data_tables,
+    _parse_header,
+)
+from xbridge.validation.rules.csv_metadata import _parse_report_json
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -180,7 +189,7 @@ def check_unused_namespace_prefixes(ctx: ValidationContext) -> None:
 # ---------------------------------------------------------------------------
 
 
-@rule_impl("EBA-GUIDE-002")
+@rule_impl("EBA-GUIDE-002", format="xml")
 def check_canonical_prefixes(ctx: ValidationContext) -> None:
     """Flag prefixes that don't match canonical conventions."""
     root = ctx.xml_root
@@ -237,7 +246,7 @@ def check_unused_fact_ids(ctx: ValidationContext) -> None:
 # ---------------------------------------------------------------------------
 
 
-@rule_impl("EBA-GUIDE-004")
+@rule_impl("EBA-GUIDE-004", format="xml")
 def check_excessive_string_length(ctx: ValidationContext) -> None:
     """Flag string facts whose values exceed the length threshold."""
     inst = ctx.xml_instance
@@ -319,7 +328,7 @@ def check_multiple_prefixes_same_namespace(ctx: ValidationContext) -> None:
 # ---------------------------------------------------------------------------
 
 
-@rule_impl("EBA-GUIDE-007")
+@rule_impl("EBA-GUIDE-007", format="xml")
 def check_leading_trailing_whitespace(ctx: ValidationContext) -> None:
     """Flag string facts and dimension values with leading/trailing whitespace."""
     inst = ctx.xml_instance
@@ -348,6 +357,225 @@ def check_leading_trailing_whitespace(ctx: ValidationContext) -> None:
             for dim_key, dim_val in context.scenario.dimensions.items():
                 if dim_val != dim_val.strip():
                     issues.append(f"context {ctx_id} dimension {dim_key}")
+
+    if issues:
+        n = len(issues)
+        examples = "; ".join(issues[:5])
+        detail = f"{n} value(s) with leading/trailing whitespace: {examples}"
+        if n > 5:
+            detail += f" (and {n - 5} more)"
+        ctx.add_finding(location="document", context={"detail": detail})
+
+
+# ===========================================================================
+# CSV implementations
+# ===========================================================================
+
+_STANDARD_COLS = frozenset({"datapoint", "factValue", "unit"})
+
+
+def _build_variable_lookup(ctx: ValidationContext) -> Dict[str, Any]:
+    """Build a ``{variable_code: Variable}`` lookup from the Module."""
+    module = ctx.module
+    if module is None:
+        return {}
+    result: Dict[str, Any] = {}
+    for table in module.tables:
+        for variable in table.variables:
+            if variable.code:
+                result[variable.code] = variable
+    return result
+
+
+# ---------------------------------------------------------------------------
+# EBA-GUIDE-002 CSV: Canonical namespace prefixes
+# ---------------------------------------------------------------------------
+
+
+@rule_impl("EBA-GUIDE-002", format="csv")
+def check_canonical_prefixes_csv(ctx: ValidationContext) -> None:
+    """Flag non-canonical namespace prefixes in report.json."""
+    data = _parse_report_json(ctx)
+    if data is None:
+        return
+
+    doc_info = data.get("documentInfo")
+    if not isinstance(doc_info, dict):
+        return
+    namespaces = doc_info.get("namespaces")
+    if not isinstance(namespaces, dict):
+        return
+
+    mismatches = []
+    for prefix, uri in namespaces.items():
+        if not isinstance(prefix, str) or not isinstance(uri, str):
+            continue
+        canonical = _canonical_prefix_for_uri(uri)
+        if canonical is not None and prefix != canonical:
+            mismatches.append(f"{prefix} (expected {canonical})")
+
+    if mismatches:
+        mismatches.sort()
+        ctx.add_finding(
+            location="reports/report.json",
+            context={"detail": f"non-canonical prefixes: {', '.join(mismatches)}"},
+        )
+
+
+# ---------------------------------------------------------------------------
+# EBA-GUIDE-004 CSV: Excessive string length
+# ---------------------------------------------------------------------------
+
+
+@rule_impl("EBA-GUIDE-004", format="csv")
+def check_excessive_string_length_csv(ctx: ValidationContext) -> None:
+    """Flag string fact values in CSV data tables that exceed the length threshold."""
+    module = ctx.module
+    if module is None:
+        return
+
+    var_lookup = _build_variable_lookup(ctx)
+    if not var_lookup:
+        return
+
+    for entry, raw in _iter_data_tables(ctx):
+        text = _decode_utf8(raw)
+        if text is None:
+            continue
+        header = _parse_header(text)
+        if header is None:
+            continue
+
+        name = _basename(entry)
+        table = _find_table_for_file(ctx, name)
+        if table is None or table.architecture != "datapoints":
+            continue
+
+        dp_idx: Optional[int] = None
+        fv_idx: Optional[int] = None
+        for i, h in enumerate(header):
+            if h == "datapoint":
+                dp_idx = i
+            elif h == "factValue":
+                fv_idx = i
+
+        if dp_idx is None or fv_idx is None:
+            continue
+
+        lines = text.splitlines()
+        reader = csv.reader(lines[1:])
+        for row_num, row in enumerate(reader, start=2):
+            if not any(row):
+                continue
+            if dp_idx >= len(row) or fv_idx >= len(row):
+                continue
+
+            dp_code = row[dp_idx]
+            variable = var_lookup.get(dp_code)
+            if variable is None:
+                continue
+            if variable.dimensions.get("unit"):
+                continue  # numeric fact
+
+            value = row[fv_idx]
+            length = len(value)
+            if length > _EXCESSIVE_STRING_LENGTH:
+                ctx.add_finding(
+                    location=entry,
+                    context={
+                        "detail": (
+                            f"{name} row {row_num}: string value is "
+                            f"{length:,} characters "
+                            f"(threshold: {_EXCESSIVE_STRING_LENGTH:,})"
+                        )
+                    },
+                )
+
+
+# ---------------------------------------------------------------------------
+# EBA-GUIDE-007 CSV: Leading/trailing whitespace
+# ---------------------------------------------------------------------------
+
+
+def _collect_whitespace_issues(
+    ctx: ValidationContext,
+    var_lookup: Dict[str, Any],
+) -> List[str]:
+    """Scan CSV data tables for values with leading/trailing whitespace."""
+    issues: List[str] = []
+
+    for entry, raw in _iter_data_tables(ctx):
+        text = _decode_utf8(raw)
+        if text is None:
+            continue
+        header = _parse_header(text)
+        if header is None:
+            continue
+
+        name = _basename(entry)
+        table = _find_table_for_file(ctx, name)
+        if table is None or table.architecture != "datapoints":
+            continue
+
+        dp_idx: Optional[int] = None
+        fv_idx: Optional[int] = None
+        dim_col_indices: List[Tuple[int, str]] = []
+        for i, h in enumerate(header):
+            if h == "datapoint":
+                dp_idx = i
+            elif h == "factValue":
+                fv_idx = i
+            elif h not in _STANDARD_COLS:
+                dim_col_indices.append((i, h))
+
+        if dp_idx is None:
+            continue
+
+        lines = text.splitlines()
+        reader = csv.reader(lines[1:])
+        for row_num, row in enumerate(reader, start=2):
+            if not any(row):
+                continue
+            if dp_idx >= len(row):
+                continue
+
+            dp_code = row[dp_idx]
+            variable = var_lookup.get(dp_code)
+
+            # Check string fact values.
+            is_string = (
+                fv_idx is not None
+                and fv_idx < len(row)
+                and variable is not None
+                and not variable.dimensions.get("unit")
+            )
+            if is_string:
+                val = row[fv_idx]  # type: ignore[index]
+                if val and val != val.strip():
+                    issues.append(f"{name} row {row_num} factValue")
+
+            # Check dimension column values.
+            for col_idx, col_name in dim_col_indices:
+                if col_idx < len(row):
+                    val = row[col_idx]
+                    if val and val != val.strip():
+                        issues.append(f"{name} row {row_num} {col_name}")
+
+    return issues
+
+
+@rule_impl("EBA-GUIDE-007", format="csv")
+def check_leading_trailing_whitespace_csv(ctx: ValidationContext) -> None:
+    """Flag string fact values and dimension values with leading/trailing whitespace."""
+    module = ctx.module
+    if module is None:
+        return
+
+    var_lookup = _build_variable_lookup(ctx)
+    if not var_lookup:
+        return
+
+    issues = _collect_whitespace_issues(ctx, var_lookup)
 
     if issues:
         n = len(issues)
