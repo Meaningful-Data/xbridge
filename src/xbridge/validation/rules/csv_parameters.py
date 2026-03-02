@@ -34,16 +34,29 @@ _TYPE_TO_PARAM: Dict[str, str] = {
 # ── Shared helpers ───────────────────────────────────────────────────
 
 
+_PARAMETERS_RAW_SENTINEL = "_parameters_raw_checked"
+_PARAMETERS_SENTINEL = "_parameters_checked"
+
+
 def _read_parameters_raw(ctx: ValidationContext) -> Optional[bytes]:
     """Read reports/parameters.csv bytes from the ZIP.  Returns None if unavailable."""
+    if _PARAMETERS_RAW_SENTINEL in ctx.shared_cache:
+        return ctx.shared_cache.get("parameters_raw")
     try:
         with ZipFile(ctx.file_path) as zf:
             resolved = ctx.resolve_zip_entry(_PARAMETERS_CSV)
             if resolved not in zf.namelist():
+                ctx.shared_cache[_PARAMETERS_RAW_SENTINEL] = True
+                ctx.shared_cache["parameters_raw"] = None
                 return None
-            return zf.read(resolved)
+            result = zf.read(resolved)
     except BadZipFile:
+        ctx.shared_cache[_PARAMETERS_RAW_SENTINEL] = True
+        ctx.shared_cache["parameters_raw"] = None
         return None
+    ctx.shared_cache[_PARAMETERS_RAW_SENTINEL] = True
+    ctx.shared_cache["parameters_raw"] = result
+    return result
 
 
 def _parse_parameters(ctx: ValidationContext) -> Optional[Dict[str, str]]:
@@ -53,13 +66,19 @@ def _parse_parameters(ctx: ValidationContext) -> Optional[Dict[str, str]]:
     Returns an empty dict if the file has no data rows.
     The header row is NOT validated here (CSV-021 handles that).
     """
+    if _PARAMETERS_SENTINEL in ctx.shared_cache:
+        return ctx.shared_cache.get("parameters")
     raw = _read_parameters_raw(ctx)
     if raw is None:
+        ctx.shared_cache[_PARAMETERS_SENTINEL] = True
+        ctx.shared_cache["parameters"] = None
         return None
 
     text = raw.decode("utf-8-sig")  # strip BOM if present
     lines = text.splitlines()
     if len(lines) < 2:
+        ctx.shared_cache[_PARAMETERS_SENTINEL] = True
+        ctx.shared_cache["parameters"] = {}
         return {}
 
     # Skip header (line 0), parse remaining lines as name,value
@@ -70,6 +89,8 @@ def _parse_parameters(ctx: ValidationContext) -> Optional[Dict[str, str]]:
             params[row[0]] = row[1]
         elif len(row) == 1:
             params[row[0]] = ""
+    ctx.shared_cache[_PARAMETERS_SENTINEL] = True
+    ctx.shared_cache["parameters"] = params
     return params
 
 

@@ -22,29 +22,52 @@ _PREFIX_RE = re.compile(r"^([A-Za-z_][\w.-]*):(.+)$")
 # ── Shared helpers ───────────────────────────────────────────────────
 
 
+_REPORT_JSON_RAW_SENTINEL = "_report_json_raw_checked"
+_REPORT_JSON_SENTINEL = "_report_json_checked"
+
+
 def _read_report_json_raw(ctx: ValidationContext) -> Optional[bytes]:
     """Read reports/report.json bytes from the ZIP.  Returns None if unavailable."""
+    if _REPORT_JSON_RAW_SENTINEL in ctx.shared_cache:
+        return ctx.shared_cache.get("report_json_raw")
     try:
         with ZipFile(ctx.file_path) as zf:
             resolved = ctx.resolve_zip_entry(_REPORT_JSON)
             if resolved not in zf.namelist():
+                ctx.shared_cache[_REPORT_JSON_RAW_SENTINEL] = True
+                ctx.shared_cache["report_json_raw"] = None
                 return None
-            return zf.read(resolved)
+            result = zf.read(resolved)
     except BadZipFile:
+        ctx.shared_cache[_REPORT_JSON_RAW_SENTINEL] = True
+        ctx.shared_cache["report_json_raw"] = None
         return None
+    ctx.shared_cache[_REPORT_JSON_RAW_SENTINEL] = True
+    ctx.shared_cache["report_json_raw"] = result
+    return result
 
 
 def _parse_report_json(ctx: ValidationContext) -> Optional[Dict[str, Any]]:
     """Parse reports/report.json.  Returns None if unavailable or invalid JSON."""
+    if _REPORT_JSON_SENTINEL in ctx.shared_cache:
+        return ctx.shared_cache.get("report_json")
     raw = _read_report_json_raw(ctx)
     if raw is None:
+        ctx.shared_cache[_REPORT_JSON_SENTINEL] = True
+        ctx.shared_cache["report_json"] = None
         return None
     try:
         data = json.loads(raw)
     except (json.JSONDecodeError, UnicodeDecodeError):
+        ctx.shared_cache[_REPORT_JSON_SENTINEL] = True
+        ctx.shared_cache["report_json"] = None
         return None
     if not isinstance(data, dict):
+        ctx.shared_cache[_REPORT_JSON_SENTINEL] = True
+        ctx.shared_cache["report_json"] = None
         return None
+    ctx.shared_cache[_REPORT_JSON_SENTINEL] = True
+    ctx.shared_cache["report_json"] = data
     return data
 
 

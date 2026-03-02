@@ -11,6 +11,8 @@ from xbridge.validation._registry import rule_impl
 
 _EXCLUDED_CSV = {"parameters.csv", "FilingIndicators.csv"}
 
+_DATA_TABLES_SENTINEL = "_data_tables_checked"
+
 
 # ── Shared helpers ───────────────────────────────────────────────────
 
@@ -22,6 +24,8 @@ def _basename(entry: str) -> str:
 
 def _iter_data_tables(ctx: ValidationContext) -> List[Tuple[str, bytes]]:
     """Return (entry_path, raw_bytes) for each data table CSV in the ZIP."""
+    if _DATA_TABLES_SENTINEL in ctx.shared_cache:
+        return ctx.shared_cache.get("data_tables", [])
     try:
         with ZipFile(ctx.file_path) as zf:
             result: List[Tuple[str, bytes]] = []
@@ -32,25 +36,16 @@ def _iter_data_tables(ctx: ValidationContext) -> List[Tuple[str, bytes]]:
                 if parts[-1] in _EXCLUDED_CSV:
                     continue
                 result.append((entry, zf.read(entry)))
-            return result
     except BadZipFile:
-        return []
+        result = []
+    ctx.shared_cache[_DATA_TABLES_SENTINEL] = True
+    ctx.shared_cache["data_tables"] = result
+    return result
 
 
 def _data_table_basenames(ctx: ValidationContext) -> Set[str]:
     """Return basenames of data table CSVs in the ZIP's reports/ folder."""
-    try:
-        with ZipFile(ctx.file_path) as zf:
-            names: Set[str] = set()
-            for entry in zf.namelist():
-                parts = entry.replace("\\", "/").split("/")
-                if not entry.endswith(".csv") or "reports" not in parts:
-                    continue
-                if parts[-1] not in _EXCLUDED_CSV:
-                    names.add(parts[-1])
-            return names
-    except BadZipFile:
-        return set()
+    return {_basename(entry) for entry, _raw in _iter_data_tables(ctx)}
 
 
 def _decode_utf8(raw: bytes) -> Optional[str]:
@@ -114,29 +109,12 @@ def _fact_columns(table: Any) -> Set[str]:
 
 def _parse_fi_map(ctx: ValidationContext) -> Optional[Dict[str, str]]:
     """Parse FilingIndicators.csv into {templateID: reported} dict."""
-    try:
-        with ZipFile(ctx.file_path) as zf:
-            fi_path = ctx.resolve_zip_entry("reports/FilingIndicators.csv")
-            if fi_path not in zf.namelist():
-                return None
-            raw = zf.read(fi_path)
-    except BadZipFile:
+    from xbridge.validation.rules.csv_filing_indicators import _parse_fi_rows
+
+    rows = _parse_fi_rows(ctx)
+    if rows is None:
         return None
-
-    text = raw.decode("utf-8-sig")
-    lines = text.splitlines()
-    if len(lines) < 2:
-        return {}
-
-    result: Dict[str, str] = {}
-    reader = csv.reader(lines[1:])
-    for row in reader:
-        if not row:
-            continue
-        template_id = row[0] if len(row) >= 1 else ""
-        reported = row[1] if len(row) >= 2 else ""
-        result[template_id] = reported
-    return result
+    return dict(rows)
 
 
 # ── CSV-040 ──────────────────────────────────────────────────────────

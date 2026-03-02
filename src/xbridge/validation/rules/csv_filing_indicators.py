@@ -12,20 +12,32 @@ from xbridge.validation._registry import rule_impl
 
 _FILING_INDICATORS_CSV = "reports/FilingIndicators.csv"
 
+_FI_RAW_SENTINEL = "_fi_raw_checked"
+_FI_ROWS_SENTINEL = "_fi_rows_checked"
+
 
 # ── Shared helpers ───────────────────────────────────────────────────
 
 
 def _read_fi_raw(ctx: ValidationContext) -> Optional[bytes]:
     """Read reports/FilingIndicators.csv bytes from the ZIP."""
+    if _FI_RAW_SENTINEL in ctx.shared_cache:
+        return ctx.shared_cache.get("fi_raw")
     try:
         with ZipFile(ctx.file_path) as zf:
             resolved = ctx.resolve_zip_entry(_FILING_INDICATORS_CSV)
             if resolved not in zf.namelist():
+                ctx.shared_cache[_FI_RAW_SENTINEL] = True
+                ctx.shared_cache["fi_raw"] = None
                 return None
-            return zf.read(resolved)
+            result = zf.read(resolved)
     except BadZipFile:
+        ctx.shared_cache[_FI_RAW_SENTINEL] = True
+        ctx.shared_cache["fi_raw"] = None
         return None
+    ctx.shared_cache[_FI_RAW_SENTINEL] = True
+    ctx.shared_cache["fi_raw"] = result
+    return result
 
 
 def _get_header_line(ctx: ValidationContext) -> Optional[str]:
@@ -46,13 +58,19 @@ def _parse_fi_rows(ctx: ValidationContext) -> Optional[List[Tuple[str, str]]]:
     Returns None if the file is missing or unreadable.
     Returns an empty list if the file has no data rows.
     """
+    if _FI_ROWS_SENTINEL in ctx.shared_cache:
+        return ctx.shared_cache.get("fi_rows")
     raw = _read_fi_raw(ctx)
     if raw is None:
+        ctx.shared_cache[_FI_ROWS_SENTINEL] = True
+        ctx.shared_cache["fi_rows"] = None
         return None
 
     text = raw.decode("utf-8-sig")
     lines = text.splitlines()
     if len(lines) < 2:
+        ctx.shared_cache[_FI_ROWS_SENTINEL] = True
+        ctx.shared_cache["fi_rows"] = []
         return []
 
     rows: List[Tuple[str, str]] = []
@@ -63,6 +81,8 @@ def _parse_fi_rows(ctx: ValidationContext) -> Optional[List[Tuple[str, str]]]:
         template_id = row[0] if len(row) >= 1 else ""
         reported = row[1] if len(row) >= 2 else ""
         rows.append((template_id, reported))
+    ctx.shared_cache[_FI_ROWS_SENTINEL] = True
+    ctx.shared_cache["fi_rows"] = rows
     return rows
 
 

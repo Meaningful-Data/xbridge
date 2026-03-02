@@ -12,12 +12,11 @@ and the report.json namespace map is used for QName resolution.
 from __future__ import annotations
 
 import csv
-import json
 from typing import Any, Dict, List, Optional, Set, Tuple
-from zipfile import BadZipFile, ZipFile
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
+from xbridge.validation.rules._helpers import build_variable_lookup
 from xbridge.validation.rules.csv_data_tables import (
     _basename,
     _decode_utf8,
@@ -35,8 +34,6 @@ from xbridge.validation.rules.xml_taxonomy import (
 # Helpers
 # ---------------------------------------------------------------------------
 
-_REPORT_JSON = "reports/report.json"
-
 # Standard columns that are NOT dimension columns.
 _STANDARD_COLS = frozenset({"datapoint", "factValue", "unit"})
 
@@ -44,23 +41,15 @@ _STANDARD_COLS = frozenset({"datapoint", "factValue", "unit"})
 _SKIP_DIM_KEYS = frozenset({"concept", "unit", "decimals"})
 
 
+_NSMAP_SENTINEL = "_nsmap_checked"
+
+
 def _read_nsmap(ctx: ValidationContext) -> Optional[Dict[Optional[str], str]]:
     """Read the namespace map from report.json's documentInfo.namespaces."""
-    try:
-        with ZipFile(ctx.file_path) as zf:
-            resolved = ctx.resolve_zip_entry(_REPORT_JSON)
-            if resolved not in zf.namelist():
-                return None
-            raw = zf.read(resolved)
-    except BadZipFile:
-        return None
+    from xbridge.validation.rules.csv_metadata import _parse_report_json
 
-    try:
-        data = json.loads(raw)
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return None
-
-    if not isinstance(data, dict):
+    data = _parse_report_json(ctx)
+    if data is None:
         return None
     doc_info = data.get("documentInfo")
     if not isinstance(doc_info, dict):
@@ -72,19 +61,13 @@ def _read_nsmap(ctx: ValidationContext) -> Optional[Dict[Optional[str], str]]:
     return ns
 
 
-# Single-entry cache for nsmap per file_path.
-_last_nsmap: Optional[Tuple[Any, Dict[Optional[str], str]]] = None
-
-
 def _get_nsmap(ctx: ValidationContext) -> Optional[Dict[Optional[str], str]]:
     """Return cached namespace map for this context."""
-    global _last_nsmap  # noqa: PLW0603
-    if _last_nsmap is not None and _last_nsmap[0] is ctx.file_path:
-        return _last_nsmap[1]
+    if _NSMAP_SENTINEL in ctx.shared_cache:
+        return ctx.shared_cache.get("nsmap")
     result = _read_nsmap(ctx)
-    if result is None:
-        return None
-    _last_nsmap = (ctx.file_path, result)
+    ctx.shared_cache[_NSMAP_SENTINEL] = True
+    ctx.shared_cache["nsmap"] = result
     return result
 
 
@@ -97,19 +80,6 @@ def _get_csv_taxonomy(ctx: ValidationContext) -> Optional[_TaxonomyData]:
     if nsmap is None:
         return None
     return _get_taxonomy(module, nsmap)
-
-
-def _build_variable_lookup(ctx: ValidationContext) -> Dict[str, Any]:
-    """Build {variable_code: Variable} lookup from the Module."""
-    module = ctx.module
-    if module is None:
-        return {}
-    result: Dict[str, Any] = {}
-    for table in module.tables:
-        for variable in table.variables:
-            if variable.code:
-                result[variable.code] = variable
-    return result
 
 
 # ---------------------------------------------------------------------------
@@ -128,7 +98,7 @@ def check_valid_metrics(ctx: ValidationContext) -> None:
     if nsmap is None:
         return
 
-    var_lookup = _build_variable_lookup(ctx)
+    var_lookup = build_variable_lookup(ctx)
 
     for entry, raw in _iter_data_tables(ctx):
         text = _decode_utf8(raw)
@@ -371,7 +341,7 @@ def check_valid_dimension_members(ctx: ValidationContext) -> None:
     if nsmap is None:
         return
 
-    var_lookup = _build_variable_lookup(ctx)
+    var_lookup = build_variable_lookup(ctx)
 
     for entry, raw in _iter_data_tables(ctx):
         text = _decode_utf8(raw)

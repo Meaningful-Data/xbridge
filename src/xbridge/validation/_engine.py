@@ -110,13 +110,20 @@ def _detect_format(file_path: Path) -> str:
     )
 
 
+_cached_index: Optional[Dict[str, str]] = None
+
+
 def _load_index() -> Dict[str, str]:
-    """Load the taxonomy module index."""
+    """Load the taxonomy module index (cached after first call)."""
+    global _cached_index  # noqa: PLW0603
+    if _cached_index is not None:
+        return _cached_index
     if not _INDEX_FILE.exists():
-        return {}
+        _cached_index = {}
+        return _cached_index
     with open(_INDEX_FILE, encoding="utf-8") as f:
-        result: Dict[str, str] = json.load(f)
-    return result
+        _cached_index = json.load(f)
+    return _cached_index
 
 
 def _try_load_module(module_ref: Optional[str]) -> Any:
@@ -215,7 +222,9 @@ def run_validation(
             _temp_dir, effective_path = _extract_xml_from_zip(file_path)
 
     # 3. Read raw bytes from the effective content file
-    raw_bytes = effective_path.read_bytes()
+    #    For CSV ZIPs the raw bytes of the outer ZIP are never used by any
+    #    rule — every rule opens the ZIP itself.  Skip the expensive read.
+    raw_bytes = b"" if rule_set == "csv" else effective_path.read_bytes()
 
     # 4. Load registry and filter rules
     registry = load_registry()
@@ -248,6 +257,7 @@ def run_validation(
     importlib.import_module("xbridge.validation.rules")
 
     # 7. Execute each selected rule
+    shared_cache: Dict[str, Any] = {}
     all_findings: List[ValidationResult] = []
     for rule in selected:
         impl = get_rule_impl(rule.code, rule_set)
@@ -264,6 +274,7 @@ def run_validation(
             module=module,
             xml_root=xml_root,
             zip_path=zip_path,
+            shared_cache=shared_cache,
         )
         impl(ctx)
         all_findings.extend(ctx.findings)

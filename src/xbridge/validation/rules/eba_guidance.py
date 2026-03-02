@@ -18,7 +18,7 @@ from lxml import etree
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
-from xbridge.validation.rules._helpers import fact_label, is_fact
+from xbridge.validation.rules._helpers import build_variable_lookup, fact_label, is_fact
 from xbridge.validation.rules.csv_data_tables import (
     _basename,
     _decode_utf8,
@@ -374,19 +374,6 @@ def check_leading_trailing_whitespace(ctx: ValidationContext) -> None:
 _STANDARD_COLS = frozenset({"datapoint", "factValue", "unit"})
 
 
-def _build_variable_lookup(ctx: ValidationContext) -> Dict[str, Any]:
-    """Build a ``{variable_code: Variable}`` lookup from the Module."""
-    module = ctx.module
-    if module is None:
-        return {}
-    result: Dict[str, Any] = {}
-    for table in module.tables:
-        for variable in table.variables:
-            if variable.code:
-                result[variable.code] = variable
-    return result
-
-
 # ---------------------------------------------------------------------------
 # EBA-GUIDE-002 CSV: Canonical namespace prefixes
 # ---------------------------------------------------------------------------
@@ -434,7 +421,7 @@ def check_excessive_string_length_csv(ctx: ValidationContext) -> None:
     if module is None:
         return
 
-    var_lookup = _build_variable_lookup(ctx)
+    var_lookup = build_variable_lookup(ctx)
     if not var_lookup:
         return
 
@@ -571,7 +558,7 @@ def check_leading_trailing_whitespace_csv(ctx: ValidationContext) -> None:
     if module is None:
         return
 
-    var_lookup = _build_variable_lookup(ctx)
+    var_lookup = build_variable_lookup(ctx)
     if not var_lookup:
         return
 

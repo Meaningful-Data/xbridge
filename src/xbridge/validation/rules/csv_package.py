@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Optional, Set
+from typing import List, Optional, Set
 from zipfile import BadZipFile, ZipFile
 
 from xbridge.validation._context import ValidationContext
@@ -13,6 +13,8 @@ _REPORT_PACKAGE_JSON = "META-INF/reportPackage.json"
 _REPORT_JSON = "reports/report.json"
 _EXPECTED_DOC_TYPE = "https://xbrl.org/report-package/2023"
 
+_NAMELIST_SENTINEL = "_zip_namelist_checked"
+
 
 def _open_zip(ctx: ValidationContext) -> Optional[ZipFile]:
     """Try to open the file as a ZIP.  Returns None for invalid ZIPs."""
@@ -20,6 +22,22 @@ def _open_zip(ctx: ValidationContext) -> Optional[ZipFile]:
         return ZipFile(ctx.file_path)
     except BadZipFile:
         return None
+
+
+def _get_namelist(ctx: ValidationContext) -> Optional[List[str]]:
+    """Return the ZIP namelist, cached in shared_cache.  None for bad ZIPs."""
+    if _NAMELIST_SENTINEL in ctx.shared_cache:
+        return ctx.shared_cache.get("zip_namelist")
+    try:
+        with ZipFile(ctx.file_path) as zf:
+            result = zf.namelist()
+    except BadZipFile:
+        ctx.shared_cache[_NAMELIST_SENTINEL] = True
+        ctx.shared_cache["zip_namelist"] = None
+        return None
+    ctx.shared_cache[_NAMELIST_SENTINEL] = True
+    ctx.shared_cache["zip_namelist"] = result
+    return result
 
 
 # ── CSV-001 ──────────────────────────────────────────────────────────
@@ -44,15 +62,14 @@ def check_valid_zip(ctx: ValidationContext) -> None:
 @rule_impl("CSV-002")
 def check_report_package_json_exists(ctx: ValidationContext) -> None:
     """The ZIP MUST contain META-INF/reportPackage.json."""
-    zf = _open_zip(ctx)
-    if zf is None:
+    entries = _get_namelist(ctx)
+    if entries is None:
         return  # CSV-001 handles bad ZIPs
-    with zf:
-        if ctx.resolve_zip_entry(_REPORT_PACKAGE_JSON) not in zf.namelist():
-            ctx.add_finding(
-                location=ctx.file_path.name,
-                context={"detail": "META-INF/reportPackage.json not found in ZIP"},
-            )
+    if ctx.resolve_zip_entry(_REPORT_PACKAGE_JSON) not in entries:
+        ctx.add_finding(
+            location=ctx.file_path.name,
+            context={"detail": "META-INF/reportPackage.json not found in ZIP"},
+        )
 
 
 # ── CSV-003 ──────────────────────────────────────────────────────────
@@ -61,14 +78,14 @@ def check_report_package_json_exists(ctx: ValidationContext) -> None:
 @rule_impl("CSV-003")
 def check_report_package_document_type(ctx: ValidationContext) -> None:
     """reportPackage.json documentType MUST be the XBRL report-package URL."""
-    zf = _open_zip(ctx)
-    if zf is None:
+    entries = _get_namelist(ctx)
+    if entries is None:
         return
-    with zf:
-        resolved = ctx.resolve_zip_entry(_REPORT_PACKAGE_JSON)
-        if resolved not in zf.namelist():
-            return  # CSV-002 handles missing file
+    resolved = ctx.resolve_zip_entry(_REPORT_PACKAGE_JSON)
+    if resolved not in entries:
+        return  # CSV-002 handles missing file
 
+    with ZipFile(ctx.file_path) as zf:
         raw = zf.read(resolved)
 
     try:
@@ -97,11 +114,9 @@ def check_report_package_document_type(ctx: ValidationContext) -> None:
 @rule_impl("CSV-004")
 def check_report_json_exists(ctx: ValidationContext) -> None:
     """The ZIP MUST contain exactly one reports/report.json."""
-    zf = _open_zip(ctx)
-    if zf is None:
+    entries = _get_namelist(ctx)
+    if entries is None:
         return
-    with zf:
-        entries = zf.namelist()
 
     resolved = ctx.resolve_zip_entry(_REPORT_JSON)
     matches = [e for e in entries if e == resolved]
@@ -145,11 +160,10 @@ def _declared_table_files(ctx: ValidationContext, zf: ZipFile) -> Set[str]:
 @rule_impl("CSV-005")
 def check_no_extraneous_files(ctx: ValidationContext) -> None:
     """The ZIP MUST NOT contain files outside the report package structure."""
-    zf = _open_zip(ctx)
-    if zf is None:
+    entries = _get_namelist(ctx)
+    if entries is None:
         return
-    with zf:
-        entries = zf.namelist()
+    with ZipFile(ctx.file_path) as zf:
         table_files = _declared_table_files(ctx, zf)
 
     # Allowed paths are logical (without root folder prefix).

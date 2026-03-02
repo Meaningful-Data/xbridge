@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, Dict
+
 from lxml import etree
+
+if TYPE_CHECKING:
+    from xbridge.validation._context import ValidationContext
 
 # ---------------------------------------------------------------------------
 # Namespace URIs
@@ -54,3 +59,29 @@ def is_monetary(unit_measure: str) -> bool:
 def is_pure(unit_measure: str) -> bool:
     """Return True if the unit measure is the dimensionless 'pure' unit."""
     return unit_measure in PURE_VALUES
+
+
+# ---------------------------------------------------------------------------
+# Variable lookup (shared across CSV rule modules, cached in shared_cache)
+# ---------------------------------------------------------------------------
+def build_variable_lookup(ctx: ValidationContext) -> Dict[str, Any]:
+    """Build a ``{variable_code: Variable}`` lookup from the Module.
+
+    The result is cached in ``ctx.shared_cache`` so all rules sharing the
+    same validation run reuse a single lookup dict.
+    """
+    cached = ctx.shared_cache.get("variable_lookup")
+    if cached is not None:
+        return cached
+    module = ctx.module
+    if module is None:
+        result: Dict[str, Any] = {}
+        ctx.shared_cache["variable_lookup"] = result
+        return result
+    result = {}
+    for table in module.tables:
+        for variable in table.variables:
+            if variable.code:
+                result[variable.code] = variable
+    ctx.shared_cache["variable_lookup"] = result
+    return result

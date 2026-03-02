@@ -44,6 +44,7 @@ class ValidationContext:
         module: Optional[Module] = None,
         xml_root: Optional[etree._Element] = None,
         zip_path: Optional[Path] = None,
+        shared_cache: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.rule_set = rule_set
         self.rule_definition = rule_definition
@@ -54,8 +55,8 @@ class ValidationContext:
         self.module = module
         self.xml_root = xml_root
         self.zip_path = zip_path
+        self.shared_cache: Dict[str, Any] = shared_cache if shared_cache is not None else {}
         self._findings: List[ValidationResult] = []
-        self._zip_root_prefix: Optional[str] = None
 
     @property
     def findings(self) -> List[ValidationResult]:
@@ -73,9 +74,12 @@ class ValidationContext:
 
         Returns an empty string for flat ZIPs (no root folder).
         """
-        if self._zip_root_prefix is None:
-            self._zip_root_prefix = self._detect_root_prefix()
-        return self._zip_root_prefix
+        cached = self.shared_cache.get("zip_root_prefix")
+        if cached is not None:
+            return cached
+        result = self._detect_root_prefix()
+        self.shared_cache["zip_root_prefix"] = result
+        return result
 
     def _detect_root_prefix(self) -> str:
         zip_to_check = self.zip_path or (

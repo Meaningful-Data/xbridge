@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
-from xbridge.validation.rules._helpers import is_monetary, is_pure
+from xbridge.validation.rules._helpers import build_variable_lookup, is_monetary, is_pure
 from xbridge.validation.rules.csv_data_tables import (
     _basename,
     _decode_utf8,
@@ -124,19 +124,6 @@ def check_decimal_notation_xml(ctx: ValidationContext) -> None:
 _STANDARD_COLS = frozenset({"datapoint", "factValue", "unit"})
 
 
-def _build_variable_lookup(ctx: ValidationContext) -> Dict[str, Any]:
-    """Build a ``{variable_code: Variable}`` lookup from the Module."""
-    module = ctx.module
-    if module is None:
-        return {}
-    result: Dict[str, Any] = {}
-    for table in module.tables:
-        for variable in table.variables:
-            if variable.code:
-                result[variable.code] = variable
-    return result
-
-
 def _resolve_unit(variable: Any, params: Dict[str, str], row_unit: str) -> str:
     """Resolve the effective unit measure string for a CSV variable.
 
@@ -173,7 +160,7 @@ def _iter_csv_facts_with_units(
         return []
 
     params = _parse_parameters(ctx) or {}
-    var_lookup = _build_variable_lookup(ctx)
+    var_lookup = build_variable_lookup(ctx)
     if not var_lookup:
         return []
 
