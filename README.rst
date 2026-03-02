@@ -83,12 +83,20 @@ The CLI provides a quick way to convert files without writing code:
     # Include headers as datapoints
     xbridge instance.xbrl --headers-as-datapoints
 
+    # Validate before and after conversion
+    xbridge instance.xbrl --validate
+
+    # Validate with EBA-specific rules
+    xbridge instance.xbrl --validate --eba
+
 **CLI Options:**
 
 * ``--output-path PATH``: Output directory (default: same as input file)
 * ``--headers-as-datapoints``: Treat headers as datapoints (default: False)
 * ``--strict-validation``: Raise errors on validation failures (default: True)
 * ``--no-strict-validation``: Emit warnings instead of errors
+* ``--validate``: Run validation before and after conversion (default: False)
+* ``--eba``: Enable EBA-specific validation rules (only applies with ``--validate``)
 
 For more CLI options, run ``xbridge --help``.
 
@@ -126,6 +134,24 @@ Customize the conversion with additional parameters:
         validate_filing_indicators=True,  # Validate filing indicators
         strict_validation=False,  # Emit warnings instead of errors for orphaned facts
     )
+
+    # Validate-convert-validate pipeline
+    from xbridge.exceptions import ValidationError
+
+    try:
+        convert_instance(
+            instance_path="path/to/instance.xbrl",
+            output_path="path/to/output",
+            validate=True,   # Enable pre/post-conversion validation
+            eba=True,         # Include EBA-specific rules
+        )
+    except ValidationError as e:
+        print(f"Validation failed: {e}")
+        if e.path:
+            print(f"Output was written to: {e.path}")
+        for code, findings in e.results["errors"].items():
+            for f in findings:
+                print(f"  [{f['severity']}] {f['rule_id']}: {f['message']}")
 
 Python API - Handling Warnings
 ------------------------------
@@ -322,6 +348,8 @@ convert_instance Parameters
 * **headers_as_datapoints** (bool): Treat table headers as datapoints (default: False)
 * **validate_filing_indicators** (bool): Validate that facts belong to reported tables (default: True)
 * **strict_validation** (bool): Raise errors on validation failures; if False, emit warnings (default: True)
+* **validate** (bool): Run validation before and after conversion; raises ``ValidationError`` on errors (default: False)
+* **eba** (bool): Enable EBA-specific validation rules; only used when *validate* is True (default: False)
 
 Troubleshooting
 ===============

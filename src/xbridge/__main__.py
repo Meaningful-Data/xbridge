@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from xbridge.api import convert_instance
+from xbridge.exceptions import ValidationError
 
 
 def _convert_main() -> None:
@@ -49,6 +50,20 @@ def _convert_main() -> None:
         help="Emit warnings instead of errors for validation failures",
     )
 
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        default=False,
+        help="Run validation before and after conversion (default: False)",
+    )
+
+    parser.add_argument(
+        "--eba",
+        action="store_true",
+        default=False,
+        help="Enable EBA-specific validation rules (only applies with --validate)",
+    )
+
     args = parser.parse_args()
 
     # Determine output path
@@ -69,14 +84,45 @@ def _convert_main() -> None:
             sys.exit(1)
 
     try:
+        if args.validate:
+            print("Running pre-conversion validation...")
         result_path = convert_instance(
             instance_path=input_path,
             output_path=output_path,
             headers_as_datapoints=args.headers_as_datapoints,
             validate_filing_indicators=True,
             strict_validation=args.strict_validation,
+            validate=args.validate,
+            eba=args.eba,
         )
-        print(f"Conversion successful: {result_path}")
+        if args.validate:
+            print("Pre-conversion validation passed.")
+            print(f"Conversion successful: {result_path}")
+            print("Post-conversion validation passed.")
+        else:
+            print(f"Conversion successful: {result_path}")
+    except ValidationError as ve:
+        results = ve.results
+        errors = results["errors"]
+        warnings = results["warnings"]
+        error_count = sum(len(v) for v in errors.values())
+        warning_count = sum(len(v) for v in warnings.values())
+
+        for findings_by_code in (errors, warnings):
+            for _code, occurrences in findings_by_code.items():
+                for finding in occurrences:
+                    print(
+                        f"[{finding['severity']}] {finding['rule_id']}: {finding['message']}",
+                        file=sys.stderr,
+                    )
+                    print(f"  Location: {finding['location']}", file=sys.stderr)
+
+        total = error_count + warning_count
+        print(
+            f"\nFound {total} issue(s): {error_count} error(s), {warning_count} warning(s)",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     except Exception as e:
         print(f"Conversion failed: {e}", file=sys.stderr)
         sys.exit(1)

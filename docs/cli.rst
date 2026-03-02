@@ -33,6 +33,12 @@ Arguments
 ``--no-strict-validation``
     Emit warnings instead of errors for validation failures. Use this to continue processing despite orphaned facts.
 
+``--validate``
+    Run validation before and after conversion. Pre-conversion errors stop the pipeline; post-conversion errors are reported after the output file has been written. Default is False.
+
+``--eba``
+    Enable EBA-specific validation rules (entity format, decimal precision, currency checks, etc.). Only applies when ``--validate`` is also set. Default is False.
+
 ``-h, --help``
     Show help message and exit.
 
@@ -71,6 +77,18 @@ Combine multiple options:
         --output-path ./output \
         --headers-as-datapoints \
         --no-strict-validation
+
+Validate before and after conversion:
+
+.. code-block:: bash
+
+    xbridge instance.xbrl --validate
+
+Validate with EBA-specific rules:
+
+.. code-block:: bash
+
+    xbridge instance.xbrl --validate --eba
 
 Batch processing with shell:
 
