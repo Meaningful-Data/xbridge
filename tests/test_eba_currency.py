@@ -201,22 +201,19 @@ class TestEBACUR002Denomination:
         )
         assert _run(xml, "EBA-CUR-002") == []
 
-    def test_cca_fact_without_monetary_unit_detected(self) -> None:
+    def test_cca_fact_with_pure_unit_no_findings(self) -> None:
+        """Non-monetary facts (pure unit) in denomination context are fine."""
         xml = _xbrl(
             _unit("u1", "xbrli:pure")
             + _context("c1", scenario=_cca_dim("eba_CA:x1"))
             + _fact(ctx="c1", unit="u1")
         )
-        findings = _run(xml, "EBA-CUR-002")
-        assert len(findings) == 1
-        assert findings[0].severity == Severity.ERROR
-        assert "denomination" in findings[0].message.lower()
+        assert _run(xml, "EBA-CUR-002") == []
 
-    def test_cca_fact_without_unit_detected(self) -> None:
+    def test_cca_fact_without_unit_no_findings(self) -> None:
+        """Non-numeric facts (no unit) in denomination context are fine."""
         xml = _xbrl(_context("c1", scenario=_cca_dim("eba_CA:x1")) + _fact_no_unit(ctx="c1"))
-        findings = _run(xml, "EBA-CUR-002")
-        assert len(findings) == 1
-        assert findings[0].severity == Severity.ERROR
+        assert _run(xml, "EBA-CUR-002") == []
 
     def test_non_cca_fact_not_checked(self) -> None:
         """Facts without CCA/qAEA are not checked by CUR-002."""

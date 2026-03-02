@@ -135,7 +135,12 @@ def check_single_reporting_currency_xml(ctx: ValidationContext) -> None:
 
 @rule_impl("EBA-CUR-002", format="xml")
 def check_denomination_currency_xml(ctx: ValidationContext) -> None:
-    """Facts with CCA=x1 or qAEA=qx2000 MUST have a valid monetary unit."""
+    """Monetary facts with CCA=x1 or qAEA=qx2000 MUST use their denomination currency.
+
+    Only monetary facts are checked.  Non-monetary facts (pure unit, no unit)
+    in a denomination context are not flagged — they are simply not currency
+    facts (e.g. percentages, counts).
+    """
     inst = ctx.xml_instance
     if inst is None:
         return
@@ -146,7 +151,12 @@ def check_denomination_currency_xml(ctx: ValidationContext) -> None:
         return
 
     for fact in facts:
-        if fact.context is None:
+        if fact.unit is None or fact.context is None:
+            continue
+        unit_measure = units.get(fact.unit, "")
+        # Only check monetary facts — non-monetary facts (pure, etc.)
+        # in a denomination context are valid non-currency metrics.
+        if not is_monetary(unit_measure):
             continue
         context = contexts.get(fact.context)
         if context is None:
@@ -154,21 +164,8 @@ def check_denomination_currency_xml(ctx: ValidationContext) -> None:
         dims = context.scenario.dimensions
         if not _is_denomination_context(dims):
             continue
-
-        # This fact is flagged as "currency of denomination" — must be monetary
-        unit_measure = units.get(fact.unit or "", "")
-        if not is_monetary(unit_measure):
-            metric = fact.metric or "?"
-            ctx.add_finding(
-                location=f"fact:{metric}:context:{fact.context}",
-                context={
-                    "detail": (
-                        f"Fact '{metric}' in context '{fact.context}' has "
-                        f"CCA/qAEA denomination flag but is not expressed "
-                        f"in a monetary unit (unit='{fact.unit or '(none)'}')."
-                    )
-                },
-            )
+        # Fact is monetary AND in a denomination context — valid.
+        # (Currency matching against CUS/CUA is handled by CUR-003.)
 
 
 # ---------------------------------------------------------------------------
