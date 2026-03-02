@@ -32,6 +32,7 @@ Key Features
 * **Python API**: Programmatic conversion for integration with other tools and workflows
 * **EBA Taxonomy 4.2 Support**: Built for the latest EBA taxonomy specification
 * **DORA CSV Conversion**: Support for Digital Operational Resilience Act reporting
+* **Standalone Validation**: Validate XBRL-XML and XBRL-CSV files against structural and EBA rules via CLI or Python API
 * **Configurable Validation**: Flexible filing indicator validation with strict or warning modes
 * **Decimal Handling**: Intelligent decimal precision handling with configurable options
 * **Type Safety**: Fully typed codebase with MyPy strict mode compliance
@@ -174,6 +175,73 @@ To treat all XBridge warnings as errors:
     with warnings.catch_warnings():
         warnings.simplefilter("error", XbridgeWarning)
         convert_instance("path/to/instance.xbrl", "path/to/output")
+
+Validation - Command-Line Interface
+------------------------------------
+
+The ``validate`` subcommand checks XBRL instance files against structural and regulatory rules without performing conversion:
+
+.. code-block:: bash
+
+    # Validate an XBRL-XML file
+    xbridge validate instance.xbrl
+
+    # Enable EBA-specific rules (entity, currency, decimals, etc.)
+    xbridge validate instance.xbrl --eba
+
+    # Validate an XBRL-CSV package
+    xbridge validate report.zip --eba
+
+    # Skip structural checks for xbridge-generated CSV output
+    xbridge validate output.zip --eba --post-conversion
+
+    # Get machine-readable JSON output
+    xbridge validate instance.xbrl --eba --json
+
+**Validate Options:**
+
+* ``--eba``: Enable EBA-specific validation rules (default: False)
+* ``--post-conversion``: Skip structural checks guaranteed by xbridge's converter (CSV only, default: False)
+* ``--json``: Output findings as JSON instead of human-readable text
+
+The validate command exits with code **0** when no errors are found, and **1** when at least one ERROR-level finding is present.
+
+For more options, run ``xbridge validate --help``.
+
+Validation - Python API
+------------------------
+
+Validate XBRL files programmatically using the ``validate()`` function:
+
+.. code-block:: python
+
+    from xbridge.validation import validate
+
+    # Validate an XBRL-XML file
+    results = validate("path/to/instance.xbrl")
+
+    # Enable EBA-specific rules
+    results = validate("path/to/instance.xbrl", eba=True)
+
+    # Validate an XBRL-CSV package
+    results = validate("path/to/report.zip", eba=True)
+
+The ``validate()`` function returns a dictionary with two keys — ``"errors"`` and ``"warnings"`` — each containing a dict keyed by rule code with lists of finding dicts:
+
+.. code-block:: python
+
+    from xbridge.validation import validate
+
+    results = validate("path/to/instance.xbrl", eba=True)
+
+    for code, findings in results["errors"].items():
+        for f in findings:
+            print(f"[{f['severity']}] {f['rule_id']}: {f['message']}")
+            print(f"  Location: {f['location']}")
+
+    error_count = sum(len(v) for v in results["errors"].values())
+    warning_count = sum(len(v) for v in results["warnings"].values())
+    print(f"Errors: {error_count}, Warnings: {warning_count}")
 
 Loading an Instance
 -------------------

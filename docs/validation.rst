@@ -8,7 +8,7 @@ The ``xbridge.validation`` module provides a standalone validation API for check
 Overview
 ========
 
-The validation module can check both **XBRL-XML** (``.xbrl``) and **XBRL-CSV** (``.zip``) files. It runs a configurable set of validation rules and returns a list of findings, each with a severity level, location, and descriptive message.
+The validation module can check both **XBRL-XML** (``.xbrl``) and **XBRL-CSV** (``.zip``) files. It runs a configurable set of validation rules and returns findings grouped by severity.
 
 Key features:
 
@@ -27,11 +27,12 @@ Quick Start
     # Validate an XBRL-XML file
     results = validate("path/to/instance.xbrl")
 
-    if not results:
+    if not results["errors"] and not results["warnings"]:
         print("No issues found.")
     else:
-        for finding in results:
-            print(f"[{finding.severity.value}] {finding.rule_id}: {finding.message}")
+        for code, findings in results["errors"].items():
+            for f in findings:
+                print(f"[{f['severity']}] {f['rule_id']}: {f['message']}")
 
 Public API
 ==========
@@ -55,9 +56,10 @@ Check an XBRL-XML instance for structural issues:
 
     results = validate("data/instance.xbrl")
 
-    for r in results:
-        print(f"[{r.severity.value}] {r.rule_id}: {r.message}")
-        print(f"  Location: {r.location}")
+    for code, findings in results["errors"].items():
+        for f in findings:
+            print(f"[{f['severity']}] {f['rule_id']}: {f['message']}")
+            print(f"  Location: {f['location']}")
 
 Enable EBA Rules
 ----------------
@@ -70,10 +72,10 @@ Run additional EBA-specific checks (entity format, decimal precision, currency, 
 
     results = validate("data/instance.xbrl", eba=True)
 
-    errors = [r for r in results if r.severity.value == "ERROR"]
-    warnings = [r for r in results if r.severity.value == "WARNING"]
+    error_count = sum(len(v) for v in results["errors"].values())
+    warning_count = sum(len(v) for v in results["warnings"].values())
 
-    print(f"Errors: {len(errors)}, Warnings: {len(warnings)}")
+    print(f"Errors: {error_count}, Warnings: {warning_count}")
 
 Validate a CSV Package
 ----------------------
@@ -101,24 +103,70 @@ When validating CSV output produced by xbridge's own converter, use ``post_conve
 Inspect Findings
 ----------------
 
-Each finding is a ``ValidationResult`` with detailed information:
+The ``validate()`` function returns a dictionary with two keys:
+
+- ``"errors"`` — a dict keyed by rule code, each value a list of ERROR findings (as dicts)
+- ``"warnings"`` — a dict keyed by rule code, each value a list of WARNING/INFO findings (as dicts)
+
+Each finding dict has the following keys:
+
+- ``rule_id`` (``str``): The unique rule code (e.g. ``"XML-001"``, ``"EBA-ENTITY-001"``)
+- ``severity`` (``str``): ``"ERROR"``, ``"WARNING"``, or ``"INFO"``
+- ``rule_set`` (``str``): ``"xml"`` or ``"csv"``, indicating the input format
+- ``message`` (``str``): Human-readable description of the issue
+- ``location`` (``str``): File path, XPath, or row:column locator pointing to the problem
+- ``context`` (``dict`` or ``null``): Optional key-value data with diagnostic details
 
 .. code-block:: python
 
-    from xbridge.validation import validate, Severity
+    from xbridge.validation import validate
 
     results = validate("data/instance.xbrl", eba=True)
 
-    for r in results:
-        print(f"Rule:     {r.rule_id}")
-        print(f"Severity: {r.severity.value}")
-        print(f"Message:  {r.message}")
-        print(f"Location: {r.location}")
-        print(f"Context:  {r.context}")
-        print()
+    for code, findings in results["errors"].items():
+        for f in findings:
+            print(f"Rule:     {f['rule_id']}")
+            print(f"Severity: {f['severity']}")
+            print(f"Message:  {f['message']}")
+            print(f"Location: {f['location']}")
+            print(f"Context:  {f['context']}")
+            print()
 
-    # Filter by severity
-    errors_only = [r for r in results if r.severity == Severity.ERROR]
+    # Count errors only
+    error_count = sum(len(v) for v in results["errors"].values())
+
+JSON Output Example
+-------------------
+
+The return value is directly JSON-serialisable:
+
+.. code-block:: python
+
+    import json
+    from xbridge.validation import validate
+
+    results = validate("data/instance.xbrl", eba=True)
+    print(json.dumps(results, indent=2))
+
+Sample output:
+
+.. code-block:: json
+
+    {
+      "errors": {
+        "XML-001": [
+          {
+            "rule_id": "XML-001",
+            "severity": "ERROR",
+            "rule_set": "xml",
+            "message": "File is not well-formed XML.",
+            "location": "instance.xbrl",
+            "context": null
+          }
+        ]
+      },
+      "warnings": {}
+    }
 
 Parameters
 ==========
@@ -129,42 +177,10 @@ Parameters
 
 :param post_conversion: When ``True`` and validating a CSV (``.zip``) file, skips structural and format checks that are guaranteed by xbridge's converter. Only EBA semantic checks are retained. Has no effect for ``.xbrl`` files. Default is ``False``.
 
-:return: A list of ``ValidationResult`` findings, ordered by rule execution sequence. An empty list means no issues were found.
+:return: A dictionary with two keys — ``"errors"`` and ``"warnings"`` — each containing a dict keyed by rule code with lists of finding dicts. An empty dict for both keys means no issues were found.
 
 :raises FileNotFoundError: If the file does not exist.
 :raises ValueError: If the file extension is not supported.
-
-Data Classes
-============
-
-ValidationResult
-----------------
-
-Each finding returned by ``validate()`` is a ``ValidationResult`` instance with the following attributes:
-
-- ``rule_id`` (``str``): The unique rule code (e.g. ``"XML-001"``, ``"EBA-ENTITY-001"``)
-- ``severity`` (``Severity``): The severity level of the finding
-- ``rule_set`` (``str``): ``"xml"`` or ``"csv"``, indicating the input format
-- ``message`` (``str``): Human-readable description of the issue
-- ``location`` (``str``): File path, XPath, or row:column locator pointing to the problem
-- ``context`` (``dict`` or ``None``): Optional key-value data with diagnostic details
-
-Severity
---------
-
-The ``Severity`` enum has three levels:
-
-- ``Severity.ERROR``: The file violates a mandatory requirement
-- ``Severity.WARNING``: The file has a potential issue that may cause problems
-- ``Severity.INFO``: Informational observation
-
-.. code-block:: python
-
-    from xbridge.validation import Severity
-
-    # Compare severity levels
-    if finding.severity == Severity.ERROR:
-        print("This must be fixed.")
 
 Integration with Conversion
 ===========================
@@ -173,17 +189,17 @@ You can validate before converting to catch issues early:
 
 .. code-block:: python
 
-    from xbridge.validation import validate, Severity
+    from xbridge.validation import validate
     from xbridge.api import convert_instance
 
     # Validate first
     results = validate("data/instance.xbrl", eba=True)
-    errors = [r for r in results if r.severity == Severity.ERROR]
 
-    if errors:
+    if results["errors"]:
         print("Validation errors found — skipping conversion:")
-        for e in errors:
-            print(f"  [{e.rule_id}] {e.message}")
+        for code, findings in results["errors"].items():
+            for e in findings:
+                print(f"  [{e['rule_id']}] {e['message']}")
     else:
         convert_instance(
             instance_path="data/instance.xbrl",

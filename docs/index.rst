@@ -89,18 +89,19 @@ For programmatic use, import and use the Python API:
 What's New
 ==========
 
-**Version 1.5.2rc2**
+**Version 2.0.0rc2**
 
-* Fixed ``baseCurrency`` parameter handling: now only included when present in the source instance
-* Fixed filing indicators parsing to handle multiple ``find:fIndicators`` blocks in a single XBRL instance
+* **CSV Structural Rules**: CSV-001..CSV-005, CSV-010..CSV-016, CSV-020..CSV-026, CSV-030..CSV-035, CSV-040..CSV-049, CSV-050..CSV-052, CSV-060..CSV-062
+* **CSV EBA Rules**: CSV-side implementations for EBA-ENTITY-001/002, EBA-DEC-001..004, EBA-UNIT-001/002, EBA-CUR-003, EBA-2.16.1, EBA-2.24, EBA-GUIDE-002/004/007, EBA-NAME-071
+* **Validation Performance**: Shared cache across rules eliminates redundant ZIP I/O (~60-65% faster for CSV validation)
+* Fixed ``iso4217:``-prefixed ``baseCurrency`` parameter handling in CSV validation rules
 
-**Version 1.5.0**
+**Version 2.0.0rc1**
 
-* Support for "0" and "1" values in filing indicators
-* Structured warnings for easier integration
-* Custom exceptions with detailed error information
-* Configurable filing indicator strictness
-* EBA Taxonomy 4.2 support
+* **Standalone Validation API**: New ``xbridge.validation`` module with ``validate()`` function
+* **Validation CLI Command**: New ``xbridge validate`` subcommand
+* **XML Structural Rules**: XML-001..XML-072
+* **EBA Rules**: EBA-ENTITY, EBA-CUR, EBA-UNIT, EBA-DEC, EBA-GUIDE, EBA-NAME, and additional EBA rules
 
 See the `CHANGELOG <https://github.com/Meaningful-Data/xbridge/blob/main/CHANGELOG.md>`_ for complete version history.
 
