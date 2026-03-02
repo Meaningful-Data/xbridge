@@ -1,7 +1,10 @@
 """Tests for EBA-CUR-001, EBA-CUR-002, EBA-CUR-003: currency checks."""
 
 import importlib
+import io
+import json
 import sys
+import zipfile
 from tempfile import NamedTemporaryFile
 
 from xbridge.validation._engine import run_validation
@@ -330,3 +333,127 @@ class TestEBACUR003CurrencyConsistency:
         # CUS=EUR matches, but CUA=USD doesn't
         assert len(findings) == 1
         assert "CUA" in findings[0].message
+
+
+# ===================================================================
+# CSV helpers
+# ===================================================================
+
+# COREP ALM module: table C_66.01.w has open_keys=[CUS], attributes=[unit].
+_COREP_ALM_EXTENDS = (
+    "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/corep/"
+    "its-005-2020/2020-11-15/mod/corep_alm_con.json"
+)
+
+
+def _make_zip(**files: str | bytes) -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        for name, content in files.items():
+            zf.writestr(name, content if isinstance(content, bytes) else content)
+    return buf.getvalue()
+
+
+def _rpkg() -> str:
+    return json.dumps({"documentType": "https://xbrl.org/report-package/2023"})
+
+
+def _report_corep() -> str:
+    return json.dumps(
+        {
+            "documentInfo": {
+                "documentType": "https://xbrl.org/2021/xbrl-csv",
+                "extends": [_COREP_ALM_EXTENDS],
+                "namespaces": {
+                    "eba_dim": "http://www.eba.europa.eu/xbrl/crr/dict/dim",
+                    "eba_met": "http://www.eba.europa.eu/xbrl/crr/dict/met",
+                },
+            },
+            "tables": {},
+        }
+    )
+
+
+def _std_params() -> str:
+    return (
+        "name,value\n"
+        "entityID,lei:529900T8BM49AURSDO55\n"
+        "refPeriod,2025-12-31\n"
+        "baseCurrency,EUR\n"
+        "decimalsMonetary,-3\n"
+    )
+
+
+def _csv_zip(table_csv: str) -> bytes:
+    return _make_zip(
+        **{
+            "META-INF/reportPackage.json": _rpkg(),
+            "reports/report.json": _report_corep(),
+            "reports/parameters.csv": _std_params(),
+            "reports/FilingIndicators.csv": "templateID,reported\nC_66.01.w,true\n",
+            "reports/c_66.01.w.csv": table_csv,
+        }
+    )
+
+
+def _run_csv(data: bytes, rule_id: str) -> list:
+    with NamedTemporaryFile(suffix=".zip", delete=False) as f:
+        f.write(data)
+        f.flush()
+        results = run_validation(f.name, eba=True)
+    return [r for r in results if r.rule_id == rule_id]
+
+
+# ===================================================================
+# EBA-CUR-003 CSV — Currency/dimension consistency
+# ===================================================================
+
+
+class TestEBACUR003CurrencyConsistencyCSV:
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_cus_matches_unit_no_findings(self) -> None:
+        """CUS=eba_CU:EUR with unit=iso4217:EUR — consistent."""
+        table = "datapoint,factValue,CUS,unit\ndp236558,100,eba_CU:EUR,iso4217:EUR\n"
+        assert _run_csv(_csv_zip(table), "EBA-CUR-003") == []
+
+    def test_cus_mismatch_detected(self) -> None:
+        """CUS=eba_CU:EUR with unit=iso4217:USD — error."""
+        table = "datapoint,factValue,CUS,unit\ndp236558,100,eba_CU:EUR,iso4217:USD\n"
+        findings = _run_csv(_csv_zip(table), "EBA-CUR-003")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "EUR" in findings[0].message
+        assert "USD" in findings[0].message
+
+    def test_cus_coded_value_skipped(self) -> None:
+        """Coded CUS value like eba_CU:x47 — not comparable, skip."""
+        table = "datapoint,factValue,CUS,unit\ndp236558,100,eba_CU:x47,iso4217:EUR\n"
+        assert _run_csv(_csv_zip(table), "EBA-CUR-003") == []
+
+    def test_non_monetary_unit_skipped(self) -> None:
+        """Non-monetary unit (xbrli:pure) — not checked."""
+        table = "datapoint,factValue,CUS,unit\ndp236558,100,eba_CU:EUR,xbrli:pure\n"
+        assert _run_csv(_csv_zip(table), "EBA-CUR-003") == []
+
+    def test_multiple_mismatches(self) -> None:
+        """Two rows with mismatches — two findings."""
+        table = (
+            "datapoint,factValue,CUS,unit\n"
+            "dp236558,100,eba_CU:EUR,iso4217:USD\n"
+            "dp236559,200,eba_CU:GBP,iso4217:EUR\n"
+        )
+        findings = _run_csv(_csv_zip(table), "EBA-CUR-003")
+        assert len(findings) == 2
+
+    def test_mixed_match_and_mismatch(self) -> None:
+        """One consistent row, one mismatch — only one finding."""
+        table = (
+            "datapoint,factValue,CUS,unit\n"
+            "dp236558,100,eba_CU:EUR,iso4217:EUR\n"
+            "dp236559,200,eba_CU:GBP,iso4217:EUR\n"
+        )
+        findings = _run_csv(_csv_zip(table), "EBA-CUR-003")
+        assert len(findings) == 1
+        assert "GBP" in findings[0].message

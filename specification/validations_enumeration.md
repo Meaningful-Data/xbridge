@@ -290,7 +290,7 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
 |-------------|----------|-----|---------|------------|------|-----------------------------------------------------------|
 | EBA-CUR-001 | ERROR    | Yes | 3.1     | No        | --    | All monetary facts without CCA dimension MUST use a single "reporting currency". (multipleReportingCurrencies) |
 | EBA-CUR-002 | ERROR    | Yes | 3.1     | No        | --    | Facts with CCA dimension MUST be expressed in their currency of denomination. (currencyOfDenomination) |
-| EBA-CUR-003 | ERROR    | Yes | 3.1     | No        | --    | For facts with CUS or CUA dimension, the currency MUST be consistent with the dimension value. (inconsistentCurrencyUnitAndDimension) |
+| EBA-CUR-003 | ERROR    | Yes | 3.1     | No        | Done  | For facts with CUS or CUA dimension, the currency MUST be consistent with the dimension value. (inconsistentCurrencyUnitAndDimension) |
 
 ### 2.11 Non-monetary Numeric Values
 

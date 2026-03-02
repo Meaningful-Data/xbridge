@@ -1,18 +1,25 @@
 """EBA-CUR-001, EBA-CUR-002, EBA-CUR-003: Currency checks.
 
-Shared rules (XML + CSV).  Only the XML implementation is provided
-here; the CSV side will be added when the CSV fact infrastructure
-is available.
+EBA-CUR-003 is a shared rule with both XML and CSV implementations.
+EBA-CUR-001 and EBA-CUR-002 are XML-only.
 """
 
 from __future__ import annotations
 
+import csv
 import re
 from typing import Dict, List, Optional, Set, Tuple
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
 from xbridge.validation.rules._helpers import is_monetary
+from xbridge.validation.rules.csv_data_tables import (
+    _basename,
+    _decode_utf8,
+    _find_table_for_file,
+    _iter_data_tables,
+    _parse_header,
+)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -195,3 +202,76 @@ def check_currency_dimension_consistency_xml(ctx: ValidationContext) -> None:
                         )
                     },
                 )
+
+
+# ---------------------------------------------------------------------------
+# EBA-CUR-003 CSV  Currency/dimension consistency
+# ---------------------------------------------------------------------------
+
+
+@rule_impl("EBA-CUR-003", format="csv")
+def check_currency_dimension_consistency_csv(ctx: ValidationContext) -> None:
+    """For CSV facts with CUS/CUA open-key column, unit must match."""
+    module = ctx.module
+    if module is None:
+        return
+
+    for entry, raw in _iter_data_tables(ctx):
+        text = _decode_utf8(raw)
+        if text is None:
+            continue
+        header = _parse_header(text)
+        if header is None:
+            continue
+
+        name = _basename(entry)
+        table = _find_table_for_file(ctx, name)
+        if table is None or table.architecture != "datapoints":
+            continue
+
+        # Find CUS/CUA and unit column indices.
+        open_keys = set(table.open_keys) if table.open_keys else set()
+        cur_cols: List[Tuple[int, str]] = []
+        unit_idx: Optional[int] = None
+        for i, h in enumerate(header):
+            if h in _CURRENCY_DIMS and h in open_keys:
+                cur_cols.append((i, h))
+            elif h == "unit":
+                unit_idx = i
+
+        if not cur_cols or unit_idx is None:
+            continue
+
+        lines = text.splitlines()
+        reader = csv.reader(lines[1:])
+        for row_num, row in enumerate(reader, start=2):
+            if not any(row):
+                continue
+            if unit_idx >= len(row):
+                continue
+
+            unit_val = row[unit_idx].strip()
+            if not is_monetary(unit_val):
+                continue
+            unit_currency = _currency_code(unit_val)
+
+            for col_idx, dim_name in cur_cols:
+                if col_idx >= len(row):
+                    continue
+                dim_value = row[col_idx].strip()
+                if not dim_value:
+                    continue
+                expected = _extract_dim_currency(dim_value)
+                if expected is None:
+                    continue  # coded value
+                if unit_currency.upper() != expected.upper():
+                    ctx.add_finding(
+                        location=entry,
+                        context={
+                            "detail": (
+                                f"{name} row {row_num}: {dim_name}='{dim_value}' "
+                                f"(implies currency {expected}) but "
+                                f"unit='{unit_val}' (currency {unit_currency})."
+                            )
+                        },
+                    )
