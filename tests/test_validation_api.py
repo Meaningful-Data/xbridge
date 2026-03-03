@@ -99,7 +99,7 @@ class TestPublicAPI:
             )
             f.flush()
             results = validate(f.name)
-        for code, occurrences in results["errors"].items():
+        for _code, occurrences in results["errors"].items():
             for entry in occurrences:
                 assert entry["severity"] == "ERROR"
 
@@ -112,7 +112,7 @@ class TestPublicAPI:
             )
             f.flush()
             results = validate(f.name)
-        for code, occurrences in results["warnings"].items():
+        for _code, occurrences in results["warnings"].items():
             for entry in occurrences:
                 assert entry["severity"] in ("WARNING", "INFO")
 

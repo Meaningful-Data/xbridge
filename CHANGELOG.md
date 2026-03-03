@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0rc3] - 2026-03-03
+
+### Added
+- **Validate-Convert-Validate Pipeline**: New `--validate` and `--eba` CLI flags for the `convert` command run validation before and after conversion. Equivalent `validate=` and `eba=` parameters added to `convert_instance()`. Raises `ValidationError` (with `results` and `path` attributes) on failure.
+- **EBA Taxonomy 4.2.1**: Added support for FINREP 4.2.1 (`finrep9dp` module).
+
+### Fixed
+- Fixed EBA-CUR-002 incorrectly flagging non-monetary facts (pure unit or no unit) in a denomination context; only monetary facts are subject to the currency-of-denomination rule.
+- Fixed incorrect `R_02.00.a` filing indicator in the `rem_bm` (GL 2022-06) module — corrected to `R_02.00`.
+
 ## [2.0.0rc2] - 2026-03-02
 
 ### Added

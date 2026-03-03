@@ -18,7 +18,7 @@ Overview
 
 **XBridge** is a Python library for converting XBRL-XML files into XBRL-CSV files using the EBA (European Banking Authority) taxonomy. It provides a simple, reliable way to transform regulatory reporting data from XML format to CSV format.
 
-The library currently supports **EBA Taxonomy version 4.2** and includes support for DORA (Digital Operational Resilience Act) CSV conversion.
+The library currently supports **EBA Taxonomy version 4.2 / 4.2.1** and includes support for DORA (Digital Operational Resilience Act) CSV conversion.
 
 Key Features
 ============
@@ -26,7 +26,7 @@ Key Features
 * **XBRL-XML to XBRL-CSV Conversion**: Seamlessly convert XBRL-XML instance files to XBRL-CSV format
 * **Command-Line Interface**: Quick conversions without writing code using the ``xbridge`` CLI
 * **Python API**: Programmatic conversion for integration with other tools and workflows
-* **EBA Taxonomy 4.2 Support**: Built for the latest EBA taxonomy specification
+* **EBA Taxonomy 4.2/4.2.1 Support**: Built for the latest EBA taxonomy specification
 * **DORA CSV Conversion**: Support for Digital Operational Resilience Act reporting
 * **Standalone Validation API**: Validate XBRL-XML and XBRL-CSV files against structural and EBA rules
 * **Configurable Validation**: Flexible filing indicator validation with strict or warning modes
@@ -88,6 +88,13 @@ For programmatic use, import and use the Python API:
 
 What's New
 ==========
+
+**Version 2.0.0rc3**
+
+* **Validate-Convert-Validate Pipeline**: ``--validate`` / ``--eba`` CLI flags and ``validate=`` / ``eba=`` API parameters for pre- and post-conversion validation
+* **EBA Taxonomy 4.2.1**: Added FINREP 4.2.1 (``finrep9dp``) module
+* Fixed EBA-CUR-002 incorrectly flagging non-monetary facts
+* Fixed incorrect ``R_02.00.a`` filing indicator in the ``rem_bm`` (GL 2022-06) module
 
 **Version 2.0.0rc2**
 
