@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0rc4] - 2026-03-03
+
+### Changed
+- **Refactored dim-dom mapping**: Removed the external `dim_dom_mapping*.json` file dependency from the converter. The dimension-domain variable mapping is now computed inline from table column metadata, simplifying the module interface and removing the `dim_dom_file_name` property from `Module`.
+
 ## [2.0.0rc3] - 2026-03-03
 
 ### Added
@@ -186,7 +191,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc2...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc4...HEAD
+[2.0.0rc4]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc3...v2.0.0rc4
+[2.0.0rc3]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc2...v2.0.0rc3
 [2.0.0rc2]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc1...v2.0.0rc2
 [2.0.0rc1]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.2...v2.0.0rc1
 [1.5.2]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.1...v1.5.2

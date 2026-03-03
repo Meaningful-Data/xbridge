@@ -24,7 +24,6 @@ from xbridge.instance import CsvInstance, Instance, XmlInstance
 from xbridge.modules import Module, Table
 
 INDEX_FILE = Path(__file__).parent / "modules" / "index.json"
-MAPPING_PATH = Path(__file__).parent / "modules"
 
 if not INDEX_FILE.exists():
     raise ValueError(
@@ -159,9 +158,7 @@ class Converter:
         if validate_filing_indicators:
             self._validate_filing_indicators(strict_validation=strict_validation)
 
-        with open(MAPPING_PATH / self.module.dim_dom_file_name, "r", encoding="utf-8") as fl:
-            mapping_dict: Dict[str, str] = json.load(fl)
-        self._convert_tables(report_dir, mapping_dict, headers_as_datapoints)
+        self._convert_tables(report_dir, headers_as_datapoints)
         self._convert_parameters(report_dir)
 
         file_name = instance_path_stem + ".zip"
@@ -445,7 +442,6 @@ class Converter:
     def _convert_tables(
         self,
         temp_dir_path: Path,
-        mapping_dict: Dict[str, str],
         headers_as_datapoints: bool,
     ) -> None:
         for table in self.module.tables:
