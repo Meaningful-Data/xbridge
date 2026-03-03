@@ -66,6 +66,7 @@
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/cir-680-2014-ind/2017-04-04/mod/finrep9_ind_ifrs.xsd": "finrep9_ind_ifrs_cir-680-2014-ind_2017-04-04.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/cir-680-2014-ind/2018-03-31/mod/finrep9_ind_gaap.xsd": "finrep9_ind_gaap_cir-680-2014-ind_2018-03-31.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/cir-680-2014-ind/2018-03-31/mod/finrep9_ind_ifrs.xsd": "finrep9_ind_ifrs_cir-680-2014-ind_2018-03-31.json",
+    "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/4.2.1/mod/finrep9dp.xsd": "finrep9dp_finrep_4.2.1.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/its-005-2020/2020-11-15/mod/finrep9_con_ifrs.xsd": "finrep9_con_ifrs_its-005-2020_2020-11-15.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/its-005-2020/2020-11-15/mod/finrep9_con_gaap.xsd": "finrep9_con_gaap_its-005-2020_2020-11-15.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/its-005-2020/2022-06-01/mod/finrep9.xsd": "finrep9_its-005-2020_2022-06-01.json",
