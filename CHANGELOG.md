@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0rc5] - 2026-03-06
+
+### Added
+- **CSV-006 Specification**: Added rule CSV-006 to the validation enumeration — the ZIP archive MUST contain a single top-level directory (STLD) per XBRL Report Package 1.0 §3.2, and the STLD MUST NOT be named `META-INF`.
+
+### Changed
+- **`validate()` output structure** *(breaking)*: The return value is now keyed by validation scope. `"XBRL"` is always present and contains findings from XBRL-standard rules; `"EBA"` is present only when `eba=True` and contains EBA-specific findings. Each section has `"errors"` and `"warnings"` sub-keys as before. Code previously reading `results["errors"]` must be updated to iterate `results.values()` or access `results["XBRL"]["errors"]`.
+
 ## [2.0.0rc4] - 2026-03-03
 
 ### Changed
