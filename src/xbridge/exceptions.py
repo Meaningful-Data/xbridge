@@ -47,7 +47,11 @@ class ValidationError(ValueError):
         results: dict[str, Any],
         path: Optional[Path] = None,
     ) -> None:
-        error_count = sum(len(v) for v in results.get("errors", {}).values())
+        error_count = sum(
+            len(v)
+            for section in results.values()
+            for v in section.get("errors", {}).values()
+        )
         phase = "Post-conversion" if path is not None else "Pre-conversion"
         super().__init__(f"{phase} validation failed with {error_count} error(s)")
         self.results = results

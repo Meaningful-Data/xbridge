@@ -50,7 +50,7 @@ def convert_instance(
         from xbridge.validation import validate as _validate
 
         pre_results = _validate(instance_path, eba=eba)
-        if pre_results["errors"]:
+        if any(section["errors"] for section in pre_results.values()):
             raise ValidationError(pre_results)
 
     if output_path is None:
@@ -68,7 +68,7 @@ def convert_instance(
         from xbridge.validation import validate as _validate
 
         post_results = _validate(result, eba=eba, post_conversion=True)
-        if post_results["errors"]:
+        if any(section["errors"] for section in post_results.values()):
             raise ValidationError(post_results, path=result)
 
     return result

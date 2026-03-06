@@ -103,19 +103,21 @@ def _convert_main() -> None:
             print(f"Conversion successful: {result_path}")
     except ValidationError as ve:
         results = ve.results
-        errors = results["errors"]
-        warnings = results["warnings"]
-        error_count = sum(len(v) for v in errors.values())
-        warning_count = sum(len(v) for v in warnings.values())
+        error_count = 0
+        warning_count = 0
+        for section in results.values():
+            error_count += sum(len(v) for v in section["errors"].values())
+            warning_count += sum(len(v) for v in section["warnings"].values())
 
-        for findings_by_code in (errors, warnings):
-            for _code, occurrences in findings_by_code.items():
-                for finding in occurrences:
-                    print(
-                        f"[{finding['severity']}] {finding['rule_id']}: {finding['message']}",
-                        file=sys.stderr,
-                    )
-                    print(f"  Location: {finding['location']}", file=sys.stderr)
+        for section in results.values():
+            for findings_by_code in (section["errors"], section["warnings"]):
+                for _code, occurrences in findings_by_code.items():
+                    for finding in occurrences:
+                        print(
+                            f"[{finding['severity']}] {finding['rule_id']}: {finding['message']}",
+                            file=sys.stderr,
+                        )
+                        print(f"  Location: {finding['location']}", file=sys.stderr)
 
         total = error_count + warning_count
         print(
@@ -190,25 +192,30 @@ def _validate_main() -> None:
     if args.json_output:
         print(json.dumps(results, indent=2))
     else:
-        errors = results["errors"]
-        warnings = results["warnings"]
-        error_count = sum(len(v) for v in errors.values())
-        warning_count = sum(len(v) for v in warnings.values())
+        error_count = 0
+        warning_count = 0
+        for section in results.values():
+            error_count += sum(len(v) for v in section["errors"].values())
+            warning_count += sum(len(v) for v in section["warnings"].values())
         total = error_count + warning_count
 
         if not total:
             print("No issues found.")
         else:
-            for findings_by_code in (errors, warnings):
-                for _code, occurrences in findings_by_code.items():
-                    for finding in occurrences:
-                        print(f"[{finding['severity']}] {finding['rule_id']}: {finding['message']}")
-                        print(f"  Location: {finding['location']}")
+            for section in results.values():
+                for findings_by_code in (section["errors"], section["warnings"]):
+                    for _code, occurrences in findings_by_code.items():
+                        for finding in occurrences:
+                            print(
+                                f"[{finding['severity']}] {finding['rule_id']}: "
+                                f"{finding['message']}"
+                            )
+                            print(f"  Location: {finding['location']}")
 
             print()
             print(f"Found {total} issue(s): {error_count} error(s), {warning_count} warning(s)")
 
-    if results["errors"]:
+    if any(section["errors"] for section in results.values()):
         sys.exit(1)
 
 

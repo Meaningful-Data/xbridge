@@ -124,6 +124,7 @@ class ValidationResult:
         message: str,
         location: str,
         context: Optional[Dict[str, Any]] = None,
+        eba: bool = False,
     ) -> None:
         self.rule_id = rule_id
         self.severity = severity
@@ -131,6 +132,7 @@ class ValidationResult:
         self.message = message
         self.location = location
         self.context = context
+        self.eba = eba
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to a dict for programmatic consumption."""

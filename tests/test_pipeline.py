@@ -8,32 +8,42 @@ import pytest
 from xbridge.api import convert_instance
 from xbridge.exceptions import ValidationError
 
-NO_ERRORS: dict = {"errors": {}, "warnings": {}}
+NO_ERRORS: dict = {
+    "XBRL": {"errors": {}, "warnings": {}},
+}
+NO_ERRORS_EBA: dict = {
+    "XBRL": {"errors": {}, "warnings": {}},
+    "EBA": {"errors": {}, "warnings": {}},
+}
 PRE_ERRORS: dict = {
-    "errors": {
-        "XML-001": [
-            {
-                "rule_id": "XML-001",
-                "severity": "ERROR",
-                "message": "Missing schemaRef",
-                "location": "instance.xbrl",
-            }
-        ]
+    "XBRL": {
+        "errors": {
+            "XML-001": [
+                {
+                    "rule_id": "XML-001",
+                    "severity": "ERROR",
+                    "message": "Missing schemaRef",
+                    "location": "instance.xbrl",
+                }
+            ]
+        },
+        "warnings": {},
     },
-    "warnings": {},
 }
 POST_ERRORS: dict = {
-    "errors": {
-        "CSV-001": [
-            {
-                "rule_id": "CSV-001",
-                "severity": "ERROR",
-                "message": "Bad CSV structure",
-                "location": "report.zip",
-            }
-        ]
+    "XBRL": {
+        "errors": {
+            "CSV-001": [
+                {
+                    "rule_id": "CSV-001",
+                    "severity": "ERROR",
+                    "message": "Bad CSV structure",
+                    "location": "report.zip",
+                }
+            ]
+        },
+        "warnings": {},
     },
-    "warnings": {},
 }
 
 _VALIDATE = "xbridge.validation.validate"
@@ -96,7 +106,7 @@ class TestPipelineValidateTrue:
         self, mock_validate: MagicMock, mock_converter_cls: MagicMock, tmp_path: Path
     ) -> None:
         """eba=True is forwarded to both validate() calls."""
-        mock_validate.return_value = NO_ERRORS
+        mock_validate.return_value = NO_ERRORS_EBA
         output = tmp_path / "out.zip"
         mock_converter_cls.return_value.convert.return_value = output
 

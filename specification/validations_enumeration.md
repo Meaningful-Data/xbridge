@@ -201,6 +201,7 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
 | CSV-003  | ERROR    | No  | --      | No         | --   | `reportPackage.json` `documentType` MUST be `"https://xbrl.org/report-package/2023"`. |
 | CSV-004  | ERROR    | No  | --      | No         | --   | The ZIP MUST contain exactly one `reports/` folder with exactly one `report.json` file. Multi-report packages are not supported. |
 | CSV-005  | ERROR    | No  | --      | No         | --   | The ZIP archive MUST NOT contain files other than those required by the report package structure (`META-INF/reportPackage.json`, `reports/report.json`, declared CSV data tables, `reports/parameters.csv`, `reports/FilingIndicators.csv`). Extraneous files such as OS metadata (`.DS_Store`, `Thumbs.db`), hidden/dot files, or `__MACOSX/` directories MUST cause rejection. |
+| CSV-006  | ERROR    | No  | --      | No         | --   | The ZIP archive MUST contain a single top-level directory (STLD) as required by the XBRL Report Package 1.0 specification §3.2. All entries MUST reside within this directory or its descendants. The STLD MUST NOT be named `META-INF`. |
 
 ### 2.2 Metadata File (report.json)
 

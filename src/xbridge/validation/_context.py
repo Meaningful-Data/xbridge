@@ -148,5 +148,6 @@ class ValidationContext:
                 message=message,
                 location=location,
                 context=context,
+                eba=self.rule_definition.eba,
             )
         )

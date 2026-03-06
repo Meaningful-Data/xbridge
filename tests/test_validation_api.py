@@ -29,10 +29,13 @@ class TestPublicAPI:
             f.flush()
             results = validate(f.name)
         assert isinstance(results, dict)
-        assert "errors" in results
-        assert "warnings" in results
-        assert isinstance(results["errors"], dict)
-        assert isinstance(results["warnings"], dict)
+        assert "XBRL" in results
+        assert "EBA" not in results
+        for section in results.values():
+            assert "errors" in section
+            assert "warnings" in section
+            assert isinstance(section["errors"], dict)
+            assert isinstance(section["warnings"], dict)
 
     def test_validate_str_path(self):
         with NamedTemporaryFile(suffix=".xbrl", delete=False) as f:
@@ -73,10 +76,8 @@ class TestPublicAPI:
             )
             f.flush()
             results = validate(f.name)
-        # No EBA-prefixed findings should appear when eba defaults to False
-        all_codes = list(results["errors"].keys()) + list(results["warnings"].keys())
-        eba_codes = [c for c in all_codes if c.startswith("EBA-")]
-        assert eba_codes == []
+        # EBA section should not be present when eba defaults to False
+        assert "EBA" not in results
 
     def test_validate_post_conversion_ignored_for_xml(self):
         with NamedTemporaryFile(suffix=".xbrl", delete=False) as f:
@@ -99,9 +100,10 @@ class TestPublicAPI:
             )
             f.flush()
             results = validate(f.name)
-        for _code, occurrences in results["errors"].items():
-            for entry in occurrences:
-                assert entry["severity"] == "ERROR"
+        for section in results.values():
+            for _code, occurrences in section["errors"].items():
+                for entry in occurrences:
+                    assert entry["severity"] == "ERROR"
 
     def test_warnings_contain_no_errors(self):
         """Findings in 'warnings' must not have severity ERROR."""
@@ -112,9 +114,10 @@ class TestPublicAPI:
             )
             f.flush()
             results = validate(f.name)
-        for _code, occurrences in results["warnings"].items():
-            for entry in occurrences:
-                assert entry["severity"] in ("WARNING", "INFO")
+        for section in results.values():
+            for _code, occurrences in section["warnings"].items():
+                for entry in occurrences:
+                    assert entry["severity"] in ("WARNING", "INFO")
 
     def test_findings_are_dicts(self):
         """Each finding entry should be a dict with expected keys."""
@@ -125,16 +128,17 @@ class TestPublicAPI:
             )
             f.flush()
             results = validate(f.name)
-        for findings_by_code in (results["errors"], results["warnings"]):
-            for code, occurrences in findings_by_code.items():
-                assert isinstance(occurrences, list)
-                for entry in occurrences:
-                    assert isinstance(entry, dict)
-                    assert "rule_id" in entry
-                    assert entry["rule_id"] == code
-                    assert "severity" in entry
-                    assert "message" in entry
-                    assert "location" in entry
+        for section in results.values():
+            for findings_by_code in (section["errors"], section["warnings"]):
+                for code, occurrences in findings_by_code.items():
+                    assert isinstance(occurrences, list)
+                    for entry in occurrences:
+                        assert isinstance(entry, dict)
+                        assert "rule_id" in entry
+                        assert entry["rule_id"] == code
+                        assert "severity" in entry
+                        assert "message" in entry
+                        assert "location" in entry
 
     def test_errors_grouped_by_rule_code(self):
         """Each key in 'errors' must match the rule_id of its occurrences."""
@@ -145,9 +149,10 @@ class TestPublicAPI:
             )
             f.flush()
             results = validate(f.name)
-        for code, occurrences in results["errors"].items():
-            for entry in occurrences:
-                assert entry["rule_id"] == code
+        for section in results.values():
+            for code, occurrences in section["errors"].items():
+                for entry in occurrences:
+                    assert entry["rule_id"] == code
 
     def test_severity_reexported(self):
         assert Severity.ERROR.value == "ERROR"
