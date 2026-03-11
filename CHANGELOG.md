@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0rc6] - 2026-03-11
+
+### Fixed
+- **CSV-033**: Updated `reported` column validation to accept boolean values `'1'` and `'0'` in addition to `'true'` and `'false'`, aligning with XBRL-CSV filing indicator conventions.
+- **CSV-025**: Corrected `baseCurrency` requirement check to only consider datapoints that are actually reported in the CSV data tables, preventing false positives when unreported monetary variables exist in the taxonomy modules.
+
 ## [2.0.0rc5] - 2026-03-06
 
 ### Added
@@ -199,7 +205,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc4...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc6...HEAD
+[2.0.0rc6]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc5...v2.0.0rc6
+[2.0.0rc5]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc4...v2.0.0rc5
 [2.0.0rc4]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc3...v2.0.0rc4
 [2.0.0rc3]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc2...v2.0.0rc3
 [2.0.0rc2]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc1...v2.0.0rc2
