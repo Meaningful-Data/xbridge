@@ -138,7 +138,7 @@ class Converter:
 
         with open(meta_inf_dir / "reportPackage.json", "w", encoding="UTF-8") as fl:
             json.dump(
-                {"documentInfo": {"documentType": "http://xbrl.org/PWD/2020-12-09/report-package"}},
+                {"documentInfo": {"documentType": "https://xbrl.org/report-package/2023"}},
                 fl,
             )
 
@@ -146,7 +146,7 @@ class Converter:
             json.dump(
                 {
                     "documentInfo": {
-                        "documentType": "https://xbrl.org/CR/2021-02-03/xbrl-csv",
+                        "documentType": "https://xbrl.org/2021/xbrl-csv",
                         "extends": [self.module.url],
                     }
                 },

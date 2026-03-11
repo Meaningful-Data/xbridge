@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0rc7] - 2026-03-11
+
+### Fixed
+- **Converter**: Updated `reportPackage.json` and `report.json` `documentType` URLs from draft/CR-era values to the final XBRL specification URLs (`https://xbrl.org/report-package/2023` and `https://xbrl.org/2021/xbrl-csv`), so that converted files now pass CSV-003 and CSV-011 validation.
+
 ## [2.0.0rc6] - 2026-03-11
 
 ### Fixed
@@ -205,7 +210,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc6...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc7...HEAD
+[2.0.0rc7]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc6...v2.0.0rc7
 [2.0.0rc6]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc5...v2.0.0rc6
 [2.0.0rc5]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc4...v2.0.0rc5
 [2.0.0rc4]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc3...v2.0.0rc4
