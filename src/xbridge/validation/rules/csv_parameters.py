@@ -130,10 +130,38 @@ def _get_zip_table_filenames(ctx: ValidationContext) -> Set[str]:
         return set()
 
 
+def _get_reported_datapoints(ctx: ValidationContext) -> Set[str]:
+    """Read all datapoint codes actually reported in the CSV data tables."""
+    reported: Set[str] = set()
+    try:
+        with ZipFile(ctx.file_path) as zf:
+            for entry in zf.namelist():
+                if not entry.endswith(".csv"):
+                    continue
+                parts = entry.replace("\\", "/").split("/")
+                if "reports" not in parts:
+                    continue
+                basename = parts[-1]
+                if basename in ("parameters.csv", "FilingIndicators.csv"):
+                    continue
+                try:
+                    text = zf.read(entry).decode("utf-8-sig")
+                except UnicodeDecodeError:
+                    continue
+                reader = csv.reader(text.splitlines())
+                next(reader, None)  # skip header
+                for row in reader:
+                    if row:
+                        reported.add(row[0])
+    except BadZipFile:
+        pass
+    return reported
+
+
 def _collect_metric_info(
     ctx: ValidationContext,
 ) -> Tuple[Set[str], bool]:
-    """Scan module tables whose CSV files are in the ZIP.
+    """Scan module tables for variables actually reported in the CSV data files.
 
     Returns (metric_types, needs_base_currency):
       - metric_types: set of type attribute strings (e.g. "$decimalsMonetary")
@@ -144,6 +172,7 @@ def _collect_metric_info(
         return set(), False
 
     zip_tables = _get_zip_table_filenames(ctx)
+    reported = _get_reported_datapoints(ctx)
 
     metric_types: Set[str] = set()
     needs_base_currency = False
@@ -154,6 +183,8 @@ def _collect_metric_info(
             continue
 
         for variable in table.variables:
+            if variable.code not in reported:
+                continue
             attr = variable._attributes
             if attr:
                 metric_types.add(attr)

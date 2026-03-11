@@ -265,13 +265,13 @@ class TestCSV033ReportedBoolean:
         assert len(findings) == 1
         assert findings[0].severity == Severity.ERROR
         assert "True" in findings[0].message
+        assert "'0'" in findings[0].message  # message mentions all valid values
 
-    def test_numeric_one_rejected(self):
-        fi = "templateID,reported\nI_10.01,1\n"
+    def test_numeric_one_accepted(self):
+        fi = "templateID,reported\nI_10.01,1\nI_10.02,0\n"
         data = _csv_zip(filing_indicators=fi)
         results = _write_and_validate(data)
-        findings = _findings_for(results, "CSV-033")
-        assert len(findings) == 1
+        assert _findings_for(results, "CSV-033") == []
 
     def test_empty_reported_rejected(self):
         fi = "templateID,reported\nI_10.01,\n"

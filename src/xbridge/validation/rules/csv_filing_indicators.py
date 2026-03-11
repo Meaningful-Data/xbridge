@@ -181,12 +181,12 @@ def check_reported_boolean(ctx: ValidationContext) -> None:
         return  # CSV-030 handles
 
     for template_id, reported in rows:
-        if reported not in ("true", "false"):
+        if reported not in ("true", "false", "1", "0"):
             ctx.add_finding(
                 location=_FILING_INDICATORS_CSV,
                 context={
                     "detail": f"templateID {template_id!r} has reported={reported!r}, "
-                    f"expected 'true' or 'false'",
+                    f"expected 'true', 'false', '1', or '0'",
                 },
             )
 

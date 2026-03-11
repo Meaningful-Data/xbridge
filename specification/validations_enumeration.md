@@ -234,7 +234,7 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
 | CSV-030  | ERROR    | Yes | --      | No         | --   | `FilingIndicators.csv` MUST exist in the `reports/` folder. |
 | CSV-031  | ERROR    | Yes | --      | No         | --   | The header row MUST be `templateID,reported`.              |
 | CSV-032  | ERROR    | Yes | 1.6     | No         | --   | Every `templateID` MUST be a valid filing indicator code from the taxonomy. (invalidFilingIndicatorValue) |
-| CSV-033  | ERROR    | Yes | --      | No         | --   | `reported` values MUST be boolean (`true` / `false`).      |
+| CSV-033  | ERROR    | Yes | --      | No         | --   | `reported` values MUST be boolean (`true` / `false` / `1` / `0`). |
 | CSV-034  | ERROR    | Yes | 1.6     | No         | --   | A filing indicator MUST be present for each template in the module. (missingFilingIndicators) |
 | CSV-035  | ERROR    | Yes | 1.6     | No         | --   | No duplicate `templateID` entries. (duplicateFilingIndicator) |
 

@@ -60,10 +60,20 @@ _GOOD_PARAMS = (
 # Entry point for if_tm module: has $decimalsMonetary + $baseCurrency.
 _IF_TM_EXTENDS = "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/if/4.2/mod/if_tm.json"
 _IF_TM_TABLES = ["i_10.01.csv", "i_10.02.csv"]
+# Representative datapoint codes per table (monetary with $baseCurrency).
+_IF_TM_DATAPOINTS: dict[str, list[str]] = {
+    "i_10.01.csv": ["dp32354"],
+    "i_10.02.csv": ["dp5485749"],
+}
 
 # Entry point for rem_gap_ci module: has $decimalsInteger + $decimalsPercentage only.
 _REM_GAP_EXTENDS = "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/rem/4.2/mod/rem_gap_ci.json"
 _REM_GAP_TABLES = ["r_06.00.a.csv", "r_06.00.b.csv"]
+# Representative datapoint codes per table (integer + percentage).
+_REM_GAP_DATAPOINTS: dict[str, list[str]] = {
+    "r_06.00.a.csv": ["dp469984"],
+    "r_06.00.b.csv": ["dp470519"],
+}
 
 
 def _report_with_extends(extends_url: str) -> str:
@@ -97,6 +107,7 @@ def _csv_zip_with_tables(
     extends_url: str,
     table_files: list[str],
     parameters: str | None = _GOOD_PARAMS,
+    datapoints: dict[str, list[str]] | None = None,
 ) -> bytes:
     """Build a CSV ZIP with specific entry point and data table files."""
     files: dict[str, str] = {
@@ -106,7 +117,11 @@ def _csv_zip_with_tables(
     if parameters is not None:
         files["reports/parameters.csv"] = parameters
     for tf in table_files:
-        files[f"reports/{tf}"] = "col1\nval1\n"
+        if datapoints and tf in datapoints:
+            rows = "\n".join(f"{dp},1" for dp in datapoints[tf])
+            files[f"reports/{tf}"] = f"datapoint,factValue\n{rows}\n"
+        else:
+            files[f"reports/{tf}"] = "datapoint,factValue\n"
     return _make_zip(**files)
 
 
@@ -339,14 +354,14 @@ class TestCSV024BaseCurrency:
     def test_monetary_module_with_base_currency_no_findings(self):
         """if_tm has monetary metrics; baseCurrency is provided."""
         params = _GOOD_PARAMS
-        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params)
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params, datapoints=_IF_TM_DATAPOINTS)
         results = _write_and_validate(data)
         assert _findings_for(results, "CSV-024") == []
 
     def test_monetary_module_missing_base_currency(self):
         """if_tm has monetary metrics; baseCurrency is missing."""
         params = "name,value\nentityID,LEI123\nrefPeriod,2025-12-31\ndecimalsMonetary,-3\n"
-        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params)
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params, datapoints=_IF_TM_DATAPOINTS)
         results = _write_and_validate(data)
         findings = _findings_for(results, "CSV-024")
         assert len(findings) == 1
@@ -356,7 +371,7 @@ class TestCSV024BaseCurrency:
     def test_monetary_module_empty_base_currency(self):
         """if_tm has monetary metrics; baseCurrency is empty."""
         params = "name,value\nentityID,LEI123\nrefPeriod,2025-12-31\nbaseCurrency,\n"
-        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params)
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params, datapoints=_IF_TM_DATAPOINTS)
         results = _write_and_validate(data)
         findings = _findings_for(results, "CSV-024")
         assert len(findings) == 1
@@ -371,7 +386,7 @@ class TestCSV024BaseCurrency:
             "decimalsInteger,0\n"
             "decimalsPercentage,4\n"
         )
-        data = _csv_zip_with_tables(_REM_GAP_EXTENDS, _REM_GAP_TABLES, parameters=params)
+        data = _csv_zip_with_tables(_REM_GAP_EXTENDS, _REM_GAP_TABLES, parameters=params, datapoints=_REM_GAP_DATAPOINTS)
         results = _write_and_validate(data)
         assert _findings_for(results, "CSV-024") == []
 
@@ -386,7 +401,7 @@ class TestCSV024BaseCurrency:
         """Only tables actually present in ZIP are checked, not all module tables."""
         # Include only one of the two if_tm tables
         params = _GOOD_PARAMS
-        data = _csv_zip_with_tables(_IF_TM_EXTENDS, ["i_10.01.csv"], parameters=params)
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, ["i_10.01.csv"], parameters=params, datapoints=_IF_TM_DATAPOINTS)
         results = _write_and_validate(data)
         assert _findings_for(results, "CSV-024") == []
 
@@ -412,14 +427,14 @@ class TestCSV025DecimalsParametersPresent:
             "baseCurrency,EUR\n"
             "decimalsMonetary,-3\n"
         )
-        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params)
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params, datapoints=_IF_TM_DATAPOINTS)
         results = _write_and_validate(data)
         assert _findings_for(results, "CSV-025") == []
 
     def test_missing_decimals_monetary(self):
         """if_tm needs decimalsMonetary but it's not provided."""
         params = "name,value\nentityID,LEI123\nrefPeriod,2025-12-31\nbaseCurrency,EUR\n"
-        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params)
+        data = _csv_zip_with_tables(_IF_TM_EXTENDS, _IF_TM_TABLES, parameters=params, datapoints=_IF_TM_DATAPOINTS)
         results = _write_and_validate(data)
         findings = _findings_for(results, "CSV-025")
         assert len(findings) == 1
@@ -435,14 +450,14 @@ class TestCSV025DecimalsParametersPresent:
             "decimalsInteger,0\n"
             "decimalsPercentage,4\n"
         )
-        data = _csv_zip_with_tables(_REM_GAP_EXTENDS, _REM_GAP_TABLES, parameters=params)
+        data = _csv_zip_with_tables(_REM_GAP_EXTENDS, _REM_GAP_TABLES, parameters=params, datapoints=_REM_GAP_DATAPOINTS)
         results = _write_and_validate(data)
         assert _findings_for(results, "CSV-025") == []
 
     def test_non_monetary_module_missing_percentage(self):
         """rem_gap needs decimalsPercentage but only decimalsInteger is provided."""
         params = "name,value\nentityID,LEI123\nrefPeriod,2025-12-31\ndecimalsInteger,0\n"
-        data = _csv_zip_with_tables(_REM_GAP_EXTENDS, _REM_GAP_TABLES, parameters=params)
+        data = _csv_zip_with_tables(_REM_GAP_EXTENDS, _REM_GAP_TABLES, parameters=params, datapoints=_REM_GAP_DATAPOINTS)
         results = _write_and_validate(data)
         findings = _findings_for(results, "CSV-025")
         assert len(findings) == 1
@@ -451,7 +466,7 @@ class TestCSV025DecimalsParametersPresent:
     def test_non_monetary_module_missing_both(self):
         """rem_gap needs both decimalsInteger and decimalsPercentage; both missing."""
         params = "name,value\nentityID,LEI123\nrefPeriod,2025-12-31\n"
-        data = _csv_zip_with_tables(_REM_GAP_EXTENDS, _REM_GAP_TABLES, parameters=params)
+        data = _csv_zip_with_tables(_REM_GAP_EXTENDS, _REM_GAP_TABLES, parameters=params, datapoints=_REM_GAP_DATAPOINTS)
         results = _write_and_validate(data)
         findings = _findings_for(results, "CSV-025")
         assert len(findings) == 2
