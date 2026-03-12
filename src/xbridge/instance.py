@@ -698,7 +698,8 @@ class Scenario:
                 dimension_raw = child.attrib.get("dimension")
                 if not dimension_raw:
                     continue
-                dimension = dimension_raw.split(":")[1]
+                parts = dimension_raw.split(":")
+                dimension = parts[1] if len(parts) > 1 else parts[0]
                 value = self.get_value(child)
                 value = _normalize_namespaced_value(value, child.nsmap) or ""
                 self.dimensions[dimension] = value

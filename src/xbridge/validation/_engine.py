@@ -147,6 +147,21 @@ def _try_load_module(module_ref: Optional[str]) -> Any:
     return Module.from_serialized(module_path)
 
 
+def _try_extract_module_ref(root: etree._Element) -> Optional[str]:
+    """Extract schemaRef href from an XML root element.
+
+    Fallback for when XmlInstance parsing fails but the raw XML is parseable.
+    Returns the href string or None.
+    """
+    xlink_href = "{http://www.w3.org/1999/xlink}href"
+    for child in root:
+        if child.prefix == "link":
+            href = child.get(xlink_href)
+            if href is not None:
+                return href
+    return None
+
+
 def _try_parse_xml(file_path: Path, raw_bytes: bytes) -> Any:
     """Try to construct an XmlInstance. Returns instance or None."""
     try:
@@ -247,6 +262,11 @@ def run_validation(
             # Parse once here so rule functions never need to.
             with contextlib.suppress(etree.XMLSyntaxError):
                 xml_root = etree.fromstring(raw_bytes)
+            # Try to extract module_ref from xml_root so taxonomy-based
+            # rules (XML-070/071/072) can still run when only parsing failed.
+            if xml_root is not None:
+                module_ref = _try_extract_module_ref(xml_root)
+                module = _try_load_module(module_ref)
     else:
         csv_instance = _try_parse_csv(file_path)
         if csv_instance is not None:
