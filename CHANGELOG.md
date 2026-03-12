@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0rc8] - 2026-03-12
+
+### Fixed
+- **Validation**: Fixed `Scenario.parse()` crash (`IndexError`) on dimension attributes without a namespace prefix (e.g. `dimension="qCAA"`), which silently prevented `XmlInstance` from loading and caused taxonomy-based validation rules (XML-070/071/072) to be skipped.
+- **Validation Engine**: Added fallback `module_ref` extraction so taxonomy rules can still run when `XmlInstance` parsing fails.
+
 ## [2.0.0rc7] - 2026-03-11
 
 ### Fixed
@@ -210,7 +216,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc7...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc8...HEAD
+[2.0.0rc8]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc7...v2.0.0rc8
 [2.0.0rc7]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc6...v2.0.0rc7
 [2.0.0rc6]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc5...v2.0.0rc6
 [2.0.0rc5]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc4...v2.0.0rc5

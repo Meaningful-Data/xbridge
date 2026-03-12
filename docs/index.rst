@@ -89,6 +89,11 @@ For programmatic use, import and use the Python API:
 What's New
 ==========
 
+**Version 2.0.0rc8**
+
+* **Validation Fix**: Fixed ``Scenario.parse()`` crash on dimension attributes without namespace prefix, which silently prevented taxonomy-based validation rules (XML-070/071/072) from running
+* **Validation Engine**: Added fallback ``module_ref`` extraction so taxonomy rules can still execute when ``XmlInstance`` parsing fails
+
 **Version 2.0.0rc3**
 
 * **Validate-Convert-Validate Pipeline**: ``--validate`` / ``--eba`` CLI flags and ``validate=`` / ``eba=`` API parameters for pre- and post-conversion validation
