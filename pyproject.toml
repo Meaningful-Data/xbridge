@@ -4,7 +4,7 @@ version = "2.0.0"
 description = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.2)"
 license = 'Apache 2.0'
 readme = "README.rst"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     { name = "MeaningfulData", email = "info@meaningfuldata.eu" },
 ]
@@ -44,7 +44,7 @@ xbridge = "xbridge.__main__:main"
 packages = [{ include = "xbridge", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4.0"
+python = ">=3.10,<4.0"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "1.14.1"
