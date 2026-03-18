@@ -149,9 +149,10 @@ Customize the conversion with additional parameters:
         print(f"Validation failed: {e}")
         if e.path:
             print(f"Output was written to: {e.path}")
-        for code, findings in e.results["errors"].items():
-            for f in findings:
-                print(f"  [{f['severity']}] {f['rule_id']}: {f['message']}")
+        for section in e.results.values():
+            for code, findings in section["errors"].items():
+                for f in findings:
+                    print(f"  [{f['severity']}] {f['rule_id']}: {f['message']}")
 
 Python API - Handling Warnings
 ------------------------------
@@ -252,7 +253,7 @@ Validate XBRL files programmatically using the ``validate()`` function:
     # Validate an XBRL-CSV package
     results = validate("path/to/report.zip", eba=True)
 
-The ``validate()`` function returns a dictionary with two keys — ``"errors"`` and ``"warnings"`` — each containing a dict keyed by rule code with lists of finding dicts:
+The ``validate()`` function returns a dictionary keyed by validation scope (``"XBRL"`` always present, ``"EBA"`` when ``eba=True``). Each scope contains ``"errors"`` and ``"warnings"`` dicts keyed by rule code:
 
 .. code-block:: python
 
@@ -260,13 +261,18 @@ The ``validate()`` function returns a dictionary with two keys — ``"errors"`` 
 
     results = validate("path/to/instance.xbrl", eba=True)
 
-    for code, findings in results["errors"].items():
-        for f in findings:
-            print(f"[{f['severity']}] {f['rule_id']}: {f['message']}")
-            print(f"  Location: {f['location']}")
+    for scope, section in results.items():
+        for code, findings in section["errors"].items():
+            for f in findings:
+                print(f"[{scope}] [{f['severity']}] {f['rule_id']}: {f['message']}")
+                print(f"  Location: {f['location']}")
 
-    error_count = sum(len(v) for v in results["errors"].values())
-    warning_count = sum(len(v) for v in results["warnings"].values())
+    error_count = sum(
+        len(v) for section in results.values() for v in section["errors"].values()
+    )
+    warning_count = sum(
+        len(v) for section in results.values() for v in section["warnings"].values()
+    )
     print(f"Errors: {error_count}, Warnings: {warning_count}")
 
 Loading an Instance
@@ -361,7 +367,7 @@ Common Issues
     Install the 7z command-line tool using your system's package manager (see Prerequisites).
 
 **Taxonomy version mismatch**
-    Ensure you're using the correct version of XBridge for your taxonomy version. XBridge 1.5.x supports EBA Taxonomy 4.2.
+    Ensure you're using the correct version of XBridge for your taxonomy version. XBridge 2.x supports EBA Taxonomy 4.2/4.2.1.
 
 **Orphaned facts warning/error**
     Facts that don't belong to any reported table. Set ``strict_validation=False`` to continue with warnings instead of errors.

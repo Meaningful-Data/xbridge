@@ -27,12 +27,14 @@ Quick Start
     # Validate an XBRL-XML file
     results = validate("path/to/instance.xbrl")
 
-    if not results["errors"] and not results["warnings"]:
+    has_errors = any(section["errors"] for section in results.values())
+    if not has_errors:
         print("No issues found.")
     else:
-        for code, findings in results["errors"].items():
-            for f in findings:
-                print(f"[{f['severity']}] {f['rule_id']}: {f['message']}")
+        for scope, section in results.items():
+            for code, findings in section["errors"].items():
+                for f in findings:
+                    print(f"[{scope}] [{f['severity']}] {f['rule_id']}: {f['message']}")
 
 Public API
 ==========
@@ -56,10 +58,11 @@ Check an XBRL-XML instance for structural issues:
 
     results = validate("data/instance.xbrl")
 
-    for code, findings in results["errors"].items():
-        for f in findings:
-            print(f"[{f['severity']}] {f['rule_id']}: {f['message']}")
-            print(f"  Location: {f['location']}")
+    for scope, section in results.items():
+        for code, findings in section["errors"].items():
+            for f in findings:
+                print(f"[{scope}] [{f['severity']}] {f['rule_id']}: {f['message']}")
+                print(f"  Location: {f['location']}")
 
 Enable EBA Rules
 ----------------
@@ -72,8 +75,12 @@ Run additional EBA-specific checks (entity format, decimal precision, currency, 
 
     results = validate("data/instance.xbrl", eba=True)
 
-    error_count = sum(len(v) for v in results["errors"].values())
-    warning_count = sum(len(v) for v in results["warnings"].values())
+    error_count = sum(
+        len(v) for section in results.values() for v in section["errors"].values()
+    )
+    warning_count = sum(
+        len(v) for section in results.values() for v in section["warnings"].values()
+    )
 
     print(f"Errors: {error_count}, Warnings: {warning_count}")
 
@@ -103,7 +110,12 @@ When validating CSV output produced by xbridge's own converter, use ``post_conve
 Inspect Findings
 ----------------
 
-The ``validate()`` function returns a dictionary with two keys:
+The ``validate()`` function returns a dictionary keyed by **validation scope**:
+
+- ``"XBRL"`` — always present; results from XBRL-standard rules.
+- ``"EBA"`` — only present when ``eba=True``; results from EBA-specific rules.
+
+Each scope contains:
 
 - ``"errors"`` — a dict keyed by rule code, each value a list of ERROR findings (as dicts)
 - ``"warnings"`` — a dict keyed by rule code, each value a list of WARNING/INFO findings (as dicts)
@@ -123,17 +135,21 @@ Each finding dict has the following keys:
 
     results = validate("data/instance.xbrl", eba=True)
 
-    for code, findings in results["errors"].items():
-        for f in findings:
-            print(f"Rule:     {f['rule_id']}")
-            print(f"Severity: {f['severity']}")
-            print(f"Message:  {f['message']}")
-            print(f"Location: {f['location']}")
-            print(f"Context:  {f['context']}")
-            print()
+    for scope, section in results.items():
+        print(f"--- {scope} ---")
+        for code, findings in section["errors"].items():
+            for f in findings:
+                print(f"Rule:     {f['rule_id']}")
+                print(f"Severity: {f['severity']}")
+                print(f"Message:  {f['message']}")
+                print(f"Location: {f['location']}")
+                print(f"Context:  {f['context']}")
+                print()
 
-    # Count errors only
-    error_count = sum(len(v) for v in results["errors"].values())
+    # Count errors across all scopes
+    error_count = sum(
+        len(v) for section in results.values() for v in section["errors"].values()
+    )
 
 JSON Output Example
 -------------------
@@ -153,19 +169,21 @@ Sample output:
 .. code-block:: json
 
     {
-      "errors": {
-        "XML-001": [
-          {
-            "rule_id": "XML-001",
-            "severity": "ERROR",
-            "rule_set": "xml",
-            "message": "File is not well-formed XML.",
-            "location": "instance.xbrl",
-            "context": null
-          }
-        ]
-      },
-      "warnings": {}
+      "XBRL": {
+        "errors": {
+          "XML-001": [
+            {
+              "rule_id": "XML-001",
+              "severity": "ERROR",
+              "rule_set": "xml",
+              "message": "File is not well-formed XML.",
+              "location": "instance.xbrl",
+              "context": null
+            }
+          ]
+        },
+        "warnings": {}
+      }
     }
 
 Parameters
@@ -177,7 +195,7 @@ Parameters
 
 :param post_conversion: When ``True`` and validating a CSV (``.zip``) file, skips structural and format checks that are guaranteed by xbridge's converter. Only EBA semantic checks are retained. Has no effect for ``.xbrl`` files. Default is ``False``.
 
-:return: A dictionary with two keys — ``"errors"`` and ``"warnings"`` — each containing a dict keyed by rule code with lists of finding dicts. An empty dict for both keys means no issues were found.
+:return: A dictionary keyed by validation scope (``"XBRL"`` always present, ``"EBA"`` when *eba* is True). Each scope contains ``"errors"`` and ``"warnings"`` dicts keyed by rule code with lists of finding dicts.
 
 :raises FileNotFoundError: If the file does not exist.
 :raises ValueError: If the file extension is not supported.
@@ -195,11 +213,13 @@ You can validate before converting to catch issues early:
     # Validate first
     results = validate("data/instance.xbrl", eba=True)
 
-    if results["errors"]:
+    has_errors = any(section["errors"] for section in results.values())
+    if has_errors:
         print("Validation errors found — skipping conversion:")
-        for code, findings in results["errors"].items():
-            for e in findings:
-                print(f"  [{e['rule_id']}] {e['message']}")
+        for section in results.values():
+            for code, findings in section["errors"].items():
+                for e in findings:
+                    print(f"  [{e['rule_id']}] {e['message']}")
     else:
         convert_instance(
             instance_path="data/instance.xbrl",

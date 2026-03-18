@@ -7,82 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.0.0rc8] - 2026-03-12
-
-### Fixed
-- **Validation**: Fixed `Scenario.parse()` crash (`IndexError`) on dimension attributes without a namespace prefix (e.g. `dimension="qCAA"`), which silently prevented `XmlInstance` from loading and caused taxonomy-based validation rules (XML-070/071/072) to be skipped.
-- **Validation Engine**: Added fallback `module_ref` extraction so taxonomy rules can still run when `XmlInstance` parsing fails.
-
-## [2.0.0rc7] - 2026-03-11
-
-### Fixed
-- **Converter**: Updated `reportPackage.json` and `report.json` `documentType` URLs from draft/CR-era values to the final XBRL specification URLs (`https://xbrl.org/report-package/2023` and `https://xbrl.org/2021/xbrl-csv`), so that converted files now pass CSV-003 and CSV-011 validation.
-
-## [2.0.0rc6] - 2026-03-11
-
-### Fixed
-- **CSV-033**: Updated `reported` column validation to accept boolean values `'1'` and `'0'` in addition to `'true'` and `'false'`, aligning with XBRL-CSV filing indicator conventions.
-- **CSV-025**: Corrected `baseCurrency` requirement check to only consider datapoints that are actually reported in the CSV data tables, preventing false positives when unreported monetary variables exist in the taxonomy modules.
-
-## [2.0.0rc5] - 2026-03-06
+## [2.0.0] - 2026-03-17
 
 ### Added
-- **CSV-006 Specification**: Added rule CSV-006 to the validation enumeration — the ZIP archive MUST contain a single top-level directory (STLD) per XBRL Report Package 1.0 §3.2, and the STLD MUST NOT be named `META-INF`.
-
-### Changed
-- **`validate()` output structure** *(breaking)*: The return value is now keyed by validation scope. `"XBRL"` is always present and contains findings from XBRL-standard rules; `"EBA"` is present only when `eba=True` and contains EBA-specific findings. Each section has `"errors"` and `"warnings"` sub-keys as before. Code previously reading `results["errors"]` must be updated to iterate `results.values()` or access `results["XBRL"]["errors"]`.
-
-## [2.0.0rc4] - 2026-03-03
-
-### Changed
-- **Refactored dim-dom mapping**: Removed the external `dim_dom_mapping*.json` file dependency from the converter. The dimension-domain variable mapping is now computed inline from table column metadata, simplifying the module interface and removing the `dim_dom_file_name` property from `Module`.
-
-## [2.0.0rc3] - 2026-03-03
-
-### Added
-- **Validate-Convert-Validate Pipeline**: New `--validate` and `--eba` CLI flags for the `convert` command run validation before and after conversion. Equivalent `validate=` and `eba=` parameters added to `convert_instance()`. Raises `ValidationError` (with `results` and `path` attributes) on failure.
+- **Standalone Validation API**: New `xbridge.validation` module with `validate()` function for checking XBRL instance files against structural and regulatory rules — both XBRL-XML and XBRL-CSV formats.
+- **Validation CLI Command**: New `validate` subcommand with `--eba`, `--post-conversion`, and `--json` flags for running validation checks from the command line.
+- **Validate-Convert-Validate Pipeline**: New `--validate` and `--eba` CLI flags for the `convert` command run validation before and after conversion. Equivalent `validate=` and `eba=` parameters added to `convert_instance()`. Raises `ValidationError` on failure.
+- **XML Validation Rules**: 30+ rules covering well-formedness (XML-001..XML-003), schemaRef checks (XML-010/012), filing indicators (XML-020..XML-026), context structure (XML-030..XML-035), fact structure (XML-040..XML-043), unit UTR reference (XML-050), document-level checks (XML-060..XML-069), and taxonomy conformance (XML-070..XML-072).
+- **CSV Validation Rules**: 30+ rules covering report package structure (CSV-001..CSV-006), report.json metadata (CSV-010..CSV-016), parameters.csv (CSV-020..CSV-026), FilingIndicators.csv (CSV-030..CSV-035), data table checks (CSV-040..CSV-049), fact-level checks (CSV-050..CSV-052), and taxonomy conformance (CSV-060..CSV-062).
+- **EBA-specific Validation Rules**: Entity identifier checks (EBA-ENTITY-001/002), currency validation (EBA-CUR-001..003), non-monetary unit checks (EBA-UNIT-001/002), decimals accuracy (EBA-DEC-001..004), guidance compliance (EBA-GUIDE-001..007), file naming conventions (EBA-NAME-001..071), and supplementary regulatory checks (EBA-2.5, EBA-2.16.1, EBA-2.24, EBA-2.25).
 - **EBA Taxonomy 4.2.1**: Added support for FINREP 4.2.1 (`finrep9dp` module).
-
-### Fixed
-- Fixed EBA-CUR-002 incorrectly flagging non-monetary facts (pure unit or no unit) in a denomination context; only monetary facts are subject to the currency-of-denomination rule.
-- Fixed incorrect `R_02.00.a` filing indicator in the `rem_bm` (GL 2022-06) module — corrected to `R_02.00`.
-
-## [2.0.0rc2] - 2026-03-02
-
-### Added
-- **CSV Structural Rules**: CSV-001..CSV-005 (report package structure), CSV-010..CSV-016 (report.json metadata), CSV-020..CSV-026 (parameters.csv), CSV-030..CSV-035 (FilingIndicators.csv), CSV-040..CSV-049 (data table checks), CSV-050..CSV-052 (fact-level checks), CSV-060..CSV-062 (taxonomy conformance).
-- **CSV EBA Rules**: CSV-side implementations for EBA-ENTITY-001/002, EBA-DEC-001..004, EBA-UNIT-001/002, EBA-CUR-003, EBA-2.16.1, EBA-2.24, EBA-GUIDE-002/004/007, EBA-NAME-071.
-
-### Changed
-- **Validation Performance**: Added shared cache across rules to eliminate redundant ZIP I/O (~60-65% faster for CSV validation). Cached data includes ZIP namelist, report.json, parameters.csv, FilingIndicators.csv, data tables, namespace map, and variable lookups.
-- **Centralised Variable Lookup**: Consolidated five duplicate `_build_variable_lookup` implementations into a single cached helper in `_helpers.py`.
-
-### Fixed
-- Fixed `iso4217:`-prefixed `baseCurrency` parameter handling in CSV validation rules.
-- Fixed ZIP root folder prefix detection affecting CSV-003 and CSV-005.
-- Removed redundant double ZIP extraction in `CsvInstance.parse()`.
-
-## [2.0.0rc1] - 2026-02-18
-
-### Added
-- **Standalone Validation API**: New `xbridge.validation` module with `validate()` function for checking XBRL instance files against structural and regulatory rules.
-- **Validation CLI Command**: New `validate` subcommand for running validation checks from the command line.
-- **XML Structural Rules**: XML-001 (well-formedness), XML-002 (UTF-8 encoding), XML-003 (root element), XML-010/XML-012 (schemaRef checks), XML-020/XML-021/XML-024..XML-026 (filing indicator checks), XML-030..XML-035 (context structure), XML-040..XML-043 (fact structure), XML-050 (unit UTR reference), XML-060..XML-069 (document-level checks), XML-070..XML-072 (taxonomy conformance).
-- **EBA Entity Rules**: EBA-ENTITY-001, EBA-ENTITY-002 — entity identifier format checks.
-- **EBA Currency Rules**: EBA-CUR-001, EBA-CUR-002, EBA-CUR-003 — currency validation.
-- **EBA Unit Rules**: EBA-UNIT-001, EBA-UNIT-002 — non-monetary unit checks.
-- **EBA Decimals Rules**: EBA-DEC-001..EBA-DEC-004 — decimals accuracy checks.
-- **EBA Guidance Rules**: EBA-GUIDE-001..EBA-GUIDE-007 — guidance compliance checks.
-- **EBA Naming Rules**: EBA-NAME-001..EBA-NAME-070 — file naming convention rules with ZIP detection.
-- **Additional EBA Rules**: EBA-2.5, EBA-2.16.1, EBA-2.24, EBA-2.25 — supplementary regulatory checks.
-- **Validation Engine**: Rule selection and execution loop with JSON-based rule registry.
-- **Validation Models**: `Severity`, `RuleDefinition`, and `ValidationResult` data classes for structured findings.
-- **Validation Context**: `ValidationContext` for passing shared data to rule functions.
-- **Single-pass XML Scanning**: Performance optimization — XML is parsed once for the entire validation run.
 - **Validation Documentation**: New `docs/validation.rst` with full API reference, usage examples, and integration guide.
 
 ### Changed
-- **Structured Validation Results**: `validate()` returns typed `ValidationResult` objects with `rule_id`, `severity`, `message`, `location`, and `context` fields.
+- **Scoped Validation Results**: `validate()` returns a dictionary keyed by validation scope (`"XBRL"` always present, `"EBA"` when `eba=True`). Each scope contains `"errors"` and `"warnings"` sub-dicts keyed by rule code. Code previously reading `results["errors"]` must access `results["XBRL"]["errors"]` or iterate `results.values()`.
+- **Validation Performance**: Single-pass XML scanning and shared cache across rules eliminate redundant I/O (~60-65% faster for CSV validation).
+- **Simplified Module Interface**: Removed external `dim_dom_mapping*.json` dependency; dimension-domain variable mapping is now computed inline from table column metadata.
+- **Converter Output**: Updated `reportPackage.json` and `report.json` to use final XBRL specification URLs (`https://xbrl.org/report-package/2023` and `https://xbrl.org/2021/xbrl-csv`).
+
+### Fixed
+- Fixed `Scenario.parse()` crash on dimension attributes without a namespace prefix.
+- Fixed EBA-CUR-002 incorrectly flagging non-monetary facts in a denomination context.
+- Fixed `iso4217:`-prefixed `baseCurrency` parameter handling in CSV validation rules.
+- Fixed ZIP root folder prefix detection affecting CSV-003 and CSV-005.
+- Fixed CSV-033 to accept boolean values `'1'` and `'0'` for filing indicator `reported` column.
+- Fixed CSV-025 `baseCurrency` check to only consider actually reported datapoints.
+- Fixed incorrect `R_02.00.a` filing indicator in the `rem_bm` module — corrected to `R_02.00`.
 
 ## [1.5.2] - 2026-02-13
 
@@ -216,15 +166,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc8...HEAD
-[2.0.0rc8]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc7...v2.0.0rc8
-[2.0.0rc7]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc6...v2.0.0rc7
-[2.0.0rc6]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc5...v2.0.0rc6
-[2.0.0rc5]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc4...v2.0.0rc5
-[2.0.0rc4]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc3...v2.0.0rc4
-[2.0.0rc3]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc2...v2.0.0rc3
-[2.0.0rc2]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0rc1...v2.0.0rc2
-[2.0.0rc1]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.2...v2.0.0rc1
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.2...v2.0.0
 [1.5.2]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.4.0...v1.5.0

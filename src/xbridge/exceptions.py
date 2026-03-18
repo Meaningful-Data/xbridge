@@ -34,8 +34,9 @@ class ValidationError(ValueError):
     """Raised when the validate-convert-validate pipeline encounters errors.
 
     Attributes:
-        results: The validation results dictionary with ``"errors"`` and
-            ``"warnings"`` keys.
+        results: The validation results dictionary keyed by scope
+            (``"XBRL"``, ``"EBA"``), each containing ``"errors"`` and
+            ``"warnings"`` sub-dicts.
         path: When set, the conversion succeeded but *post*-conversion
             validation found errors.  The value is the path to the
             generated CSV ZIP archive.  ``None`` means the error was
