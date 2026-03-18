@@ -1021,8 +1021,8 @@
   },
   {
     "code": "CSV-049",
-    "message": "Data tables for non-reported templates SHOULD NOT exist: {detail}",
-    "severity": "WARNING",
+    "message": "Data tables for non-reported templates MUST NOT exist: {detail}",
+    "severity": "ERROR",
     "xml": false,
     "csv": true,
     "eba": true,

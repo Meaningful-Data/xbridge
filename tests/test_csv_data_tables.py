@@ -638,7 +638,7 @@ class TestCSV049NonReportedTablesAbsent:
         results = _write_and_validate(data)
         findings = _findings_for(results, "CSV-049")
         assert len(findings) == 1
-        assert findings[0].severity == Severity.WARNING
+        assert findings[0].severity == Severity.ERROR
         assert "i_10.02.csv" in findings[0].message
         assert "I_10.02" in findings[0].message
 
