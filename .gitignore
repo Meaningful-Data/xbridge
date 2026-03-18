@@ -11,3 +11,4 @@ input/
 .venv
 .coverage
 development.py
+*.skill

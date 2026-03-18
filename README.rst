@@ -22,7 +22,7 @@ Overview
 
 XBridge is a Python library for converting XBRL-XML files into XBRL-CSV files using the EBA (European Banking Authority) taxonomy. It provides a simple, reliable way to transform regulatory reporting data from XML format to CSV format.
 
-The library supports **EBA Taxonomy version 4.2**, as published on the 14th January 2026 and includes support for DORA (Digital Operational Resilience Act) CSV conversion. The library must be updated with each new EBA taxonomy version release.
+The library supports **EBA Taxonomy versions 4.2 and 4.2.1** and includes support for DORA (Digital Operational Resilience Act) CSV conversion. The library must be updated with each new EBA taxonomy version release.
 
 Key Features
 ============
@@ -30,8 +30,9 @@ Key Features
 * **XBRL-XML to XBRL-CSV Conversion**: Seamlessly convert XBRL-XML instance files to XBRL-CSV format
 * **Command-Line Interface**: Quick conversions without writing code using the ``xbridge`` CLI
 * **Python API**: Programmatic conversion for integration with other tools and workflows
-* **EBA Taxonomy 4.2 Support**: Built for the latest EBA taxonomy specification
+* **EBA Taxonomy 4.2/4.2.1 Support**: Built for the latest EBA taxonomy specification
 * **DORA CSV Conversion**: Support for Digital Operational Resilience Act reporting
+* **Standalone Validation**: Validate XBRL-XML and XBRL-CSV files against structural and EBA rules via CLI or Python API
 * **Configurable Validation**: Flexible filing indicator validation with strict or warning modes
 * **Decimal Handling**: Intelligent decimal precision handling with configurable options
 * **Type Safety**: Fully typed codebase with MyPy strict mode compliance
@@ -82,12 +83,20 @@ The CLI provides a quick way to convert files without writing code:
     # Include headers as datapoints
     xbridge instance.xbrl --headers-as-datapoints
 
+    # Validate before and after conversion
+    xbridge instance.xbrl --validate
+
+    # Validate with EBA-specific rules
+    xbridge instance.xbrl --validate --eba
+
 **CLI Options:**
 
 * ``--output-path PATH``: Output directory (default: same as input file)
 * ``--headers-as-datapoints``: Treat headers as datapoints (default: False)
 * ``--strict-validation``: Raise errors on validation failures (default: True)
 * ``--no-strict-validation``: Emit warnings instead of errors
+* ``--validate``: Run validation before and after conversion (default: False)
+* ``--eba``: Enable EBA-specific validation rules (only applies with ``--validate``)
 
 For more CLI options, run ``xbridge --help``.
 
@@ -125,6 +134,25 @@ Customize the conversion with additional parameters:
         validate_filing_indicators=True,  # Validate filing indicators
         strict_validation=False,  # Emit warnings instead of errors for orphaned facts
     )
+
+    # Validate-convert-validate pipeline
+    from xbridge.exceptions import ValidationError
+
+    try:
+        convert_instance(
+            instance_path="path/to/instance.xbrl",
+            output_path="path/to/output",
+            validate=True,   # Enable pre/post-conversion validation
+            eba=True,         # Include EBA-specific rules
+        )
+    except ValidationError as e:
+        print(f"Validation failed: {e}")
+        if e.path:
+            print(f"Output was written to: {e.path}")
+        for section in e.results.values():
+            for code, findings in section["errors"].items():
+                for f in findings:
+                    print(f"  [{f['severity']}] {f['rule_id']}: {f['message']}")
 
 Python API - Handling Warnings
 ------------------------------
@@ -174,6 +202,78 @@ To treat all XBridge warnings as errors:
     with warnings.catch_warnings():
         warnings.simplefilter("error", XbridgeWarning)
         convert_instance("path/to/instance.xbrl", "path/to/output")
+
+Validation - Command-Line Interface
+------------------------------------
+
+The ``validate`` subcommand checks XBRL instance files against structural and regulatory rules without performing conversion:
+
+.. code-block:: bash
+
+    # Validate an XBRL-XML file
+    xbridge validate instance.xbrl
+
+    # Enable EBA-specific rules (entity, currency, decimals, etc.)
+    xbridge validate instance.xbrl --eba
+
+    # Validate an XBRL-CSV package
+    xbridge validate report.zip --eba
+
+    # Skip structural checks for xbridge-generated CSV output
+    xbridge validate output.zip --eba --post-conversion
+
+    # Get machine-readable JSON output
+    xbridge validate instance.xbrl --eba --json
+
+**Validate Options:**
+
+* ``--eba``: Enable EBA-specific validation rules (default: False)
+* ``--post-conversion``: Skip structural checks guaranteed by xbridge's converter (CSV only, default: False)
+* ``--json``: Output findings as JSON instead of human-readable text
+
+The validate command exits with code **0** when no errors are found, and **1** when at least one ERROR-level finding is present.
+
+For more options, run ``xbridge validate --help``.
+
+Validation - Python API
+------------------------
+
+Validate XBRL files programmatically using the ``validate()`` function:
+
+.. code-block:: python
+
+    from xbridge.validation import validate
+
+    # Validate an XBRL-XML file
+    results = validate("path/to/instance.xbrl")
+
+    # Enable EBA-specific rules
+    results = validate("path/to/instance.xbrl", eba=True)
+
+    # Validate an XBRL-CSV package
+    results = validate("path/to/report.zip", eba=True)
+
+The ``validate()`` function returns a dictionary keyed by validation scope (``"XBRL"`` always present, ``"EBA"`` when ``eba=True``). Each scope contains ``"errors"`` and ``"warnings"`` dicts keyed by rule code:
+
+.. code-block:: python
+
+    from xbridge.validation import validate
+
+    results = validate("path/to/instance.xbrl", eba=True)
+
+    for scope, section in results.items():
+        for code, findings in section["errors"].items():
+            for f in findings:
+                print(f"[{scope}] [{f['severity']}] {f['rule_id']}: {f['message']}")
+                print(f"  Location: {f['location']}")
+
+    error_count = sum(
+        len(v) for section in results.values() for v in section["errors"].values()
+    )
+    warning_count = sum(
+        len(v) for section in results.values() for v in section["warnings"].values()
+    )
+    print(f"Errors: {error_count}, Warnings: {warning_count}")
 
 Loading an Instance
 -------------------
@@ -254,6 +354,8 @@ convert_instance Parameters
 * **headers_as_datapoints** (bool): Treat table headers as datapoints (default: False)
 * **validate_filing_indicators** (bool): Validate that facts belong to reported tables (default: True)
 * **strict_validation** (bool): Raise errors on validation failures; if False, emit warnings (default: True)
+* **validate** (bool): Run validation before and after conversion; raises ``ValidationError`` on errors (default: False)
+* **eba** (bool): Enable EBA-specific validation rules; only used when *validate* is True (default: False)
 
 Troubleshooting
 ===============
@@ -265,7 +367,7 @@ Common Issues
     Install the 7z command-line tool using your system's package manager (see Prerequisites).
 
 **Taxonomy version mismatch**
-    Ensure you're using the correct version of XBridge for your taxonomy version. XBridge 1.5.x supports EBA Taxonomy 4.2.
+    Ensure you're using the correct version of XBridge for your taxonomy version. XBridge 2.x supports EBA Taxonomy 4.2/4.2.1.
 
 **Orphaned facts warning/error**
     Facts that don't belong to any reported table. Set ``strict_validation=False`` to continue with warnings instead of errors.

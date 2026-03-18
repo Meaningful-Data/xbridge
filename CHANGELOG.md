@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-03-17
+
+### Added
+- **Standalone Validation API**: New `xbridge.validation` module with `validate()` function for checking XBRL instance files against structural and regulatory rules — both XBRL-XML and XBRL-CSV formats.
+- **Validation CLI Command**: New `validate` subcommand with `--eba`, `--post-conversion`, and `--json` flags for running validation checks from the command line.
+- **Validate-Convert-Validate Pipeline**: New `--validate` and `--eba` CLI flags for the `convert` command run validation before and after conversion. Equivalent `validate=` and `eba=` parameters added to `convert_instance()`. Raises `ValidationError` on failure.
+- **XML Validation Rules**: 30+ rules covering well-formedness (XML-001..XML-003), schemaRef checks (XML-010/012), filing indicators (XML-020..XML-026), context structure (XML-030..XML-035), fact structure (XML-040..XML-043), unit UTR reference (XML-050), document-level checks (XML-060..XML-069), and taxonomy conformance (XML-070..XML-072).
+- **CSV Validation Rules**: 30+ rules covering report package structure (CSV-001..CSV-006), report.json metadata (CSV-010..CSV-016), parameters.csv (CSV-020..CSV-026), FilingIndicators.csv (CSV-030..CSV-035), data table checks (CSV-040..CSV-049), fact-level checks (CSV-050..CSV-052), and taxonomy conformance (CSV-060..CSV-062).
+- **EBA-specific Validation Rules**: Entity identifier checks (EBA-ENTITY-001/002), currency validation (EBA-CUR-001..003), non-monetary unit checks (EBA-UNIT-001/002), decimals accuracy (EBA-DEC-001..004), guidance compliance (EBA-GUIDE-001..007), file naming conventions (EBA-NAME-001..071), and supplementary regulatory checks (EBA-2.5, EBA-2.16.1, EBA-2.24, EBA-2.25).
+- **EBA Taxonomy 4.2.1**: Added support for FINREP 4.2.1 (`finrep9dp` module).
+- **Validation Documentation**: New `docs/validation.rst` with full API reference, usage examples, and integration guide.
+
+### Changed
+- **Scoped Validation Results**: `validate()` returns a dictionary keyed by validation scope (`"XBRL"` always present, `"EBA"` when `eba=True`). Each scope contains `"errors"` and `"warnings"` sub-dicts keyed by rule code. Code previously reading `results["errors"]` must access `results["XBRL"]["errors"]` or iterate `results.values()`.
+- **Validation Performance**: Single-pass XML scanning and shared cache across rules eliminate redundant I/O (~60-65% faster for CSV validation).
+- **Simplified Module Interface**: Removed external `dim_dom_mapping*.json` dependency; dimension-domain variable mapping is now computed inline from table column metadata.
+- **Converter Output**: Updated `reportPackage.json` and `report.json` to use final XBRL specification URLs (`https://xbrl.org/report-package/2023` and `https://xbrl.org/2021/xbrl-csv`).
+
+### Fixed
+- Fixed `Scenario.parse()` crash on dimension attributes without a namespace prefix.
+- Fixed EBA-CUR-002 incorrectly flagging non-monetary facts in a denomination context.
+- Fixed `iso4217:`-prefixed `baseCurrency` parameter handling in CSV validation rules.
+- Fixed ZIP root folder prefix detection affecting CSV-003 and CSV-005.
+- Fixed CSV-033 to accept boolean values `'1'` and `'0'` for filing indicator `reported` column.
+- Fixed CSV-025 `baseCurrency` check to only consider actually reported datapoints.
+- Fixed incorrect `R_02.00.a` filing indicator in the `rem_bm` module — corrected to `R_02.00`.
+
 ## [1.5.2] - 2026-02-13
 
 ### Fixed
@@ -139,7 +166,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.2...v2.0.0
 [1.5.2]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.4.0...v1.5.0

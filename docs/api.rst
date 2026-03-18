@@ -133,7 +133,7 @@ Parameters
 
 
 Load an XBRL-XML Instance
-==========================
+--------------------------
 
 .. autofunction:: load_instance
 
@@ -219,8 +219,8 @@ Load an instance to validate it before conversion:
     except Exception as e:
         print(f"✗ Validation or conversion failed: {e}")
 
-Parameters
-----------
+load_instance() Parameters
+--------------------------
 
 :param instance_path: Path to the XBRL-XML instance file. Accepts ``str`` or ``pathlib.Path``.
 

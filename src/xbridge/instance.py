@@ -603,9 +603,6 @@ class CsvInstance(Instance):
         self._root_folder = base.name if base != tmp else self.path.stem
         self._temp_dir_path = base
 
-        with ZipFile(self.path, "r") as zip_ref:
-            zip_ref.extractall(self._temp_dir_path)
-
         self._report_file = base / "reports" / "report.json"
         with open(self._report_file, "r") as f:
             extends = json.load(f)["documentInfo"]["extends"]
@@ -701,7 +698,8 @@ class Scenario:
                 dimension_raw = child.attrib.get("dimension")
                 if not dimension_raw:
                     continue
-                dimension = dimension_raw.split(":")[1]
+                parts = dimension_raw.split(":")
+                dimension = parts[1] if len(parts) > 1 else parts[0]
                 value = self.get_value(child)
                 value = _normalize_namespaced_value(value, child.nsmap) or ""
                 self.dimensions[dimension] = value

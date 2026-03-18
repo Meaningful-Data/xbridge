@@ -32,7 +32,7 @@ rst_prolog = (
 version: str = "unknown"
 project: str = "eba-xbridge"
 description: str = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.2)"
-copyright: str = "2025 MeaningfulData"
+copyright: str = "2025-2026 MeaningfulData"
 # adopt path to your pyproject.toml
 pyproject_toml_file = Path(__file__).parent / "pyproject.toml"
 if pyproject_toml_file.exists() and pyproject_toml_file.is_file():

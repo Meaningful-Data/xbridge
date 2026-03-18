@@ -18,15 +18,16 @@ Overview
 
 **XBridge** is a Python library for converting XBRL-XML files into XBRL-CSV files using the EBA (European Banking Authority) taxonomy. It provides a simple, reliable way to transform regulatory reporting data from XML format to CSV format.
 
-The library currently supports **EBA Taxonomy version 4.2** and includes support for DORA (Digital Operational Resilience Act) CSV conversion.
+The library currently supports **EBA Taxonomy version 4.2 / 4.2.1** and includes support for DORA (Digital Operational Resilience Act) CSV conversion.
 
 Key Features
 ============
 
 * **XBRL-XML to XBRL-CSV Conversion**: Seamlessly convert XBRL-XML instance files to XBRL-CSV format
-* **Command-Line Interface**: Quick conversions without writing code using the ``xbridge`` CLI
-* **Python API**: Programmatic conversion for integration with other tools and workflows
-* **EBA Taxonomy 4.2 Support**: Built for the latest EBA taxonomy specification
+* **XBRL-XML and XBRL-CSV Validation**: Validate instance files against structural and EBA regulatory rules, with format-aware rule selection and post-conversion mode
+* **Command-Line Interface**: Quick conversions and validation without writing code using the ``xbridge`` CLI
+* **Python API**: Programmatic conversion and validation for integration with other tools and workflows
+* **EBA Taxonomy 4.2/4.2.1 Support**: Built for the latest EBA taxonomy specification
 * **DORA CSV Conversion**: Support for Digital Operational Resilience Act reporting
 * **Configurable Validation**: Flexible filing indicator validation with strict or warning modes
 * **Decimal Handling**: Intelligent decimal precision handling with configurable options
@@ -61,6 +62,22 @@ The fastest way to convert files is using the CLI:
     # Continue with warnings instead of errors
     xbridge instance.xbrl --no-strict-validation
 
+Validation
+----------
+
+Validate XBRL-XML or XBRL-CSV files without converting:
+
+.. code-block:: bash
+
+    # Structural checks
+    xbridge validate instance.xbrl
+
+    # Include EBA regulatory rules
+    xbridge validate instance.xbrl --eba
+
+    # Validate a CSV package
+    xbridge validate report.zip --eba
+
 Python API Usage
 ----------------
 
@@ -76,30 +93,50 @@ For programmatic use, import and use the Python API:
         output_path="path/to/output"
     )
 
-    # Advanced usage with validation options
+    # Conversion with pre- and post-conversion validation
     convert_instance(
         instance_path="path/to/instance.xbrl",
         output_path="path/to/output",
-        headers_as_datapoints=True,
-        validate_filing_indicators=True,
-        strict_validation=False
+        validate=True,
+        eba=True,
     )
+
+.. code-block:: python
+
+    from xbridge.validation import validate
+
+    # Standalone validation
+    results = validate("path/to/instance.xbrl", eba=True)
+    has_errors = any(section["errors"] for section in results.values())
 
 What's New
 ==========
 
-**Version 1.5.2rc2**
+**Version 2.0.0rc8**
 
-* Fixed ``baseCurrency`` parameter handling: now only included when present in the source instance
-* Fixed filing indicators parsing to handle multiple ``find:fIndicators`` blocks in a single XBRL instance
+* **Validation Fix**: Fixed ``Scenario.parse()`` crash on dimension attributes without namespace prefix, which silently prevented taxonomy-based validation rules (XML-070/071/072) from running
+* **Validation Engine**: Added fallback ``module_ref`` extraction so taxonomy rules can still execute when ``XmlInstance`` parsing fails
 
-**Version 1.5.0**
+**Version 2.0.0rc3**
 
-* Support for "0" and "1" values in filing indicators
-* Structured warnings for easier integration
-* Custom exceptions with detailed error information
-* Configurable filing indicator strictness
-* EBA Taxonomy 4.2 support
+* **Validate-Convert-Validate Pipeline**: ``--validate`` / ``--eba`` CLI flags and ``validate=`` / ``eba=`` API parameters for pre- and post-conversion validation
+* **EBA Taxonomy 4.2.1**: Added FINREP 4.2.1 (``finrep9dp``) module
+* Fixed EBA-CUR-002 incorrectly flagging non-monetary facts
+* Fixed incorrect ``R_02.00.a`` filing indicator in the ``rem_bm`` (GL 2022-06) module
+
+**Version 2.0.0rc2**
+
+* **CSV Structural Rules**: CSV-001..CSV-005, CSV-010..CSV-016, CSV-020..CSV-026, CSV-030..CSV-035, CSV-040..CSV-049, CSV-050..CSV-052, CSV-060..CSV-062
+* **CSV EBA Rules**: CSV-side implementations for EBA-ENTITY-001/002, EBA-DEC-001..004, EBA-UNIT-001/002, EBA-CUR-003, EBA-2.16.1, EBA-2.24, EBA-GUIDE-002/004/007, EBA-NAME-071
+* **Validation Performance**: Shared cache across rules eliminates redundant ZIP I/O (~60-65% faster for CSV validation)
+* Fixed ``iso4217:``-prefixed ``baseCurrency`` parameter handling in CSV validation rules
+
+**Version 2.0.0rc1**
+
+* **Standalone Validation API**: New ``xbridge.validation`` module with ``validate()`` function
+* **Validation CLI Command**: New ``xbridge validate`` subcommand
+* **XML Structural Rules**: XML-001..XML-072
+* **EBA Rules**: EBA-ENTITY, EBA-CUR, EBA-UNIT, EBA-DEC, EBA-GUIDE, EBA-NAME, and additional EBA rules
 
 See the `CHANGELOG <https://github.com/Meaningful-Data/xbridge/blob/main/CHANGELOG.md>`_ for complete version history.
 
@@ -111,19 +148,20 @@ Documentation Contents
    :caption: Getting Started
 
    quickstart.rst
-   faq.rst
 
 .. toctree::
    :maxdepth: 2
    :caption: User Guide
 
    technical_notes.rst
+   validation_rules.rst
 
 .. toctree::
    :maxdepth: 2
    :caption: API Reference
 
    api.rst
+   validation.rst
    cli.rst
    converter.rst
    taxonomy_loader.rst

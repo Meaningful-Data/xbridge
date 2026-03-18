@@ -1,7 +1,11 @@
 Quickstart Guide
 ================
 
-This guide will help you get started with XBridge quickly. By the end of this tutorial, you'll be able to convert XBRL-XML files to XBRL-CSV format.
+This guide covers the three main use cases of XBridge:
+
+1. **Convert** XBRL-XML instances to XBRL-CSV format
+2. **Validate** XBRL-XML or XBRL-CSV files against structural and EBA regulatory rules
+3. **Convert XBRL-CSV architecture** — restructure DORA headers-based CSV packages into standard datapoints format
 
 Prerequisites
 -------------
@@ -47,127 +51,38 @@ Verify the installation:
 
     python -c "import xbridge; print(xbridge.__version__)"
 
-Your First Conversion
----------------------
+Use Case 1: XBRL-XML to XBRL-CSV Conversion
+---------------------------------------------
 
-XBridge offers two ways to convert files: using the **command-line interface (CLI)** or the **Python API**. Choose the method that best fits your workflow.
+Basic Conversion
+^^^^^^^^^^^^^^^^
 
-Method 1: Command-Line Interface (Recommended for Quick Use)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The CLI is the fastest way to convert files without writing any code.
-
-**Step 1: Prepare Your Files**
-
-You need:
-
-1. An XBRL-XML instance file (e.g., ``instance.xbrl``)
-2. (Optional) A directory for output
-
-**Step 2: Run the Conversion**
-
-Convert with default settings (output goes to same directory as input):
+**CLI:**
 
 .. code-block:: bash
 
     xbridge instance.xbrl
 
-Convert with custom output directory:
-
-.. code-block:: bash
-
-    xbridge instance.xbrl --output-path output/
-
-Convert with additional options:
-
-.. code-block:: bash
-
-    xbridge instance.xbrl --output-path output/ --no-strict-validation
-
-**CLI Options:**
-
-- ``--output-path PATH``: Output directory (default: same as input file)
-- ``--headers-as-datapoints``: Treat headers as datapoints (default: False)
-- ``--strict-validation``: Raise errors on validation failures (default: True)
-- ``--no-strict-validation``: Emit warnings instead of errors
-- ``-h, --help``: Show help message
-
-**Example with All Options:**
-
-.. code-block:: bash
-
-    xbridge instance.xbrl \
-        --output-path ./converted \
-        --headers-as-datapoints \
-        --no-strict-validation
-
-Method 2: Python API (Recommended for Integration)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Use the Python API when you need programmatic control or integration with other code.
-
-**Step 1: Prepare Your Files**
-
-You need:
-
-1. An XBRL-XML instance file (e.g., ``instance.xbrl``)
-2. A directory for output (e.g., ``output/``)
-
-Create the output directory:
-
-.. code-block:: bash
-
-    mkdir output
-
-**Step 2: Basic Conversion**
-
-Create a Python script ``convert.py``:
+**Python API:**
 
 .. code-block:: python
 
     from xbridge.api import convert_instance
 
-    # Convert XBRL-XML to XBRL-CSV
     output_file = convert_instance(
         instance_path="instance.xbrl",
         output_path="output"
     )
+    print(f"Conversion complete: {output_file}")
 
-    print(f"Conversion complete! Output: {output_file}")
+Output Structure
+^^^^^^^^^^^^^^^^
 
-Run the script:
-
-.. code-block:: bash
-
-    python convert.py
-
-The output will be a ZIP file containing:
-
-- CSV files for each reported table
-- Filing indicators
-- Parameters
-- Metadata
-
-Step 3: Extract and Examine the Output
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Extract the ZIP file:
-
-.. code-block:: bash
-
-    unzip output/instance.zip -d output/extracted
-
-Examine the structure:
-
-.. code-block:: bash
-
-    tree output/extracted
-
-You'll see:
+The output is a ZIP file containing:
 
 .. code-block:: text
 
-    output/extracted/
+    output/instance.zip
     ├── META-INF/
     │   └── reports.json
     ├── reports/
@@ -177,211 +92,173 @@ You'll see:
     ├── filing-indicators.csv
     └── parameters.csv
 
-Common Use Cases
-----------------
+Conversion Options
+^^^^^^^^^^^^^^^^^^
 
-Use Case 1: Convert with Validation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. csv-table::
+   :header: CLI flag | Python parameter | Description
+   :widths: 30, 30, 40
+   :delim: |
 
-Enable filing indicator validation to ensure data integrity:
+   ``--output-path PATH``|``output_path="path"``|Output directory (default: same folder as input)
+   ``--no-strict-validation``|``strict_validation=False``|Emit warnings instead of errors on orphaned facts
+   ``--headers-as-datapoints``|``headers_as_datapoints=True``|For DORA tables using headers architecture, output long (datapoints) format instead of wide (headers) format
+
+Validate-Convert-Validate Pipeline
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+XBridge can run validation before and after conversion in a single command. Pre-conversion validation catches XML structural and EBA issues before converting; post-conversion validation runs EBA semantic checks on the generated CSV.
+
+**CLI:**
+
+.. code-block:: bash
+
+    # Structural validation only
+    xbridge instance.xbrl --validate
+
+    # Include EBA regulatory rules
+    xbridge instance.xbrl --validate --eba
+
+**Python API:**
 
 .. code-block:: python
 
     from xbridge.api import convert_instance
+    from xbridge.exceptions import ValidationError
 
-    output = convert_instance(
-        instance_path="instance.xbrl",
-        output_path="output",
-        validate_filing_indicators=True,  # Enable validation
-        strict_validation=True  # Raise errors on issues
-    )
+    try:
+        output = convert_instance(
+            instance_path="instance.xbrl",
+            output_path="output",
+            validate=True,
+            eba=True,
+        )
+    except ValidationError as e:
+        for section in e.results.values():
+            for code, findings in section["errors"].items():
+                for f in findings:
+                    print(f"[{f['severity']}] {f['rule_id']}: {f['message']}")
 
-Use Case 2: Handle Validation Warnings
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**Behaviour:**
 
-If you want to continue despite validation issues:
+- **Pre-conversion error**: ``ValidationError`` is raised and conversion does not start.
+- **Post-conversion error**: The output ZIP is still written, then ``ValidationError`` is raised. The ``path`` attribute on the exception contains the output file path.
 
-.. code-block:: python
-
-    import logging
-    from xbridge.api import convert_instance
-
-    # Set up logging to see warnings
-    logging.basicConfig(level=logging.WARNING)
-
-    output = convert_instance(
-        instance_path="instance.xbrl",
-        output_path="output",
-        validate_filing_indicators=True,
-        strict_validation=False  # Emit warnings instead of errors
-    )
-
-Use Case 3: Inspect Instance Before Converting
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Load and inspect an instance to understand its contents:
-
-.. code-block:: python
-
-    from xbridge.api import load_instance, convert_instance
-
-    # Load the instance
-    instance = load_instance("instance.xbrl")
-
-    # Inspect
-    print(f"Entity: {instance.entity}")
-    print(f"Period: {instance.period}")
-    print(f"Total facts: {len(instance.facts)}")
-    print(f"Total contexts: {len(instance.contexts)}")
-
-    # If everything looks good, convert
-    if len(instance.facts) > 0:
-        output = convert_instance("instance.xbrl", "output")
-        print(f"Converted: {output}")
-    else:
-        print("No facts found, skipping conversion")
-
-Use Case 4: Batch Processing
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Convert multiple XBRL files at once:
+Batch Processing
+^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
     from pathlib import Path
     from xbridge.api import convert_instance
 
-    # Set up directories
     input_dir = Path("instances")
     output_dir = Path("converted")
     output_dir.mkdir(exist_ok=True)
 
-    # Process all XBRL files
-    xbrl_files = list(input_dir.glob("*.xbrl"))
-    print(f"Found {len(xbrl_files)} files to convert")
-
-    for xbrl_file in xbrl_files:
-        print(f"\nConverting: {xbrl_file.name}")
+    for xbrl_file in input_dir.glob("*.xbrl"):
         try:
-            output = convert_instance(
-                instance_path=xbrl_file,
-                output_path=output_dir / xbrl_file.stem,
-                strict_validation=False  # Continue on errors
-            )
-            print(f"  ✓ Success: {output}")
+            output = convert_instance(xbrl_file, output_dir / xbrl_file.stem)
+            print(f"OK: {xbrl_file.name} -> {output}")
         except Exception as e:
-            print(f"  ✗ Failed: {e}")
+            print(f"FAIL: {xbrl_file.name}: {e}")
 
-    print("\nBatch conversion complete!")
+Use Case 2: Standalone Validation
+----------------------------------
 
-Use Case 5: Custom Output Handling
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Validate XBRL-XML (``.xbrl``) or XBRL-CSV (``.zip``) files for structural and regulatory errors without converting.
 
-Process the output programmatically:
+CLI Examples
+^^^^^^^^^^^^
 
-.. code-block:: python
+.. code-block:: bash
 
-    import zipfile
-    import csv
-    from pathlib import Path
-    from xbridge.api import convert_instance
+    # Structural checks only
+    xbridge validate instance.xbrl
 
-    # Convert
-    output_zip = convert_instance(
-        instance_path="instance.xbrl",
-        output_path="output"
-    )
+    # Include EBA regulatory rules
+    xbridge validate instance.xbrl --eba
 
-    # Extract and process
-    with zipfile.ZipFile(output_zip, 'r') as zf:
-        # List all files
-        print("Files in archive:")
-        for name in zf.namelist():
-            print(f"  - {name}")
+    # Validate a CSV package
+    xbridge validate report.zip --eba
 
-        # Read parameters
-        with zf.open('parameters.csv') as f:
-            reader = csv.DictReader(f.read().decode('utf-8').splitlines())
-            for row in reader:
-                print(f"\nParameters:")
-                for key, value in row.items():
-                    print(f"  {key}: {value}")
+    # Skip structural checks guaranteed by xbridge's converter
+    xbridge validate output.zip --eba --post-conversion
 
-Advanced Configuration
-----------------------
+    # Machine-readable JSON output
+    xbridge validate instance.xbrl --eba --json
 
-Headers as Datapoints
-^^^^^^^^^^^^^^^^^^^^^
-
-Include table headers as datapoints in the output:
+Python API Examples
+^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
-    from xbridge.api import convert_instance
+    from xbridge.validation import validate
 
-    output = convert_instance(
-        instance_path="instance.xbrl",
-        output_path="output",
-        headers_as_datapoints=True  # Include headers
-    )
+    results = validate("instance.xbrl", eba=True)
 
-Error Handling
-^^^^^^^^^^^^^^
-
-Robust error handling for production use:
-
-.. code-block:: python
-
-    from xbridge.api import convert_instance
-    from pathlib import Path
-    import sys
-
-    def safe_convert(instance_path, output_path):
-        """Safely convert with comprehensive error handling."""
-        try:
-            # Validate inputs
-            instance = Path(instance_path)
-            if not instance.exists():
-                raise FileNotFoundError(f"Instance not found: {instance}")
-
-            if not instance.suffix == ".xbrl":
-                raise ValueError(f"Expected .xbrl file, got {instance.suffix}")
-
-            # Convert
-            output = convert_instance(
-                instance_path=instance,
-                output_path=output_path,
-                validate_filing_indicators=True,
-                strict_validation=False
-            )
-
-            return output, None
-
-        except FileNotFoundError as e:
-            return None, f"File error: {e}"
-        except ValueError as e:
-            return None, f"Validation error: {e}"
-        except Exception as e:
-            return None, f"Unexpected error: {e}"
-
-    # Use the safe function
-    result, error = safe_convert("instance.xbrl", "output")
-
-    if error:
-        print(f"✗ Conversion failed: {error}", file=sys.stderr)
-        sys.exit(1)
+    has_errors = any(section["errors"] for section in results.values())
+    if has_errors:
+        for section in results.values():
+            for code, findings in section["errors"].items():
+                for f in findings:
+                    print(f"[{f['severity']}] {f['rule_id']}: {f['message']}")
+                    print(f"  Location: {f['location']}")
     else:
-        print(f"✓ Conversion succeeded: {result}")
+        print("No errors found.")
+
+**Exit codes** (CLI): ``0`` = no errors, ``1`` = at least one ERROR finding.
+
+.. seealso::
+
+   :doc:`validation`
+      Full validation API documentation and architecture.
+
+   :doc:`validation_rules`
+      Complete catalogue of all validation rules.
+
+Use Case 3: XBRL-CSV Architecture Conversion
+----------------------------------------------
+
+Convert DORA XBRL-CSV files from the **headers** architecture (columns named ``0010``, ``0020``, ..., wide format) to the standard **datapoints** architecture (``datapoint``, ``factValue``, long format).
+
+When to Use
+^^^^^^^^^^^
+
+DORA (Digital Operational Resilience Act) reporting modules use a different CSV table layout. XBridge detects this automatically from the taxonomy metadata and converts accordingly.
+
+How It Works
+^^^^^^^^^^^^
+
+- **Input**: ``.zip`` file containing XBRL-CSV with headers-based tables
+- **Output**: ``.zip`` file with the same data restructured into datapoint-based tables
+- The architecture is auto-detected from the taxonomy (``Table.check_taxonomy_architecture()``)
+
+**CLI:**
+
+.. code-block:: bash
+
+    xbridge report.zip --output-path output/
+
+**Python API:**
+
+.. code-block:: python
+
+    from xbridge.api import convert_instance
+
+    output = convert_instance("report.zip", output_path="output")
+
+.. note::
+
+   The ``--headers-as-datapoints`` flag is only relevant when converting **XML** instances that reference a headers-architecture taxonomy — it controls whether the output uses wide (headers) or long (datapoints) format. For CSV-to-CSV conversion, the output is always datapoints architecture.
 
 Next Steps
 ----------
 
-Now that you've completed the quickstart:
-
-1. **Explore the Documentation**: Check the :doc:`cli` and :doc:`api` references
-2. **Understand the Architecture**: Learn how XBridge works internally in :doc:`technical_notes`
-3. **Check the FAQ**: Find answers to common questions in :doc:`faq`
-4. **Explore Examples**: See more examples in the GitHub repository
+- :doc:`validation` — full validation API documentation
+- :doc:`validation_rules` — complete rules catalogue
+- :doc:`cli` — CLI reference
+- :doc:`api` — Python API reference
 
 Troubleshooting
 ---------------
@@ -396,7 +273,10 @@ Troubleshooting
     Install the 7z tool (see Prerequisites section)
 
 **Orphaned facts error/warning**
-    Some facts don't belong to any reported table. Use ``strict_validation=False`` to continue with warnings
+    Some facts don't belong to any reported table. Use ``--no-strict-validation`` (CLI) or ``strict_validation=False`` (API) to continue with warnings
+
+**ValidationError raised during conversion**
+    Pre-conversion or post-conversion validation found errors. Inspect ``e.results`` for details, or run ``xbridge validate`` separately for a full report
 
 **Very large file processing slowly**
     This is normal for large XBRL files. Consider processing in smaller batches
@@ -409,4 +289,3 @@ If you encounter issues:
 - **Documentation**: https://docs.xbridge.meaningfuldata.eu
 - **GitHub Issues**: https://github.com/Meaningful-Data/xbridge/issues
 - **Email**: info@meaningfuldata.eu
-- **FAQ**: :doc:`faq`

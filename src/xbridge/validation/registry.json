@@ -1,0 +1,1092 @@
+[
+  {
+    "code": "XML-001",
+    "message": "The file is not well-formed XML: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "XML-002",
+    "message": "The file MUST use UTF-8 encoding: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.4"
+  },
+  {
+    "code": "XML-003",
+    "message": "The root element MUST be xbrli:xbrl: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "XML-010",
+    "message": "Exactly one link:schemaRef element MUST be present: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.5"
+  },
+  {
+    "code": "XML-012",
+    "message": "The schemaRef MUST resolve to a known entry point URL: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.5"
+  },
+  {
+    "code": "XML-020",
+    "message": "At least one find:fIndicators element MUST be present: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
+    "code": "XML-021",
+    "message": "At least one filing indicator MUST exist: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
+    "code": "XML-024",
+    "message": "Filing indicator value is not valid for the module: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
+    "code": "XML-025",
+    "message": "Duplicate filing indicators MUST NOT exist: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
+    "code": "XML-026",
+    "message": "The context referenced by filing indicators MUST NOT contain xbrli:segment or xbrli:scenario: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
+    "code": "XML-030",
+    "message": "Period date elements MUST be xs:date (no dateTime, no timezone): {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.10"
+  },
+  {
+    "code": "XML-031",
+    "message": "All periods MUST be instants (not durations): {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.13"
+  },
+  {
+    "code": "XML-032",
+    "message": "All periods MUST refer to the same reference date: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.13"
+  },
+  {
+    "code": "XML-033",
+    "message": "All entity identifiers MUST be identical across contexts: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.9"
+  },
+  {
+    "code": "XML-034",
+    "message": "xbrli:segment MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.14"
+  },
+  {
+    "code": "XML-035",
+    "message": "xbrli:scenario children MUST only be xbrldi:explicitMember or xbrldi:typedMember: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.15"
+  },
+  {
+    "code": "XML-040",
+    "message": "The @decimals attribute MUST be used (not @precision): {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.17"
+  },
+  {
+    "code": "XML-041",
+    "message": "The @decimals value MUST be a valid integer or INF: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "XML-042",
+    "message": "@xsi:nil MUST NOT be used on facts: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.19"
+  },
+  {
+    "code": "XML-043",
+    "message": "String-type facts MUST NOT be empty: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.19"
+  },
+  {
+    "code": "XML-050",
+    "message": "xbrli:unit children MUST refer to the UTR: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.23"
+  },
+  {
+    "code": "XML-060",
+    "message": "@xml:base MUST NOT appear anywhere in the document: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.1"
+  },
+  {
+    "code": "XML-061",
+    "message": "link:linkbaseRef MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.4"
+  },
+  {
+    "code": "XML-062",
+    "message": "xbrli:forever MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.11"
+  },
+  {
+    "code": "XML-063",
+    "message": "xsi:schemaLocation / xsi:noNamespaceSchemaLocation MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.14"
+  },
+  {
+    "code": "XML-064",
+    "message": "xi:include MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.15"
+  },
+  {
+    "code": "XML-065",
+    "message": "The XML standalone declaration SHOULD NOT be used: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.13"
+  },
+  {
+    "code": "XML-066",
+    "message": "Unused contexts SHOULD NOT be present: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.7"
+  },
+  {
+    "code": "XML-067",
+    "message": "Duplicate contexts SHOULD NOT be present: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.7"
+  },
+  {
+    "code": "XML-068",
+    "message": "Unused units SHOULD NOT be present: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.22"
+  },
+  {
+    "code": "XML-069",
+    "message": "Duplicate units SHOULD NOT be present: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.21"
+  },
+  {
+    "code": "XML-070",
+    "message": "All fact concepts MUST be defined in the taxonomy: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "XML-071",
+    "message": "All explicit dimension QNames MUST be defined in the taxonomy: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "XML-072",
+    "message": "All dimension member values MUST be valid for their dimension: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "EBA-ENTITY-001",
+    "message": "The entity identifier @scheme MUST be one of the accepted schemes: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.8"
+  },
+  {
+    "code": "EBA-ENTITY-002",
+    "message": "The entity identifier value MUST follow reporting subject conventions: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.8"
+  },
+  {
+    "code": "EBA-CUR-001",
+    "message": "All monetary facts without CCA dimension MUST use a single reporting currency: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.1"
+  },
+  {
+    "code": "EBA-CUR-002",
+    "message": "Facts with CCA dimension MUST be expressed in their currency of denomination: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.1"
+  },
+  {
+    "code": "EBA-CUR-003",
+    "message": "For facts with CUS or CUA dimension, the unit currency MUST be consistent with the dimension value: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.1"
+  },
+  {
+    "code": "EBA-UNIT-001",
+    "message": "Non-monetary numeric values MUST use the pure unit: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.2"
+  },
+  {
+    "code": "EBA-UNIT-002",
+    "message": "Rates, percentages and ratios SHOULD use decimal notation: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.2"
+  },
+  {
+    "code": "EBA-2.5",
+    "message": "XML comments are ignored; data SHOULD only appear in contexts, units, and facts: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.5"
+  },
+  {
+    "code": "EBA-2.16.1",
+    "message": "No multi-unit fact sets; facts MUST NOT differ only by unit: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": true,
+    "eba_ref": "2.16"
+  },
+  {
+    "code": "EBA-2.24",
+    "message": "Monetary units MUST be basic ISO 4217 without scaling: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": true,
+    "eba_ref": "2.24"
+  },
+  {
+    "code": "EBA-2.25",
+    "message": "Footnotes are ignored; link:footnoteLink SHOULD NOT be present: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.25"
+  },
+  {
+    "code": "EBA-GUIDE-001",
+    "message": "Unused namespace prefixes SHOULD NOT be declared: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-GUIDE-002",
+    "message": "Namespace prefixes SHOULD mirror canonical prefixes: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": true,
+    "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-GUIDE-003",
+    "message": "Unused @id on facts SHOULD NOT be present: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-GUIDE-004",
+    "message": "String values SHOULD be as short as possible: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": true,
+    "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-GUIDE-005",
+    "message": "Namespace declarations SHOULD be on the document element only: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-GUIDE-006",
+    "message": "Avoid multiple prefix declarations for the same namespace: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-GUIDE-007",
+    "message": "String facts and domain values SHOULD NOT start/end with whitespace: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": true,
+    "eba_ref": "3.4"
+  },
+  {
+    "code": "EBA-NAME-001",
+    "message": "The submission file name MUST follow the 6-component underscore-separated pattern: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-010",
+    "message": "ReportSubject MUST be a valid LEI (individual/consolidated modules): {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-011",
+    "message": "ReportSubject MUST include .IND/.CON/.CRDLIQSUBGRP suffix (modules without _con/_ind): {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-012",
+    "message": "ReportSubject for country-level aggregates MUST be country code + 000 + aggregation suffix: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-013",
+    "message": "ReportSubject for authority-level aggregates MUST be authority code + .AUTALL: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-014",
+    "message": "ReportSubject for MICA reports MUST be IssuerID-TokenID + .IND: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-020",
+    "message": "The Country component MUST be a valid ISO 3166-1 alpha-2 code: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-030",
+    "message": "The FrameworkCodeModuleVersion MUST be a valid framework code followed by a 6-digit version: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-040",
+    "message": "The Module component MUST be the taxonomy module name in uppercase without underscores: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-050",
+    "message": "The ReferenceDate component MUST be in YYYY-MM-DD format: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-060",
+    "message": "The CreationTimestamp component MUST be in YYYYMMDDhhmmssfff format: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-070",
+    "message": "The ZIP MUST contain exactly one .xbrl file whose name matches the ZIP: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-NAME-071",
+    "message": "The CSV ZIP root folder MUST match the ZIP filename: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "File naming"
+  },
+  {
+    "code": "EBA-DEC-001",
+    "message": "Monetary facts: @decimals MUST be >= {threshold}: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.18"
+  },
+  {
+    "code": "EBA-DEC-002",
+    "message": "Percentage facts: @decimals MUST be >= 4: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.18"
+  },
+  {
+    "code": "EBA-DEC-003",
+    "message": "Integer facts: @decimals MUST be 0: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.18"
+  },
+  {
+    "code": "EBA-DEC-004",
+    "message": "Decimals SHOULD be a realistic indication of accuracy: {detail}",
+    "severity": "WARNING",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.18"
+  },
+  {
+    "code": "CSV-001",
+    "message": "The report package MUST be a valid ZIP archive: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-002",
+    "message": "The ZIP MUST contain META-INF/reportPackage.json: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-003",
+    "message": "reportPackage.json documentType MUST be 'https://xbrl.org/report-package/2023': {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-004",
+    "message": "The ZIP MUST contain exactly one reports/report.json: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-005",
+    "message": "The ZIP archive MUST NOT contain extraneous files: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-010",
+    "message": "report.json MUST be valid JSON: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-011",
+    "message": "documentInfo.documentType MUST be 'https://xbrl.org/2021/xbrl-csv': {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-012",
+    "message": "documentInfo.extends MUST contain exactly one entry point URL: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.5"
+  },
+  {
+    "code": "CSV-013",
+    "message": "The extends URL MUST resolve to a published entry point: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.5"
+  },
+  {
+    "code": "CSV-014",
+    "message": "JSON representation constraints MUST be met: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-015",
+    "message": "Namespace prefixes MUST be declared in documentInfo.namespaces: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-016",
+    "message": "All URI aliases MUST resolve to valid absolute URIs: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-020",
+    "message": "parameters.csv MUST exist in the reports/ folder: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-021",
+    "message": "The parameters.csv header row MUST be 'name,value': {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-022",
+    "message": "entityID parameter MUST be present and non-empty: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-023",
+    "message": "refPeriod parameter MUST be a valid xs:date without timezone: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.10"
+  },
+  {
+    "code": "CSV-024",
+    "message": "baseCurrency parameter MUST be present when monetary metrics exist: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-025",
+    "message": "Decimals parameters MUST be present for each metric type: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-026",
+    "message": "Decimals values MUST be valid integers or 'INF': {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-030",
+    "message": "FilingIndicators.csv MUST exist in the reports/ folder: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-031",
+    "message": "The FilingIndicators.csv header row MUST be 'templateID,reported': {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-032",
+    "message": "Filing indicator value is not valid for the module: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
+    "code": "CSV-033",
+    "message": "Filing indicator 'reported' value MUST be boolean (true/false/1/0): {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-034",
+    "message": "A filing indicator MUST be present for each template in the module: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
+    "code": "CSV-035",
+    "message": "Duplicate filing indicators MUST NOT exist: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "1.6"
+  },
+  {
+    "code": "CSV-040",
+    "message": "CSV data table files MUST use UTF-8 encoding: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-041",
+    "message": "The first row MUST be the header row with no empty cells: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-042",
+    "message": "All columns defined in the JSON metadata MUST be present in the CSV header: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-043",
+    "message": "Each row MUST contain the same number of fields as the header: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-044",
+    "message": "Key columns MUST contain a value for each reported fact: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-045",
+    "message": "Special values (#empty, #none, #nil, etc.) MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-046",
+    "message": "The Decimals Suffix feature MUST NOT be used: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-047",
+    "message": "CSV quoting MUST follow RFC 4180 rules: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-049",
+    "message": "Data tables for non-reported templates MUST NOT exist: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-050",
+    "message": "A fact MUST NOT be reported as #nil: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.19"
+  },
+  {
+    "code": "CSV-051",
+    "message": "A fact MUST NOT be reported as #empty: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.19"
+  },
+  {
+    "code": "CSV-052",
+    "message": "Inconsistent duplicate fact: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "2.16"
+  },
+  {
+    "code": "CSV-060",
+    "message": "All metric references in data tables MUST be defined in the taxonomy: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-061",
+    "message": "All dimension columns MUST correspond to dimensions defined in the taxonomy: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-062",
+    "message": "All dimension member values MUST be valid for their dimension: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  }
+]
