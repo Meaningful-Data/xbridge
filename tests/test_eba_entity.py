@@ -80,7 +80,7 @@ class TestEBAEntity001Scheme:
         findings = _run(xml, "EBA-ENTITY-001")
         assert len(findings) == 1
         assert findings[0].severity == Severity.ERROR
-        assert "example.com" in findings[0].message
+        assert "http://example.com/bad" in findings[0].message
 
     def test_empty_scheme_detected(self) -> None:
         xml = _xbrl(_context(scheme=""))
