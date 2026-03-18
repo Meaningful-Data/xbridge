@@ -1,6 +1,7 @@
 """Tests for XML-060..XML-069: document-level checks."""
 
 import importlib
+import os
 import sys
 from tempfile import NamedTemporaryFile
 
@@ -71,10 +72,13 @@ def _valid_instance() -> bytes:
 
 
 def _run(xml_bytes: bytes, rule_id: str) -> list:
-    with NamedTemporaryFile(suffix=".xbrl") as tmp:
+    with NamedTemporaryFile(suffix=".xbrl", delete=False) as tmp:
         tmp.write(xml_bytes)
         tmp.flush()
+    try:
         results = run_validation(tmp.name, eba=True)
+    finally:
+        os.unlink(tmp.name)
     return [r for r in results if r.rule_id == rule_id]
 
 
