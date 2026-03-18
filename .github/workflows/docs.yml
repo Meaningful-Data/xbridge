@@ -18,6 +18,9 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # Build job
   build:
@@ -32,6 +35,8 @@ jobs:
         run: pipx install poetry
       - name: Setup Python
         uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
       - name: Install dependencies
         run: poetry install --with docs
       - name: Build with Sphinx
