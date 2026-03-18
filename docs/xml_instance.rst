@@ -12,7 +12,7 @@ This facts are grouped by a context. In xbrl files, it is represented with an id
 Also, an attribute named scenario appears related to the context. Its main function is parsing the xml-instance, integrating the dimension of the taxonomy's variable with the context.
 
 
-.. currentmodule:: xbridge.xml_instance
+.. currentmodule:: xbridge.instance
 
 Instance Class
 --------------

@@ -24,11 +24,11 @@ Key Features
 ============
 
 * **XBRL-XML to XBRL-CSV Conversion**: Seamlessly convert XBRL-XML instance files to XBRL-CSV format
-* **Command-Line Interface**: Quick conversions without writing code using the ``xbridge`` CLI
-* **Python API**: Programmatic conversion for integration with other tools and workflows
+* **XBRL-XML and XBRL-CSV Validation**: Validate instance files against structural and EBA regulatory rules, with format-aware rule selection and post-conversion mode
+* **Command-Line Interface**: Quick conversions and validation without writing code using the ``xbridge`` CLI
+* **Python API**: Programmatic conversion and validation for integration with other tools and workflows
 * **EBA Taxonomy 4.2/4.2.1 Support**: Built for the latest EBA taxonomy specification
 * **DORA CSV Conversion**: Support for Digital Operational Resilience Act reporting
-* **Standalone Validation API**: Validate XBRL-XML and XBRL-CSV files against structural and EBA rules
 * **Configurable Validation**: Flexible filing indicator validation with strict or warning modes
 * **Decimal Handling**: Intelligent decimal precision handling with configurable options
 * **Type Safety**: Fully typed codebase with MyPy strict mode compliance
@@ -62,6 +62,22 @@ The fastest way to convert files is using the CLI:
     # Continue with warnings instead of errors
     xbridge instance.xbrl --no-strict-validation
 
+Validation
+----------
+
+Validate XBRL-XML or XBRL-CSV files without converting:
+
+.. code-block:: bash
+
+    # Structural checks
+    xbridge validate instance.xbrl
+
+    # Include EBA regulatory rules
+    xbridge validate instance.xbrl --eba
+
+    # Validate a CSV package
+    xbridge validate report.zip --eba
+
 Python API Usage
 ----------------
 
@@ -77,14 +93,21 @@ For programmatic use, import and use the Python API:
         output_path="path/to/output"
     )
 
-    # Advanced usage with validation options
+    # Conversion with pre- and post-conversion validation
     convert_instance(
         instance_path="path/to/instance.xbrl",
         output_path="path/to/output",
-        headers_as_datapoints=True,
-        validate_filing_indicators=True,
-        strict_validation=False
+        validate=True,
+        eba=True,
     )
+
+.. code-block:: python
+
+    from xbridge.validation import validate
+
+    # Standalone validation
+    results = validate("path/to/instance.xbrl", eba=True)
+    has_errors = any(section["errors"] for section in results.values())
 
 What's New
 ==========
@@ -125,13 +148,13 @@ Documentation Contents
    :caption: Getting Started
 
    quickstart.rst
-   faq.rst
 
 .. toctree::
    :maxdepth: 2
    :caption: User Guide
 
    technical_notes.rst
+   validation_rules.rst
 
 .. toctree::
    :maxdepth: 2
