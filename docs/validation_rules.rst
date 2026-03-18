@@ -25,12 +25,12 @@ Rule Attributes
    :delim: |
 
    **EBA**|Yes / No|When Yes, the rule only runs if the ``eba`` parameter is ``True``.
-   **EBA ref**|Section|Cross-reference to the EBA Filing Rules v5.7 section that this rule implements.
+   **EBA ref**|Section|Cross-reference to the EBA Filing Rules v5.8 section that this rule implements.
    **Post-conv.**|Yes / No|*(CSV only)* When No, the rule is skipped if ``post_conversion`` is ``True``.
 
 Rules with **EBA = No** are standard XBRL 2.1 or xBRL-CSV 1.0 structural
 checks. Rules with **EBA = Yes** are requirements imposed by the EBA Filing
-Rules (v5.7) that go beyond the base XBRL/xBRL-CSV specifications.
+Rules (v5.8) that go beyond the base XBRL/xBRL-CSV specifications.
 
 Input Format Detection
 ======================
@@ -448,7 +448,7 @@ The EBA requires submission files to follow a specific naming structure:
 
 ``ReportSubject_Country_FrameworkCodeModuleVersion_Module_ReferenceDate_CreationTimestamp``
 
-See EBA Filing Rules v5.7, "File naming structure for remittance to the EBA"
+See EBA Filing Rules v5.8, "File naming structure for remittance to the EBA"
 (pp. 57--61).
 
 Naming rules EBA-NAME-001 through EBA-NAME-060 validate the file stem and apply

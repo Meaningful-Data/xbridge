@@ -1,7 +1,7 @@
 """EBA-NAME-001..EBA-NAME-071: Submission package naming rules.
 
 These rules validate the file naming convention required by the
-EBA Filing Rules v5.7.  They apply to both bare .xbrl files and
+EBA Filing Rules v5.8.  They apply to both bare .xbrl files and
 ZIP archives.  EBA-NAME-070 is XML-ZIP-only; EBA-NAME-071 is CSV-ZIP-only.
 """
 

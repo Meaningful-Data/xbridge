@@ -346,7 +346,7 @@ Each entry in the registry has the following schema:
    ``csv``|``bool``|``true`` if the rule applies to ``.zip`` input.
    ``eba``|``bool``|``true`` if the rule only runs when ``eba=True``.
    ``post_conversion``|``bool``|``true`` = rule survives post-conversion mode; ``false`` = skipped.
-   ``eba_ref``|``str`` / ``null``|EBA Filing Rules v5.7 section reference.
+   ``eba_ref``|``str`` / ``null``|EBA Filing Rules v5.8 section reference.
    ``csv_severity``|*(optional)*|Overrides ``severity`` when running in CSV context.
    ``csv_message``|*(optional)*|Overrides ``message`` when running in CSV context.
 
@@ -454,7 +454,7 @@ Reference Documents
    XBRL 2.1 Specification|REC 2003-12-31, errata 2013-02-20
    XBRL Dimensions 1.0|1.0
    xBRL-CSV 1.0|REC 2021-10-13, errata 2023-04-19
-   EBA Filing Rules|v5.7, November 2025
+   EBA Filing Rules|v5.8, February 2026
 
 .. note::
 
