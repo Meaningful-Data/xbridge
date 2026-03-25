@@ -152,9 +152,10 @@ class Instance:
     def from_path(cls, path: Union[str, Path]) -> Instance:
         path = Path(path)
 
-        if path.suffix in [".xml", ".xbrl"]:
+        suffix = path.suffix.lower()
+        if suffix in [".xml", ".xbrl"]:
             return XmlInstance(path)
-        elif path.suffix == ".zip":
+        elif suffix == ".zip":
             return CsvInstance(path)
         else:
             raise ValueError(f"Unsupported file extension: {path.suffix}")
