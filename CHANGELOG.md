@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-03-25
+
+### Fixed
+- Fixed case-insensitive file extension handling in `Instance.from_path()`: files with uppercase extensions (`.XBRL`, `.XML`, `.ZIP`) are now processed correctly (#109).
+
 ## [2.0.0] - 2026-03-17
 
 ### Added
@@ -166,7 +171,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.2...v2.0.0
 [1.5.2]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.0...v1.5.1
