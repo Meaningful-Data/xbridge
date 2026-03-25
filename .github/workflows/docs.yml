@@ -18,13 +18,16 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # Build job
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
@@ -32,6 +35,8 @@ jobs:
         run: pipx install poetry
       - name: Setup Python
         uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
       - name: Install dependencies
         run: poetry install --with docs
       - name: Build with Sphinx
@@ -51,4 +56,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4
