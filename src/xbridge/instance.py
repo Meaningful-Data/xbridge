@@ -815,6 +815,7 @@ class Fact:
         self.decimals: str | None = None
         self.context: str | None = None
         self.unit: str | None = None
+        self._metric_qname_cache: Optional[str] = None
 
         self.parse()
 
@@ -825,6 +826,29 @@ class Fact:
         self.decimals = self.fact_xml.attrib.get("decimals")
         self.context = self.fact_xml.attrib.get("contextRef")
         self.unit = self.fact_xml.attrib.get("unitRef")
+        self._metric_qname_cache = None
+
+    @property
+    def metric_qname(self) -> Optional[str]:
+        """The metric name in EBA/CSV prefix notation (e.g. ``eba_met:qAZH``).
+
+        This is the form used by :class:`xbridge.modules.Module` to key its
+        variables and is therefore the correct string to use when looking a
+        fact up in a module-derived ``type_map``.
+
+        ``metric`` (the raw lxml tag, typically in Clark notation such as
+        ``{http://.../dict/met}qAZH``) is left unchanged for backward
+        compatibility with callers that expect that form.
+
+        Returns ``None`` if the metric cannot be normalised (e.g. the
+        namespace URI does not follow the EBA convention).
+        """
+        if self._metric_qname_cache is not None:
+            return self._metric_qname_cache
+        if self.metric is None:
+            return None
+        self._metric_qname_cache = _normalize_metric_value(self.metric, self.fact_xml.nsmap)
+        return self._metric_qname_cache
 
     def __dict__(self) -> Dict[str, Any]:  # type: ignore[override]
         metric_clean = ""

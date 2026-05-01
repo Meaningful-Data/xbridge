@@ -560,3 +560,268 @@ class TestEBADEC004RealisticDecimalsCSV:
             }
         )
         assert _run_csv(data, "EBA-DEC-004") == []
+
+
+# =====================================================================
+# Regression tests for #XXX — EBA-DEC-002 false positives on integer
+# metrics that happen to use the 'pure' unit.
+#
+# Before the fix:
+#   * ``Fact.metric`` was stored as the lxml Clark-notation tag, but
+#     ``type_map`` was keyed by the EBA prefix form (e.g. ``eba_met:qFGE``).
+#   * ``type_map.get(fact.metric)`` therefore always returned ``None``
+#     for real-world instances, silently triggering the unit-based
+#     fallback, which classified every ``pure``-unit fact as percentage.
+#   * Integer-typed metrics with pure unit (e.g. COREP ALM ``qAZH``,
+#     ``qCCG``, ``qDGB``) were then incorrectly flagged by EBA-DEC-002
+#     for having ``@decimals < 4``.
+#
+# These tests pin the correct behaviour:
+#   * ``Fact.metric_qname`` returns the normalised prefix form.
+#   * ``_build_metric_type_map`` indexes by both prefix and local name.
+#   * When a module is loaded, classification is driven by the module,
+#     not by the unit heuristic.
+# =====================================================================
+
+# Pillar 3 CODIS module has examples of all four metric types, and the
+# fixture is small enough to load quickly.
+_PILLAR3_CODIS_SCHEMA = (
+    "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/pillar3/4.1/mod/codis.xsd"
+)
+
+# Metrics picked from src/xbridge/modules/codis_pillar3_4.1.json
+_CODIS_MONETARY_METRIC = "qHNJ"
+_CODIS_PERCENTAGE_METRIC = "qADL"
+_CODIS_INTEGER_METRIC = "qFGE"
+_CODIS_DECIMAL_METRIC = "qIIL"
+
+
+def _xbrl_with_module(body: str, prefix: str = "eba_met") -> bytes:
+    """Build a minimal XBRL document with a real schemaRef + eba_met xmlns.
+
+    The schemaRef points at the Pillar 3 CODIS module so that the
+    validation engine loads a real :class:`Module` into the context.
+    ``prefix`` controls the xmlns prefix used for fact elements — this
+    lets us test prefix-version drift (``eba_met`` vs ``eba_met_4.0``).
+    """
+    ns = (
+        'xmlns:xbrli="http://www.xbrl.org/2003/instance" '
+        'xmlns:link="http://www.xbrl.org/2003/linkbase" '
+        'xmlns:xlink="http://www.w3.org/1999/xlink" '
+        'xmlns:find="http://www.eurofiling.info/xbrl/ext/filing-indicators" '
+        f'xmlns:{prefix}="http://www.eba.europa.eu/xbrl/crr/dict/met"'
+    )
+    schema_ref = (
+        f'<link:schemaRef xlink:type="simple" xlink:href="{_PILLAR3_CODIS_SCHEMA}"/>'
+    )
+    return (
+        f'<?xml version="1.0" encoding="utf-8"?>'
+        f'<xbrli:xbrl {ns}>{schema_ref}{body}</xbrli:xbrl>'
+    ).encode()
+
+
+class TestEBADEC002IntegerMetricRegression:
+    """Integer metrics with pure unit MUST NOT trigger EBA-DEC-002.
+
+    This is the core regression that this fix exists for.
+    """
+
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_integer_metric_pure_unit_decimals_0_no_finding(self) -> None:
+        """Integer-type metric (qFGE, $decimalsInteger) with decimals=0 is
+        correct and MUST NOT trigger EBA-DEC-002 (the percentage rule)."""
+        body = (
+            _unit("u1", "xbrli:pure")
+            + _context()
+            + _fact(metric=f"eba_met:{_CODIS_INTEGER_METRIC}", unit="u1", decimals="0")
+        )
+        xml = _xbrl_with_module(body)
+        assert _run(xml, "EBA-DEC-002") == []
+
+    def test_integer_metric_pure_unit_decimals_0_triggers_dec003(self) -> None:
+        """decimals=0 on an integer fact is the taxonomy-correct value —
+        EBA-DEC-003 must accept it."""
+        body = (
+            _unit("u1", "xbrli:pure")
+            + _context()
+            + _fact(metric=f"eba_met:{_CODIS_INTEGER_METRIC}", unit="u1", decimals="0")
+        )
+        xml = _xbrl_with_module(body)
+        assert _run(xml, "EBA-DEC-003") == []
+
+    def test_integer_metric_pure_unit_decimals_4_triggers_dec003(self) -> None:
+        """decimals=4 on an integer fact is wrong — EBA-DEC-003 must flag it."""
+        body = (
+            _unit("u1", "xbrli:pure")
+            + _context()
+            + _fact(metric=f"eba_met:{_CODIS_INTEGER_METRIC}", unit="u1", decimals="4")
+        )
+        xml = _xbrl_with_module(body)
+        findings = _run(xml, "EBA-DEC-003")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "integer" in findings[0].message.lower()
+
+
+class TestEBADEC002PercentageMetricWithModule:
+    """Percentage facts still flagged correctly when a module is loaded."""
+
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_percentage_metric_low_decimals_still_flagged(self) -> None:
+        """Percentage metric qADL with decimals=2 must still trigger DEC-002.
+
+        qADL is $decimalsPercentage — even with a module loaded the
+        module-driven path must flag low decimals (end-to-end sanity check).
+        """
+        body = (
+            _unit("u1", "xbrli:pure")
+            + _context()
+            + _fact(metric=f"eba_met:{_CODIS_PERCENTAGE_METRIC}", unit="u1", decimals="2")
+        )
+        xml = _xbrl_with_module(body)
+        findings = _run(xml, "EBA-DEC-002")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+
+    def test_percentage_metric_high_decimals_ok(self) -> None:
+        body = (
+            _unit("u1", "xbrli:pure")
+            + _context()
+            + _fact(metric=f"eba_met:{_CODIS_PERCENTAGE_METRIC}", unit="u1", decimals="6")
+        )
+        xml = _xbrl_with_module(body)
+        assert _run(xml, "EBA-DEC-002") == []
+
+
+class TestEBADEC001MonetaryMetricWithModule:
+    """Monetary classification still works when a module is loaded."""
+
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_monetary_metric_low_decimals_flagged(self) -> None:
+        body = (
+            _unit("u1", "iso4217:EUR")
+            + _context()
+            + _fact(metric=f"eba_met:{_CODIS_MONETARY_METRIC}", unit="u1", decimals="-7")
+        )
+        xml = _xbrl_with_module(body)
+        findings = _run(xml, "EBA-DEC-001")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+
+
+class TestFactMetricNormalisation:
+    """Unit tests for the new ``Fact.metric_qname`` property. These isolate
+    the normalisation logic from the rule engine."""
+
+    def _parse(self, xml_bytes: bytes):
+        from xbridge.instance import XmlInstance
+
+        with NamedTemporaryFile(suffix=".xbrl", delete=False) as tmp:
+            tmp.write(xml_bytes)
+            tmp.flush()
+            path = tmp.name
+        try:
+            inst = XmlInstance(path)
+            return list(inst.facts or [])
+        finally:
+            os.unlink(path)
+
+    def test_metric_raw_is_clark_notation(self) -> None:
+        """Backwards compatibility: ``Fact.metric`` stays in Clark notation."""
+        xml = _xbrl(
+            _unit("u1", "xbrli:pure") + _context() + _fact(metric="eba_met:mi1")
+        )
+        facts = self._parse(xml)
+        assert len(facts) == 1
+        assert facts[0].metric is not None
+        assert facts[0].metric.startswith("{")
+        assert facts[0].metric.endswith("}mi1")
+
+    def test_metric_qname_is_prefix_form(self) -> None:
+        """``Fact.metric_qname`` returns the EBA prefix form."""
+        xml = _xbrl(
+            _unit("u1", "xbrli:pure") + _context() + _fact(metric="eba_met:mi1")
+        )
+        facts = self._parse(xml)
+        assert facts[0].metric_qname == "eba_met:mi1"
+
+    def test_metric_qname_cached(self) -> None:
+        """Repeated access uses the cache, not re-parses the nsmap each time."""
+        xml = _xbrl(
+            _unit("u1", "xbrli:pure") + _context() + _fact(metric="eba_met:mi1")
+        )
+        facts = self._parse(xml)
+        first = facts[0].metric_qname
+        second = facts[0].metric_qname
+        # Same underlying string object — cheap identity check.
+        assert first is second
+
+
+class TestLookupMetricTypeFallbackLogging:
+    """Ensure the debug log fires only when a module is present but the
+    metric is missing from its type_map."""
+
+    def setup_method(self) -> None:
+        _ensure_registered()
+
+    def test_no_log_when_no_module(self, caplog) -> None:
+        """Without a module, the fallback is the expected path — silent."""
+        import logging
+
+        from xbridge.validation.rules import eba_decimals as mod
+
+        class _DummyFact:
+            metric = "{http://x}qZZZ"
+            metric_qname = "eba_met:qZZZ"
+            unit = "u1"
+
+        with caplog.at_level(logging.DEBUG, logger=mod.__name__):
+            out = mod._lookup_metric_type(
+                _DummyFact(), type_map={}, units={"u1": "xbrli:pure"}, module_present=False
+            )
+        assert out == "$decimalsPercentage"  # unit-based fallback for pure
+        assert not any("falling back" in r.message for r in caplog.records)
+
+    def test_log_when_module_missing_metric(self, caplog) -> None:
+        """With a module present but no entry for the metric, log fires."""
+        import logging
+
+        from xbridge.validation.rules import eba_decimals as mod
+
+        class _DummyFact:
+            metric = "{http://x}qZZZ"
+            metric_qname = "eba_met:qZZZ"
+            unit = "u1"
+
+        with caplog.at_level(logging.DEBUG, logger=mod.__name__):
+            mod._lookup_metric_type(
+                _DummyFact(), type_map={}, units={"u1": "xbrli:pure"}, module_present=True
+            )
+        assert any("falling back" in r.message for r in caplog.records)
+
+    def test_no_log_when_module_contains_metric(self, caplog) -> None:
+        """Happy path: module has the metric — no fallback, no log."""
+        import logging
+
+        from xbridge.validation.rules import eba_decimals as mod
+
+        class _DummyFact:
+            metric = "{http://x}qZZZ"
+            metric_qname = "eba_met:qZZZ"
+            unit = "u1"
+
+        with caplog.at_level(logging.DEBUG, logger=mod.__name__):
+            out = mod._lookup_metric_type(
+                _DummyFact(),
+                type_map={"eba_met:qZZZ": "$decimalsInteger"},
+                units={"u1": "xbrli:pure"},
+                module_present=True,
+            )
+        assert out == "$decimalsInteger"
+        assert not any("falling back" in r.message for r in caplog.records)

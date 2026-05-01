@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed EBA-DEC-002 false positives on integer-typed metrics that use the `pure` unit. `Fact.metric` stores the metric QName in Clark notation (`{namespace}localname`), but `_build_metric_type_map()` was keyed on prefix notation (`eba_met:qXYZ`) taken from the module, so every lookup missed and the validator fell back to unit-based inference, flagging every `pure`-unit integer fact as a percentage. Added a `Fact.metric_qname` property that exposes the prefix-normalised QName and updated the decimals rules (EBA-DEC-001/002/003) to use it. Integer classification is now fully taxonomy-driven — the unit-based fallback in `check_integer_decimals_xml` has been removed. No backward-incompatible changes: `Fact.metric` is unchanged.
+
 ## [2.0.1] - 2026-03-25
 
 ### Fixed
