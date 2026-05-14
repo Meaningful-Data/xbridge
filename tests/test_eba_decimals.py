@@ -585,9 +585,7 @@ class TestEBADEC004RealisticDecimalsCSV:
 
 # Pillar 3 CODIS module has examples of all four metric types, and the
 # fixture is small enough to load quickly.
-_PILLAR3_CODIS_SCHEMA = (
-    "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/pillar3/4.1/mod/codis.xsd"
-)
+_PILLAR3_CODIS_SCHEMA = "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/pillar3/4.1/mod/codis.xsd"
 
 # Metrics picked from src/xbridge/modules/codis_pillar3_4.1.json
 _CODIS_MONETARY_METRIC = "qHNJ"
@@ -611,12 +609,9 @@ def _xbrl_with_module(body: str, prefix: str = "eba_met") -> bytes:
         'xmlns:find="http://www.eurofiling.info/xbrl/ext/filing-indicators" '
         f'xmlns:{prefix}="http://www.eba.europa.eu/xbrl/crr/dict/met"'
     )
-    schema_ref = (
-        f'<link:schemaRef xlink:type="simple" xlink:href="{_PILLAR3_CODIS_SCHEMA}"/>'
-    )
+    schema_ref = f'<link:schemaRef xlink:type="simple" xlink:href="{_PILLAR3_CODIS_SCHEMA}"/>'
     return (
-        f'<?xml version="1.0" encoding="utf-8"?>'
-        f'<xbrli:xbrl {ns}>{schema_ref}{body}</xbrli:xbrl>'
+        f'<?xml version="1.0" encoding="utf-8"?><xbrli:xbrl {ns}>{schema_ref}{body}</xbrli:xbrl>'
     ).encode()
 
 
@@ -734,9 +729,7 @@ class TestFactMetricNormalisation:
 
     def test_metric_raw_is_clark_notation(self) -> None:
         """Backwards compatibility: ``Fact.metric`` stays in Clark notation."""
-        xml = _xbrl(
-            _unit("u1", "xbrli:pure") + _context() + _fact(metric="eba_met:mi1")
-        )
+        xml = _xbrl(_unit("u1", "xbrli:pure") + _context() + _fact(metric="eba_met:mi1"))
         facts = self._parse(xml)
         assert len(facts) == 1
         assert facts[0].metric is not None
@@ -745,17 +738,13 @@ class TestFactMetricNormalisation:
 
     def test_metric_qname_is_prefix_form(self) -> None:
         """``Fact.metric_qname`` returns the EBA prefix form."""
-        xml = _xbrl(
-            _unit("u1", "xbrli:pure") + _context() + _fact(metric="eba_met:mi1")
-        )
+        xml = _xbrl(_unit("u1", "xbrli:pure") + _context() + _fact(metric="eba_met:mi1"))
         facts = self._parse(xml)
         assert facts[0].metric_qname == "eba_met:mi1"
 
     def test_metric_qname_cached(self) -> None:
         """Repeated access uses the cache, not re-parses the nsmap each time."""
-        xml = _xbrl(
-            _unit("u1", "xbrli:pure") + _context() + _fact(metric="eba_met:mi1")
-        )
+        xml = _xbrl(_unit("u1", "xbrli:pure") + _context() + _fact(metric="eba_met:mi1"))
         facts = self._parse(xml)
         first = facts[0].metric_qname
         second = facts[0].metric_qname
