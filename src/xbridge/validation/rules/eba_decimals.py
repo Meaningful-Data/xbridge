@@ -15,12 +15,15 @@ xbrli:pure → percentage).
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, Optional, Tuple
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
 from xbridge.validation.rules._helpers import PURE_VALUES
 from xbridge.validation.rules.csv_parameters import _parse_parameters
+
+_logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Metric-type constants (values of Variable._attributes)
@@ -55,6 +58,10 @@ _last_type_map: Optional[Tuple[Any, Dict[str, str]]] = None
 def _build_metric_type_map(ctx: ValidationContext) -> Dict[str, str]:
     """Build a ``{metric_qname: type_string}`` lookup from the Module.
 
+    Keys are the full prefix form stored in the module
+    (e.g. ``eba_met:qAZH``) — matching what :attr:`Fact.metric_qname`
+    produces after namespace normalisation.
+
     Falls back to an empty dict if no Module is loaded.
     The result is cached per module object so the three DEC rules
     that call this share a single computation.
@@ -77,6 +84,43 @@ def _build_metric_type_map(ctx: ValidationContext) -> Dict[str, str]:
 
     _last_type_map = (module, result)
     return result
+
+
+def _lookup_metric_type(
+    fact: Any,
+    type_map: Dict[str, str],
+    units: Dict[str, str],
+    module_present: bool,
+) -> Optional[str]:
+    """Resolve the metric-type classification for a fact.
+
+    Lookup order:
+      1. ``fact.metric_qname`` in the module's type_map (prefix form).
+      2. Unit-based inference (``iso4217:*`` → monetary; ``xbrli:pure`` →
+         percentage).  Used when no module is loaded, or when the metric
+         is not in the module at all.
+
+    A debug log is emitted when the module *is* loaded but the metric
+    could not be found in the type_map — this signals a data-quality or
+    taxonomy-mismatch issue that is worth surfacing in diagnostics.
+    """
+    qname = getattr(fact, "metric_qname", None) or fact.metric
+    if qname is not None:
+        metric_type = type_map.get(qname)
+        if metric_type is not None:
+            return metric_type
+
+    # Fall back to unit-based inference.
+    inferred = _infer_type_from_unit(units.get(fact.unit, ""))
+    if module_present and inferred is not None:
+        _logger.debug(
+            "EBA-DEC: metric %r not found in module type_map (size=%d); "
+            "falling back to unit-based inference → %s",
+            qname or fact.metric,
+            len(type_map),
+            inferred,
+        )
+    return inferred
 
 
 def _monetary_threshold(ctx: ValidationContext) -> int:
@@ -142,15 +186,14 @@ def check_monetary_decimals_xml(ctx: ValidationContext) -> None:
 
     type_map = _build_metric_type_map(ctx)
     threshold = _monetary_threshold(ctx)
+    module_present = ctx.module is not None
 
     for fact in facts:
         if fact.unit is None or fact.decimals is None:
             continue
 
-        metric = fact.metric or "?"
-        metric_type = type_map.get(metric)
-        if metric_type is None:
-            metric_type = _infer_type_from_unit(units.get(fact.unit, ""))
+        metric = fact.metric_qname or fact.metric or "?"
+        metric_type = _lookup_metric_type(fact, type_map, units, module_present)
         if metric_type != _TYPE_MONETARY:
             continue
 
@@ -184,15 +227,14 @@ def check_percentage_decimals_xml(ctx: ValidationContext) -> None:
         return
 
     type_map = _build_metric_type_map(ctx)
+    module_present = ctx.module is not None
 
     for fact in facts:
         if fact.unit is None or fact.decimals is None:
             continue
 
-        metric = fact.metric or "?"
-        metric_type = type_map.get(metric)
-        if metric_type is None:
-            metric_type = _infer_type_from_unit(units.get(fact.unit, ""))
+        metric = fact.metric_qname or fact.metric or "?"
+        metric_type = _lookup_metric_type(fact, type_map, units, module_present)
         if metric_type != _TYPE_PERCENTAGE:
             continue
 
@@ -226,13 +268,18 @@ def check_integer_decimals_xml(ctx: ValidationContext) -> None:
         return
 
     type_map = _build_metric_type_map(ctx)
+    # EBA-DEC-003 relies exclusively on the module-derived type_map:
+    # there is no reliable unit-based heuristic for integer classification.
+    # Without a module the rule is effectively a no-op, which matches the
+    # original behaviour.
 
     for fact in facts:
         if fact.unit is None or fact.decimals is None:
             continue
 
-        metric = fact.metric or "?"
-        metric_type = type_map.get(metric)
+        metric = fact.metric_qname or fact.metric or "?"
+        qname = fact.metric_qname or fact.metric
+        metric_type = type_map.get(qname) if qname is not None else None
         if metric_type != _TYPE_INTEGER:
             continue
 
@@ -280,7 +327,7 @@ def check_realistic_decimals_xml(ctx: ValidationContext) -> None:
         if fact.decimals is None:
             continue
 
-        metric = fact.metric or "?"
+        metric = fact.metric_qname or fact.metric or "?"
 
         if _is_inf(fact.decimals):
             ctx.add_finding(
