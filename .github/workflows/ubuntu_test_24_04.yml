@@ -19,17 +19,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Install runtime dependencies from APT
+      - name: Install Python dependencies from APT
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             python3-pip \
             python3-pandas \
-            python3-lxml
+            python3-lxml \
+            python3-pytest
         # python3-pandas pulls in python3-numpy automatically
-
-      - name: Install pytest from pip
-        run: pip install --break-system-packages pytest
 
       - name: Report installed versions
         run: |
