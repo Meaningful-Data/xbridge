@@ -1,0 +1,42 @@
+name: Ubuntu 24.04 APT Tests
+
+on:
+  pull_request:
+    branches: ["main", "dev"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Python dependencies from APT
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-pip \
+            python3-pandas \
+            python3-lxml \
+            python3-pytest
+        # python3-pandas pulls in python3-numpy automatically
+
+      - name: Report installed versions
+        run: |
+          python3 --version
+          python3 -c "import pandas, lxml, numpy; print('pandas', pandas.__version__); print('numpy', numpy.__version__); print('lxml', lxml.__version__)"
+          pytest --version
+
+      - name: Install xbridge without dependencies
+        run: pip install --no-dependencies --break-system-packages .
+
+      - name: Run tests
+        run: pytest --strict-markers
