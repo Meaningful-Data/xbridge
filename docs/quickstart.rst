@@ -75,6 +75,22 @@ Basic Conversion
     )
     print(f"Conversion complete: {output_file}")
 
+Supported Input Formats
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+XBridge accepts an explicit set of XML input formats:
+
+- A **bare XBRL-XML instance** whose root element is ``xbrli:xbrl``.
+- A **OneGate message envelope** (``XbrlDeclarationReport``, namespace
+  ``http://www.onegate.eu/2010-01-01``) that wraps an ``xbrli:xbrl`` instance.
+  Some reporting applications deliver instances this way; XBridge transparently
+  extracts the nested ``xbrli:xbrl`` element, so conversion and validation work
+  exactly as for a bare instance — no extra flags required.
+
+An ``.xml``/``.xbrl`` file whose root element is neither of the above is
+rejected with an ``UnsupportedInstanceFormatError`` listing the accepted
+formats.
+
 Output Structure
 ^^^^^^^^^^^^^^^^
 

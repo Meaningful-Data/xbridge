@@ -13,10 +13,12 @@ from zipfile import ZipFile
 import pandas as pd
 from lxml import etree
 
+from xbridge.envelope import unwrap_xbrl_root
 from xbridge.exceptions import (
     FilingIndicatorValueError,
     IdentifierPrefixWarning,
     SchemaRefValueError,
+    UnsupportedInstanceFormatError,
 )
 
 # Cache namespace → CSV prefix derivations to avoid repeated string work during parse
@@ -644,13 +646,17 @@ class XmlInstance(Instance):
         self._contexts = None
         self._df = None
 
+        # Parse eagerly here so malformed XML surfaces as a raw XMLSyntaxError
+        # (distinct from the semantic errors raised inside parse()).
         self.root = etree.parse(self.path).getroot()
         self.parse()
 
     def parse(self) -> None:
         """Parses the XML file into the library objects."""
         try:
-            self.root = etree.parse(self.path).getroot()
+            # Strip a recognised message envelope (e.g. OneGate) so downstream
+            # extraction always operates on the xbrli:xbrl element.
+            self.root = unwrap_xbrl_root(etree.parse(self.path).getroot())
             self.get_units()
             self.get_contexts()
             self.get_facts()
@@ -662,6 +668,8 @@ class XmlInstance(Instance):
             raise  # Let SchemaRefValueError propagate as-is
         except FilingIndicatorValueError:
             raise  # Let FilingIndicatorValueError propagate as-is
+        except UnsupportedInstanceFormatError:
+            raise  # Let UnsupportedInstanceFormatError propagate as-is
         except Exception as e:
             raise ValueError(f"Error parsing instance: {str(e)}")
 

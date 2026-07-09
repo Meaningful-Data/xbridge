@@ -12,12 +12,16 @@ INPUT_PATH_3_2p1 = Path(__file__).parent / "test_files" / "sample_3_2_phase1"
 INPUT_PATH_3_2p3 = Path(__file__).parent / "test_files" / "sample_3_2_phase3"
 INPUT_PATH_3_3 = Path(__file__).parent / "test_files" / "sample_3_3"
 INPUT_PATH_DORA = Path(__file__).parent / "test_files" / "sample_dora"
+INPUT_PATH_ONEGATE = Path(__file__).parent / "test_files" / "sample_onegate"
 
 params_full = [
     (INPUT_PATH_3_2p3 / "test1_in.xbrl", INPUT_PATH_3_2p3 / "test1_out.zip"),
     (INPUT_PATH_3_2p3 / "test3_in.xbrl", INPUT_PATH_3_2p3 / "test3_out.zip"),
     (INPUT_PATH_3_2p3 / "test4_in.xbrl", INPUT_PATH_3_2p3 / "test4_out.zip"),
     (INPUT_PATH_DORA / "test1_in.xbrl", INPUT_PATH_DORA / "test1_out.zip"),
+    # OneGate-wrapped copy of sample_3_2_phase3/test1: stripping the envelope
+    # must yield the exact same output as the bare instance.
+    (INPUT_PATH_ONEGATE / "test1_in.xml", INPUT_PATH_3_2p3 / "test1_out.zip"),
 ]
 
 params_basic = [

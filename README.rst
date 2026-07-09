@@ -28,6 +28,7 @@ Key Features
 ============
 
 * **XBRL-XML to XBRL-CSV Conversion**: Seamlessly convert XBRL-XML instance files to XBRL-CSV format
+* **OneGate Envelope Support**: Transparently unwrap XBRL instances delivered inside a OneGate ``XbrlDeclarationReport`` message envelope
 * **Command-Line Interface**: Quick conversions without writing code using the ``xbridge`` CLI
 * **Python API**: Programmatic conversion for integration with other tools and workflows
 * **EBA Taxonomy 4.2/4.2.1 Support**: Built for the latest EBA taxonomy specification

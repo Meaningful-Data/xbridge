@@ -30,6 +30,14 @@ class FilingIndicatorValueError(ValueError):
         self.offending_value = offending_value
 
 
+class UnsupportedInstanceFormatError(ValueError):
+    """Raised when an XML instance is neither xbrli:xbrl nor a recognised envelope."""
+
+    def __init__(self, error_message: str, offending_value: Optional[Any] = None) -> None:
+        super().__init__(error_message)
+        self.offending_value = offending_value
+
+
 class ValidationError(ValueError):
     """Raised when the validate-convert-validate pipeline encounters errors.
 
