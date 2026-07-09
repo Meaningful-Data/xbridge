@@ -113,7 +113,7 @@ For programmatic use, import and use the Python API:
 What's New
 ==========
 
-**Version 2.1.0rc1**
+**Version 2.1.0rc2**
 
 * **OneGate Envelope Support**: XBRL instances delivered inside a OneGate ``XbrlDeclarationReport`` message envelope are now accepted and transparently unwrapped, so conversion and validation work exactly as for a bare instance. Accepted input formats are defined by an explicit whitelist; unrecognised roots raise ``UnsupportedInstanceFormatError`` (#117)
 
