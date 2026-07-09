@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0rc1] - 2026-07-09
+
 ### Added
 - **OneGate envelope support**: XBRL-XML instances delivered inside a OneGate `XbrlDeclarationReport` message envelope are now accepted. The nested `xbrli:xbrl` element is transparently extracted so conversion and validation proceed exactly as for a bare instance. Accepted input formats are defined by an explicit whitelist in the new `xbridge.envelope` module; an `.xml`/`.xbrl` file whose root is neither `xbrli:xbrl` nor a recognised envelope now raises `UnsupportedInstanceFormatError` instead of being parsed into a silently empty instance (#117).
 
