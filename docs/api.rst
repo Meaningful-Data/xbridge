@@ -55,7 +55,7 @@ Use all available parameters for fine-grained control:
         instance_path=Path("data/regulatory_report.xbrl"),
         output_path=Path("data/converted"),
         headers_as_datapoints=True,  # Include headers as datapoints
-        validate_filing_indicators=True,  # Validate orphaned facts
+        validate_filing_indicators=True,  # Validate orphaned facts + reconcile facts
         strict_validation=False  # Emit warnings instead of raising errors
     )
 
@@ -123,13 +123,20 @@ Parameters
 
 :param validate_filing_indicators: If ``True``, validates that all facts belong to reported tables (no orphaned facts). Default is ``True``.
 
-:param strict_validation: If ``True``, raises an error when orphaned facts are detected. If ``False``, emits a warning and continues. Only relevant when ``validate_filing_indicators=True``. Default is ``True``.
+:param strict_validation: If ``True``, raises an error when facts are lost — orphaned facts (``FilingIndicatorValueError``) or, from the fact reconciliation census, facts matching no table / elements not recognised as facts (``FactReconciliationError``). If ``False``, emits a warning and continues. Only relevant when ``validate_filing_indicators=True``. Default is ``True``.
 
 :return: ``pathlib.Path`` object pointing to the generated ZIP file containing XBRL-CSV output.
 
 :raises FileNotFoundError: If the instance file doesn't exist.
-:raises ValueError: If validation fails and ``strict_validation=True``.
+:raises ValueError: If validation fails and ``strict_validation=True`` (``FilingIndicatorValueError`` and ``FactReconciliationError`` are ``ValueError`` subclasses).
 :raises Exception: For other conversion errors (malformed XML, taxonomy issues, etc.).
+
+.. note::
+
+   After conversion, ``Converter.reconciliation`` holds a :class:`~xbridge.converter.FactReconciliation`
+   accounting for every source fact (``converted`` / ``excluded_non_reported`` /
+   ``unmatched`` / ``unrecognized_elements``). Inspect ``has_silent_loss`` to detect
+   whether any facts were dropped without an explicit filing-indicator reason.
 
 
 Load an XBRL-XML Instance

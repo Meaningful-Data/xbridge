@@ -31,8 +31,11 @@ def convert_instance(
     :param validate_filing_indicators: If True, validate that no facts are orphaned
         (belong only to non-reported tables). Default is True.
 
-    :param strict_validation: If True (default), raise an error on orphaned facts. If False,
-        emit a warning instead and continue.
+    :param strict_validation: If True (default), raise an error when facts are lost —
+        orphaned facts (``FilingIndicatorValueError``) and, from the fact reconciliation
+        census, facts matching no table or elements not recognised as facts
+        (``FactReconciliationError``). If False, emit warnings instead and continue. The
+        census is stored on ``Converter.reconciliation`` regardless of this flag.
 
     :param validate: If True, run validation before and after conversion.  Pre-conversion
         errors stop the pipeline; post-conversion errors are reported after the output

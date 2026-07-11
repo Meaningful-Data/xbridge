@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0rc3] - 2026-07-11
+
+### Added
+- **Fact reconciliation census**: after an XML → CSV conversion, `Converter.reconciliation` now holds a `FactReconciliation` accounting for every source fact, so incomplete conversions no longer pass unnoticed. Each detected fact is classified as `converted`, `excluded_non_reported` (orphaned to non-reported tables) or `unmatched` (matched no table definition), and top-level elements never recognised as facts are collected separately as `unrecognized_elements`. `unmatched` facts and `unrecognized_elements` are silent losses: they are reported through the new `FactReconciliationWarning` / `FactReconciliationError`, governed by the existing `strict_validation` flag (warn when `False`, raise when `True`). The census reuses the masks already computed for filing-indicator validation, so it adds negligible overhead. A new `Instance.unrecognized_fact_elements` property exposes the detection-stage findings (#120).
+
+### Fixed
+- **Facts with per-element namespace declarations were silently dropped**: `Instance.get_facts` detected facts by matching each child's prefix against the metric/dimension prefixes found in the *root* `nsmap`. Instances that declare the metric namespace on each fact element (e.g. `<eba:qNJH xmlns:eba="…/dict/met" …>`) instead of on the root — valid XBRL, since a namespace declaration is in scope wherever it sits — left those prefixes absent from the root `nsmap`, so every such fact was skipped with no error. Detection now resolves each element's namespace from its expanded (Clark-notation) tag, which is independent of where the declaration appears (#118).
+- **`schemaRef` detection relied on the literal `link` prefix**: `Converter.get_module_code` located the `schemaRef` element with `child.prefix == "link"`, which fails when the linkbase namespace is bound to a different prefix or declared per-element. It now matches by the element's expanded name (`{http://www.xbrl.org/2003/linkbase}schemaRef`), consistent with how contexts, units and filing indicators are already resolved (#119).
+
 ## [2.1.0rc2] - 2026-07-09
 
 ### Added

@@ -75,3 +75,20 @@ class IdentifierPrefixWarning(XbridgeWarning):
 
 class FilingIndicatorWarning(XbridgeWarning):
     """Facts orphaned by filing indicators; some are excluded."""
+
+
+class FactReconciliationError(ValueError):
+    """Raised under strict validation when source facts are lost during conversion.
+
+    This covers facts that were detected but match no table ("unmatched") and
+    top-level elements that were never recognised as facts at all
+    ("unrecognized"). See :class:`xbridge.converter.FactReconciliation`.
+    """
+
+    def __init__(self, error_message: str, offending_value: Optional[Any] = None) -> None:
+        super().__init__(error_message)
+        self.offending_value = offending_value
+
+
+class FactReconciliationWarning(XbridgeWarning):
+    """Some source facts were not converted; the output may be incomplete."""
