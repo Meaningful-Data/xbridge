@@ -244,6 +244,16 @@ Structural and compliance checks on xBRL-XML instances.
    EBA-GUIDE-006|WARNING|Yes|3.4|Avoid multiple prefix declarations for the same namespace. *(multiplePrefixForNamespace)*
    EBA-GUIDE-007|WARNING|Yes|3.4|String facts and domain values SHOULD NOT start/end with whitespace. *(leadingOrTrailingSpacesInText)*
 
+1.16 Module Applicability
+--------------------------
+
+.. csv-table::
+   :header: Rule ID | Severity | EBA | EBA ref | Description
+   :widths: 12, 10, 5, 8, 65
+   :delim: |
+
+   EBA-DATE-001|ERROR|Yes|--|The instance reference date MUST fall within the module's applicability range ``[from, to]`` (inclusive). Skipped for modules without applicability dates.
+
 
 2. CSV Report Package Rules
 ============================
@@ -434,6 +444,16 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
    EBA-GUIDE-002|WARNING|Yes|3.4|Yes|Namespace prefixes SHOULD mirror canonical prefixes. *(notRecommendedNamespacePrefix)*
    EBA-GUIDE-004|WARNING|Yes|3.4|Yes|String values SHOULD be as short as possible. *(excessiveStringLength)*
    EBA-GUIDE-007|WARNING|Yes|3.4|Yes|String facts and domain values SHOULD NOT start/end with whitespace. *(leadingOrTrailingSpacesInText)*
+
+2.15 Module Applicability
+--------------------------
+
+.. csv-table::
+   :header: Rule ID | Severity | EBA | EBA ref | Post-conv. | Description
+   :widths: 12, 8, 5, 8, 8, 59
+   :delim: |
+
+   EBA-DATE-001|ERROR|Yes|--|Yes|The ``refPeriod`` parameter MUST fall within the module's applicability range ``[from, to]`` (inclusive). Skipped for modules without applicability dates.
 
 
 3. Submission Package Naming Rules

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0rc5] - 2026-07-14
+
+### Added
+- **Module applicability dates**: each converted module JSON now records the reference-date range the module applies to as `from` (first applicable reference date) and `to` (last applicable reference date, or `null` for an open-ended range). These are read from the taxonomy module entry point (`documentInfo` → `eba:documentation`, `FromReferenceDate` / `To`|`toReferenceDate`) during conversion and exposed on `Module` as `from_date` / `to_date`. The `from`/`to` fields were backfilled into 374 bundled modules (every module for which the source declares reference dates).
+- **Validation rule EBA-DATE-001** (ERROR, XML and CSV): reports an instance whose reference date falls outside the module's inclusive `[from, to]` applicability range. The check is skipped for modules without applicability dates and does not fire when the reference date is missing or malformed (those are covered by EBA-NAME-050 / CSV-024) (#121).
+
 ## [2.1.0rc4] - 2026-07-14
 
 ### Added
