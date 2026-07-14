@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0rc4] - 2026-07-14
+
+### Added
+- **EBA Taxonomy 4.3 support**: Loaded the EBA 4.3 taxonomy release, adding the reporting frameworks introduced in that version. New modules: `aml_ra` (AMLA — Anti-Money Laundering Authority risk assessment) and the Third Country Branches (`tcb`) framework — `tcb_core`, `tcb_hu` and `tcb_liquidity`. The corresponding `dim_dom_mapping_4.3.json` dimension-domain mapping was generated. Existing 4.2 / 4.2.1 modules are unchanged; the package now bundles taxonomy versions 4.2, 4.2.1 and 4.3.
+
 ## [2.1.0rc3] - 2026-07-11
 
 ### Added

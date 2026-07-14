@@ -1,7 +1,7 @@
 [project]
 name = "eba-xbridge"
-version = "2.1.0rc3"
-description = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.2)"
+version = "2.1.0rc4"
+description = "XBRL-XML to XBRL-CSV converter for EBA Taxonomy (version 4.3)"
 license = 'Apache 2.0'
 readme = "README.rst"
 requires-python = ">=3.10"
