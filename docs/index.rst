@@ -18,16 +18,17 @@ Overview
 
 **XBridge** is a Python library for converting XBRL-XML files into XBRL-CSV files using the EBA (European Banking Authority) taxonomy. It provides a simple, reliable way to transform regulatory reporting data from XML format to CSV format.
 
-The library currently supports **EBA Taxonomy version 4.2 / 4.2.1** and includes support for DORA (Digital Operational Resilience Act) CSV conversion.
+The library currently supports **EBA Taxonomy version 4.2 / 4.2.1 / 4.3 / 4.4 (phase 1, draft)** and includes support for DORA (Digital Operational Resilience Act) CSV conversion.
 
 Key Features
 ============
 
 * **XBRL-XML to XBRL-CSV Conversion**: Seamlessly convert XBRL-XML instance files to XBRL-CSV format
+* **OneGate Envelope Support**: Transparently unwrap XBRL instances delivered inside a OneGate ``XbrlDeclarationReport`` message envelope
 * **XBRL-XML and XBRL-CSV Validation**: Validate instance files against structural and EBA regulatory rules, with format-aware rule selection and post-conversion mode
 * **Command-Line Interface**: Quick conversions and validation without writing code using the ``xbridge`` CLI
 * **Python API**: Programmatic conversion and validation for integration with other tools and workflows
-* **EBA Taxonomy 4.2/4.2.1 Support**: Built for the latest EBA taxonomy specification
+* **EBA Taxonomy 4.2/4.2.1/4.3/4.4 Support**: Built for the latest EBA taxonomy specification
 * **DORA CSV Conversion**: Support for Digital Operational Resilience Act reporting
 * **Configurable Validation**: Flexible filing indicator validation with strict or warning modes
 * **Decimal Handling**: Intelligent decimal precision handling with configurable options
@@ -111,6 +112,15 @@ For programmatic use, import and use the Python API:
 
 What's New
 ==========
+
+**Version 2.1.0**
+
+* **EBA Taxonomy 4.4 Support (phase 1, draft)**: Ten new modules from the 4.4 phase 1 draft — ``ifrs18`` (FINREP under IFRS 18), ``codis``, ``esgdis``, ``findis``, ``gsiidis`` and ``p3dh`` (Pillar 3 disclosures), ``resol1`` / ``resol2`` (resolution planning), ``mrel_decisions`` (MREL) and ``aml_eligibility`` (AMLA)
+* **EBA Taxonomy 4.3 Support**: New modules ``aml_ra`` (AMLA risk assessment) and the Third Country Branches framework (``tcb_core``, ``tcb_hu``, ``tcb_liquidity``)
+* **Module Applicability Dates**: Every bundled module now records the reference-date range it applies to, exposed on ``Module`` as ``from_date`` / ``to_date``, with the new validation rule **EBA-DATE-001** reporting instances whose reference date falls outside that range (#121)
+* **Fact Reconciliation Census**: ``Converter.reconciliation`` accounts for every source fact after a conversion, so silent fact losses are surfaced through ``FactReconciliationWarning`` / ``FactReconciliationError`` (#120)
+* **OneGate Envelope Support**: XBRL instances delivered inside a OneGate ``XbrlDeclarationReport`` message envelope are now accepted and transparently unwrapped, so conversion and validation work exactly as for a bare instance. Accepted input formats are defined by an explicit whitelist; unrecognised roots raise ``UnsupportedInstanceFormatError`` (#117)
+* **Fixes**: Facts declaring the metric namespace per element are no longer dropped (#118), and ``schemaRef`` detection no longer depends on the literal ``link`` prefix (#119)
 
 **Version 2.0.0rc8**
 

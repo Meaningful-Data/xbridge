@@ -13,6 +13,10 @@ Main function is to do an inner join between the XML instance and the preprocess
     :show-inheritance:
     :undoc-members:
 
+.. autoclass:: FactReconciliation
+    :members:
+    :undoc-members:
+
 Generating variables:
 ---------------------
 
@@ -45,6 +49,22 @@ Converting parameters:
 ----------------------
 
 ``Parameters`` will contain all info related to entity, period, baseCurrency and decimals contained in the XBRL-XML file.
+
+
+Fact reconciliation:
+--------------------
+
+After a conversion, the converter records a :obj:`FactReconciliation <xbridge.converter.FactReconciliation>`
+on ``Converter.reconciliation`` that accounts for every source fact. Each detected fact is
+classified as ``converted``, ``excluded_non_reported`` (orphaned to non-reported tables) or
+``unmatched`` (matched no table definition), and top-level elements never recognised as facts
+are collected as ``unrecognized_elements``.
+
+``unmatched`` facts and ``unrecognized_elements`` are *silent* losses — facts absent from the
+output without an explicit filing-indicator reason. They are reported through
+``FactReconciliationWarning`` / ``FactReconciliationError`` under the same ``strict_validation``
+flag used for orphaned facts: a warning when ``False``, an error when ``True``. The census reuses
+the masks already computed for filing-indicator validation, so it adds negligible overhead.
 
 
 

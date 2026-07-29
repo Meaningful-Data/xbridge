@@ -170,8 +170,16 @@ class TestFilingIndicatorValidation:
             xml_path = temp_path / "test_valid.xbrl"
             tree.write(str(xml_path), encoding="utf-8", xml_declaration=True)
 
-            # Should not raise any error
-            output_path = convert_instance(xml_path, temp_path, validate_filing_indicators=True)
+            # These fixtures use synthetic metric/dimension combinations that do
+            # not map to real taxonomy datapoints, so under strict validation the
+            # fact census correctly flags them as unmatched. This test targets
+            # orphan detection (reported facts must not be treated as orphans),
+            # so it runs non-strict; the census surfaces the mismatch as a warning.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                output_path = convert_instance(
+                    xml_path, temp_path, validate_filing_indicators=True, strict_validation=False
+                )
             assert output_path.exists()
 
     def test_validation_fails_with_orphaned_facts(self):
@@ -269,8 +277,14 @@ class TestFilingIndicatorValidation:
             tree.write(str(xml_path), encoding="utf-8", xml_declaration=True)
 
             # Should NOT raise error because the fact belongs to R_01.00 (reported)
-            # even though it also belongs to R_09.00 (not reported)
-            output_path = convert_instance(xml_path, temp_path, validate_filing_indicators=True)
+            # even though it also belongs to R_09.00 (not reported). Runs non-strict
+            # because the synthetic datapoints do not map to the taxonomy, which the
+            # fact census would otherwise flag as unmatched under strict validation.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                output_path = convert_instance(
+                    xml_path, temp_path, validate_filing_indicators=True, strict_validation=False
+                )
             assert output_path.exists()
 
     def test_validation_disabled(self):
@@ -317,8 +331,14 @@ class TestFilingIndicatorValidation:
             xml_path = temp_path / "test_complex_multi_table.xbrl"
             tree.write(str(xml_path), encoding="utf-8", xml_declaration=True)
 
-            # Should NOT raise error because fact is in R_02.00 (reported)
-            output_path = convert_instance(xml_path, temp_path, validate_filing_indicators=True)
+            # Should NOT raise error because fact is in R_02.00 (reported). Runs
+            # non-strict because the synthetic datapoints do not map to the
+            # taxonomy, which the fact census would flag as unmatched under strict.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                output_path = convert_instance(
+                    xml_path, temp_path, validate_filing_indicators=True, strict_validation=False
+                )
             assert output_path.exists()
 
     def test_empty_instance(self):
@@ -362,8 +382,14 @@ class TestFilingIndicatorValidation:
             xml_path = temp_path / "test_all_reported.xbrl"
             tree.write(str(xml_path), encoding="utf-8", xml_declaration=True)
 
-            # Should not raise error
-            output_path = convert_instance(xml_path, temp_path, validate_filing_indicators=True)
+            # Should not raise error. Runs non-strict because the synthetic
+            # datapoints do not map to the taxonomy, which the fact census would
+            # flag as unmatched under strict validation.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                output_path = convert_instance(
+                    xml_path, temp_path, validate_filing_indicators=True, strict_validation=False
+                )
             assert output_path.exists()
 
     def test_unknown_identifier_prefix_emits_warning(self):

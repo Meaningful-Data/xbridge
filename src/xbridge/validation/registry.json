@@ -690,6 +690,16 @@
     "eba_ref": "2.18"
   },
   {
+    "code": "EBA-DATE-001",
+    "message": "The instance reference date MUST fall within the module's applicability range: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": true,
+    "eba": true,
+    "post_conversion": true,
+    "eba_ref": null
+  },
+  {
     "code": "CSV-001",
     "message": "The report package MUST be a valid ZIP archive: {detail}",
     "severity": "ERROR",

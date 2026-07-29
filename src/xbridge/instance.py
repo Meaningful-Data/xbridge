@@ -13,14 +13,35 @@ from zipfile import ZipFile
 import pandas as pd
 from lxml import etree
 
+from xbridge.envelope import unwrap_xbrl_root
 from xbridge.exceptions import (
     FilingIndicatorValueError,
     IdentifierPrefixWarning,
     SchemaRefValueError,
+    UnsupportedInstanceFormatError,
 )
 
 # Cache namespace → CSV prefix derivations to avoid repeated string work during parse
 _namespace_prefix_cache: Dict[str, str] = {}
+
+# Namespaces whose top-level elements are treated as facts (EBA metrics and
+# dimensions). Matched as substrings of the resolved element namespace so that
+# versioned or otherwise-decorated URIs are still recognised.
+_FACT_NAMESPACES = (
+    "http://www.eba.europa.eu/xbrl/crr/dict/met",
+    "http://www.eba.europa.eu/xbrl/crr/dict/dim",
+)
+
+# Namespaces of standard XBRL "plumbing" that legitimately appears as a
+# top-level child of ``xbrli:xbrl`` but is not a fact (contexts, units,
+# schemaRef/roleRef/footnoteLink, filing indicators). A top-level element that
+# is neither a recognised fact nor one of these is flagged as unrecognised so a
+# silent detection gap surfaces in the conversion reconciliation.
+_INFRASTRUCTURE_NAMESPACES = (
+    "http://www.xbrl.org/2003/instance",
+    "http://www.xbrl.org/2003/linkbase",
+    "http://www.eurofiling.info/xbrl/ext/filing-indicators",
+)
 
 
 def _derive_csv_prefix(namespace_uri: str) -> Optional[str]:
@@ -185,6 +206,7 @@ class Instance:
         self.root: Optional[etree._Element] = None
         self._contexts: Optional[Dict[str, Context]] = None
         self._facts: Optional[List[Fact]] = None
+        self._unrecognized_fact_elements: List[str] = []
         self._facts_list_dict: Optional[List[Dict[str, Any]]] = None
         self._df: Optional[pd.DataFrame] = None
         self._table_files: Optional[set[Path]] = None
@@ -213,6 +235,17 @@ class Instance:
         <https://www.xbrl.org/guidance/xbrl-glossary/#:
         ~:text=accounting%20standards%20body.-,Fact,-A%20fact%20is>`_ of the instance file."""
         return self._facts
+
+    @property
+    def unrecognized_fact_elements(self) -> List[str]:
+        """Distinct top-level element tags (Clark notation) that were neither
+        recognised as facts nor as known XBRL infrastructure.
+
+        A non-empty list points to a detection gap — for example a fact reported
+        in a namespace the converter does not yet know about — that would
+        otherwise be dropped silently. Consumed by the conversion reconciliation.
+        """
+        return self._unrecognized_fact_elements
 
     @property
     def table_files(self) -> set[Path]:
@@ -392,19 +425,35 @@ class Instance:
             raise AttributeError("XML root not loaded.")
 
         facts = []
+        unrecognized: List[str] = []
+        seen_unrecognized: set[str] = set()
         for child in self.root:
-            facts_prefixes = []
-            for prefix, ns in self.root.nsmap.items():
-                if (
-                    "http://www.eba.europa.eu/xbrl/crr/dict/met" in ns
-                    or "http://www.eba.europa.eu/xbrl/crr/dict/dim" in ns
-                ):
-                    facts_prefixes.append(prefix)
-
-            if child.prefix in facts_prefixes:
+            # Comments and processing instructions have a callable tag; skip them.
+            if callable(child.tag):
+                continue
+            tag = child.tag
+            # Detect facts by their resolved namespace (Clark notation
+            # ``{namespace}local``) rather than by matching a prefix against the
+            # root nsmap. Namespaces may legitimately be declared per-element
+            # (e.g. ``<eba:qNJH xmlns:eba="...">``) instead of on the root, in
+            # which case they are absent from ``self.root.nsmap``. Resolving via
+            # the tag works regardless of where the declaration sits.
+            ns = tag[1:].split("}", 1)[0] if tag.startswith("{") else ""
+            if any(known in ns for known in _FACT_NAMESPACES):
                 facts.append(Fact(child))
+            elif ns in _INFRASTRUCTURE_NAMESPACES:
+                # Standard XBRL plumbing (context, unit, schemaRef, fIndicators…).
+                continue
+            elif tag not in seen_unrecognized:
+                # A top-level element that is neither a recognised fact nor known
+                # infrastructure. Record the distinct tag so a silent detection
+                # gap surfaces in the conversion reconciliation instead of the
+                # element simply vanishing.
+                seen_unrecognized.add(tag)
+                unrecognized.append(tag)
 
         self._facts = facts
+        self._unrecognized_fact_elements = unrecognized
         self.get_facts_list_dict()
         self.to_df()
 
@@ -413,15 +462,16 @@ class Instance:
         if self.root is None:
             raise AttributeError("XML root not loaded.")
 
+        # Match schemaRef by its resolved expanded name rather than by prefix.
+        # The linkbase namespace may be bound to any prefix (or declared
+        # per-element), so a ``child.prefix == "link"`` check is unreliable.
         schema_refs = []
-        for child in self.root:
-            if child.prefix == "link":
-                href_attr = "{http://www.w3.org/1999/xlink}href"
-                if href_attr not in child.attrib:
-                    continue
-                raw_value = child.attrib[href_attr]
-                value = str(raw_value)
-                schema_refs.append(value)
+        href_attr = "{http://www.w3.org/1999/xlink}href"
+        for child in self.root.findall("{http://www.xbrl.org/2003/linkbase}schemaRef"):
+            raw_value = child.attrib.get(href_attr)
+            if raw_value is None:
+                continue
+            schema_refs.append(str(raw_value))
 
         # Validate that only one schemaRef exists
         if len(schema_refs) == 0:
@@ -644,13 +694,17 @@ class XmlInstance(Instance):
         self._contexts = None
         self._df = None
 
+        # Parse eagerly here so malformed XML surfaces as a raw XMLSyntaxError
+        # (distinct from the semantic errors raised inside parse()).
         self.root = etree.parse(self.path).getroot()
         self.parse()
 
     def parse(self) -> None:
         """Parses the XML file into the library objects."""
         try:
-            self.root = etree.parse(self.path).getroot()
+            # Strip a recognised message envelope (e.g. OneGate) so downstream
+            # extraction always operates on the xbrli:xbrl element.
+            self.root = unwrap_xbrl_root(etree.parse(self.path).getroot())
             self.get_units()
             self.get_contexts()
             self.get_facts()
@@ -662,6 +716,8 @@ class XmlInstance(Instance):
             raise  # Let SchemaRefValueError propagate as-is
         except FilingIndicatorValueError:
             raise  # Let FilingIndicatorValueError propagate as-is
+        except UnsupportedInstanceFormatError:
+            raise  # Let UnsupportedInstanceFormatError propagate as-is
         except Exception as e:
             raise ValueError(f"Error parsing instance: {str(e)}")
 

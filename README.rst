@@ -22,15 +22,16 @@ Overview
 
 XBridge is a Python library for converting XBRL-XML files into XBRL-CSV files using the EBA (European Banking Authority) taxonomy. It provides a simple, reliable way to transform regulatory reporting data from XML format to CSV format.
 
-The library supports **EBA Taxonomy versions 4.2 and 4.2.1** and includes support for DORA (Digital Operational Resilience Act) CSV conversion. The library must be updated with each new EBA taxonomy version release.
+The library supports **EBA Taxonomy versions 4.2, 4.2.1, 4.3 and 4.4 (phase 1, draft)** and includes support for DORA (Digital Operational Resilience Act) CSV conversion. The library must be updated with each new EBA taxonomy version release.
 
 Key Features
 ============
 
 * **XBRL-XML to XBRL-CSV Conversion**: Seamlessly convert XBRL-XML instance files to XBRL-CSV format
+* **OneGate Envelope Support**: Transparently unwrap XBRL instances delivered inside a OneGate ``XbrlDeclarationReport`` message envelope
 * **Command-Line Interface**: Quick conversions without writing code using the ``xbridge`` CLI
 * **Python API**: Programmatic conversion for integration with other tools and workflows
-* **EBA Taxonomy 4.2/4.2.1 Support**: Built for the latest EBA taxonomy specification
+* **EBA Taxonomy 4.2/4.2.1/4.3/4.4 Support**: Built for the latest EBA taxonomy specification
 * **DORA CSV Conversion**: Support for Digital Operational Resilience Act reporting
 * **Standalone Validation**: Validate XBRL-XML and XBRL-CSV files against structural and EBA rules via CLI or Python API
 * **Configurable Validation**: Flexible filing indicator validation with strict or warning modes
@@ -367,7 +368,7 @@ Common Issues
     Install the 7z command-line tool using your system's package manager (see Prerequisites).
 
 **Taxonomy version mismatch**
-    Ensure you're using the correct version of XBridge for your taxonomy version. XBridge 2.x supports EBA Taxonomy 4.2/4.2.1.
+    Ensure you're using the correct version of XBridge for your taxonomy version. XBridge 2.x supports EBA Taxonomy 4.2/4.2.1/4.3/4.4.
 
 **Orphaned facts warning/error**
     Facts that don't belong to any reported table. Set ``strict_validation=False`` to continue with warnings instead of errors.

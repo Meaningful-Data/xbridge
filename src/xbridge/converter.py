@@ -7,16 +7,19 @@ from __future__ import annotations
 import csv
 import json
 import warnings
+from dataclasses import dataclass, field
 from pathlib import Path
 from shutil import rmtree
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Optional, Union
 from zipfile import ZipFile
 
 import pandas as pd
 
 from xbridge.exceptions import (
     DecimalValueError,
+    FactReconciliationError,
+    FactReconciliationWarning,
     FilingIndicatorValueError,
     FilingIndicatorWarning,
 )
@@ -34,6 +37,53 @@ if not INDEX_FILE.exists():
 
 with open(INDEX_FILE, "r", encoding="utf-8") as fl:
     index: Dict[str, str] = json.load(fl)
+
+
+@dataclass
+class FactReconciliation:
+    """Post-conversion accounting of every source fact.
+
+    The core invariant is::
+
+        source_facts == converted + excluded_non_reported + unmatched
+
+    where each detected fact ends up in exactly one bucket. ``unmatched`` and
+    ``unrecognized_elements`` represent facts lost *silently* — the former
+    detected but matching no table, the latter never recognised as facts at all.
+    A balanced reconciliation with no unrecognised elements means nothing was
+    dropped.
+    """
+
+    source_facts: int = 0
+    converted: int = 0
+    excluded_non_reported: int = 0
+    unmatched: int = 0
+    unrecognized_elements: List[str] = field(default_factory=list)
+
+    @property
+    def is_consistent(self) -> bool:
+        """Defensive accounting check: every detected fact lands in exactly one bucket.
+
+        ``unmatched`` is computed as the remainder, so this should always hold; a
+        False result signals a counting bug (e.g. a fact double-counted as both
+        converted and orphaned). It says nothing about whether facts were lost —
+        use :attr:`has_silent_loss` for that.
+        """
+        return (
+            self.unmatched >= 0
+            and self.source_facts == self.converted + self.excluded_non_reported + self.unmatched
+        )
+
+    @property
+    def has_silent_loss(self) -> bool:
+        """True when facts were dropped without an explicit filing-indicator reason.
+
+        Covers detected facts that matched no table (``unmatched``) and top-level
+        elements never recognised as facts (``unrecognized_elements``). Orphaned
+        facts (``excluded_non_reported``) are *not* silent — they have their own
+        filing-indicator report — so they do not count here.
+        """
+        return self.unmatched > 0 or bool(self.unrecognized_elements)
 
 
 class Converter:
@@ -75,6 +125,9 @@ class Converter:
         self.module = Module.from_serialized(module_path)
         self._reported_tables: list[str] = []
         self._decimals_parameters: dict[str, Union[int, str]] = {}
+        # Populated by _validate_filing_indicators during an XML conversion so
+        # callers can inspect exactly how many facts reached the output.
+        self.reconciliation: Optional[FactReconciliation] = None
 
     def convert(
         self,
@@ -516,16 +569,37 @@ class Converter:
                     self._reported_tables.append(fil_ind.table)
 
     def _validate_filing_indicators(self, strict_validation: bool = True) -> None:
-        """Validate that no facts are orphaned (belong only to non-reported tables).
+        """Validate filing indicators and reconcile every source fact.
+
+        Two checks share this single pass over the facts:
+
+        * **Orphaned facts** — facts belonging only to non-reported tables are
+          excluded from the output; reported via :class:`FilingIndicatorWarning`
+          / :class:`FilingIndicatorValueError`.
+        * **Fact reconciliation** — a census (stored on :attr:`reconciliation`)
+          confirming that every detected fact was either converted or has an
+          explicit reason for exclusion. Facts matching no table ("unmatched")
+          and elements never recognised as facts ("unrecognized") are silent
+          losses, reported via :class:`FactReconciliationWarning` /
+          :class:`FactReconciliationError`.
 
         Raises:
-            FilingIndicatorValueError: If facts exist that belong only to tables with filed=false
+            FilingIndicatorValueError: Under strict validation, if facts belong
+                only to tables with ``filed=false``.
+            FactReconciliationError: Under strict validation, if facts were lost
+                silently (unmatched or unrecognised).
         """
+        unrecognized = list(self.instance.unrecognized_fact_elements)
+
         if self.instance.instance_df is None or self.instance.instance_df.empty:
+            self.reconciliation = FactReconciliation(unrecognized_elements=unrecognized)
+            self._report_reconciliation(strict_validation)
             return
 
+        instance_df = self.instance.instance_df
+
         # Step 1: Track which facts belong to ANY reported table without materializing a huge set
-        reported_mask = pd.Series(False, index=self.instance.instance_df.index)
+        reported_mask = pd.Series(False, index=instance_df.index)
         for table in self.module.tables:
             if table.filing_indicator_code in self._reported_tables:
                 reported_indices = self._matching_fact_indices(table)
@@ -533,7 +607,7 @@ class Converter:
                     reported_mask.loc[list(reported_indices)] = True
 
         # Step 2: Find facts that belong ONLY to non-reported tables
-        orphaned_mask = pd.Series(False, index=self.instance.instance_df.index)
+        orphaned_mask = pd.Series(False, index=instance_df.index)
         orphaned_per_table = {}
 
         for table in self.module.tables:
@@ -551,6 +625,21 @@ class Converter:
                         )
 
         total_orphaned = int(orphaned_mask.sum())
+
+        # Build the fact census from the masks already computed above. converted
+        # and excluded are disjoint (a fact reported by any table is never
+        # counted as orphaned), so the remainder are facts that matched no table
+        # at all and are dropped without any filing-indicator explanation.
+        source_facts = len(instance_df)
+        converted = int(reported_mask.sum())
+        unmatched = source_facts - converted - total_orphaned
+        self.reconciliation = FactReconciliation(
+            source_facts=source_facts,
+            converted=converted,
+            excluded_non_reported=total_orphaned,
+            unmatched=unmatched,
+            unrecognized_elements=unrecognized,
+        )
 
         if total_orphaned:
             error_msg = (
@@ -578,6 +667,53 @@ class Converter:
                 category=FilingIndicatorWarning,
                 stacklevel=2,
             )
+
+        self._report_reconciliation(strict_validation)
+
+    def _report_reconciliation(self, strict_validation: bool) -> None:
+        """Warn (or raise, under strict validation) when the census shows a silent loss.
+
+        "Silent" means facts absent from the output without a filing-indicator
+        reason: detected facts matching no table, or top-level elements never
+        recognised as facts. Orphaned facts have their own dedicated report and
+        are not repeated here.
+        """
+        reconciliation = self.reconciliation
+        if reconciliation is None or not reconciliation.has_silent_loss:
+            return
+
+        lines = ["Fact reconciliation detected facts missing from the output:"]
+        if reconciliation.unmatched:
+            lines.append(
+                f"  - {reconciliation.unmatched} detected fact(s) matched no table "
+                "definition and were not written to any output file."
+            )
+        if reconciliation.unrecognized_elements:
+            shown = ", ".join(reconciliation.unrecognized_elements[:10])
+            hidden = len(reconciliation.unrecognized_elements) - 10
+            if hidden > 0:
+                shown += f", … (+{hidden} more)"
+            lines.append(
+                f"  - {len(reconciliation.unrecognized_elements)} top-level element type(s) "
+                f"were not recognised as facts or XBRL infrastructure: {shown}"
+            )
+        message = "\n".join(lines)
+
+        if strict_validation:
+            message += (
+                "\nThe conversion process will not continue due to strict validation mode. "
+                "Verify the instance namespaces and that the taxonomy version matches."
+            )
+            raise FactReconciliationError(message, reconciliation)
+        message += (
+            "\nThese facts are absent from the output. "
+            "Verify the instance namespaces and that the taxonomy version matches."
+        )
+        warnings.warn(
+            message,
+            category=FactReconciliationWarning,
+            stacklevel=2,
+        )
 
     def _convert_parameters(self, temp_dir_path: Path) -> None:
         # Workaround;

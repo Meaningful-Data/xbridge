@@ -36,10 +36,17 @@ class Module:
         code: Optional[str] = None,
         url: Optional[str] = None,
         tables: Optional[List[Table]] = None,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None,
     ) -> None:
         self.code: Optional[str] = code
         self.url: Optional[str] = url
         self._tables: List[Table] = tables if tables is not None else []
+        # Applicability reference dates (``YYYY-MM-DD``). ``from_date`` is the first
+        # reference date the module applies to; ``to_date`` is the last one, or ``None``
+        # when the range is open-ended.
+        self.from_date: Optional[str] = from_date
+        self.to_date: Optional[str] = to_date
         self.taxonomy_module_path: Optional[str] = None
         self.module_json_setup: Optional[Dict[str, Any]] = None
 
@@ -101,6 +108,23 @@ class Module:
         bin_read = zip_file.read(self.taxonomy_module_path)
         self.module_json_setup = json.loads(bin_read.decode("utf-8"))
 
+    def extract_reference_dates(self) -> None:
+        """Extracts the applicability reference dates from the module setup.
+
+        The EBA taxonomy declares the applicability range in the module entry point
+        under ``documentInfo`` -> ``eba:documentation``. The "to" key casing varies
+        between framework versions (``toReferenceDate`` vs ``ToReferenceDate``), and an
+        empty string means the range is open-ended.
+        """
+        if not self.module_json_setup:
+            return
+        documentation = self.module_json_setup.get("documentInfo", {}).get("eba:documentation", {})
+        from_date = documentation.get("FromReferenceDate")
+        to_date = documentation.get("toReferenceDate", documentation.get("ToReferenceDate"))
+        # Normalise empty strings to None (open-ended range).
+        self.from_date = from_date or None
+        self.to_date = to_date or None
+
     def extract_tables(self, zip_file: ZipFile) -> None:
         """Extracts the :obj:`tables <xbridge.taxonomy.Table>` in the JSON files for the
         :obj:`modules <xbridge.taxonomy.Module>` in the taxonomy"""
@@ -122,12 +146,17 @@ class Module:
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns a dictionary"""
-        return {
+        result: Dict[str, Any] = {
             "code": self.code,
             "url": self.url,
             "architecture": self.architecture,
-            "tables": [tab.to_dict() for tab in self.tables],
         }
+        # Only emit applicability dates when known. ``to`` is null for open-ended ranges.
+        if self.from_date is not None:
+            result["from"] = self.from_date
+            result["to"] = self.to_date
+        result["tables"] = [tab.to_dict() for tab in self.tables]
+        return result
 
     @classmethod
     def from_taxonomy(cls, zip_file: ZipFile, json_file_path: str) -> Module:
@@ -139,6 +168,7 @@ class Module:
         obj.taxonomy_module_path = json_file_path
 
         obj.get_module_setup(zip_file)
+        obj.extract_reference_dates()
         obj._get_all_table_paths()
         obj.extract_tables(zip_file)
 
@@ -155,7 +185,11 @@ class Module:
         tables = [Table.from_dict(table) for table in tables]
         module_dict.pop("architecture")
 
-        obj = cls(**module_dict, tables=tables)
+        # "from"/"to" are not valid Python identifiers, so map them explicitly.
+        from_date = module_dict.pop("from", None)
+        to_date = module_dict.pop("to", None)
+
+        obj = cls(**module_dict, tables=tables, from_date=from_date, to_date=to_date)
 
         return obj
 

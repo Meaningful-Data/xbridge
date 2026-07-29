@@ -10,6 +10,7 @@ from xbridge.validation.rules import (
     csv_taxonomy,  # noqa: F401
     eba_additional,  # noqa: F401
     eba_currency,  # noqa: F401
+    eba_dates,  # noqa: F401
     eba_decimals,  # noqa: F401
     eba_entity,  # noqa: F401
     eba_guidance,  # noqa: F401
