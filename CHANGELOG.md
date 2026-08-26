@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Validation rule EBA-CUR-004** (ERROR, XML only): reports an instance whose facts point to more than one base currency, i.e. facts of datapoints declared in the taxonomy JSON with `"unit": "$baseCurrency"` reported in different currencies. The check is taxonomy-driven: each fact is matched against the datapoint signatures of the module (metric plus closed dimensions, with the table's open keys removed), so facts holding a currency breakdown (`"unit": "$unit"`) are not flagged and reports "in significant currencies" stay valid. It therefore fires *before* the conversion — `convert_instance(..., validate=True, eba=True)` stops with `ValidationError` and writes no output — complementing the `MultipleBaseCurrenciesError` raised by the converter itself. Facts whose signature matches datapoints of both kinds are ignored, and the rule is skipped when no taxonomy module can be resolved (#123).
+
+### Fixed
+- **Wrong `baseCurrency` in multi-currency reports**: the base currency was taken from the first `iso4217` unit declared in the XBRL-XML instance, so in a report with a currency breakdown (e.g. COREP LCR/ALM tables reported "in significant currencies") the parameter depended on the order of the `xbrli:unit` declarations and could end up holding a breakdown currency instead of the reporting currency. It is now determined from the facts themselves: the taxonomy JSON declares, per datapoint, whether its unit comes from the `baseCurrency` parameter (`"unit": "$baseCurrency"`) or is reported in the table's `unit` column (`"unit": "$unit"`), and only the facts of the former kind fix the parameter. When those facts are reported in more than one currency the instance is erroneous and the conversion now raises the new `MultipleBaseCurrenciesError` — naming the conflicting currencies, their fact counts and an example datapoint — instead of silently converting with an arbitrary currency. Reports where no such fact is present keep the previous behaviour (first declared currency) (#123).
+
 ## [2.1.0] - 2026-07-29
 
 ### Added
