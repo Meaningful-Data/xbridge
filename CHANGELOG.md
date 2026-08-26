@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0rc1] - 2026-08-26
+
 ### Added
 - **Validation rule EBA-CUR-004** (ERROR, XML only): reports an instance whose facts point to more than one base currency, i.e. facts of datapoints declared in the taxonomy JSON with `"unit": "$baseCurrency"` reported in different currencies. The check is taxonomy-driven: each fact is matched against the datapoint signatures of the module (metric plus closed dimensions, with the table's open keys removed), so facts holding a currency breakdown (`"unit": "$unit"`) are not flagged and reports "in significant currencies" stay valid. It therefore fires *before* the conversion — `convert_instance(..., validate=True, eba=True)` stops with `ValidationError` and writes no output — complementing the `MultipleBaseCurrenciesError` raised by the converter itself. Facts whose signature matches datapoints of both kinds are ignored, and the rule is skipped when no taxonomy module can be resolved (#123).
 
