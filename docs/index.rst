@@ -113,6 +113,12 @@ For programmatic use, import and use the Python API:
 What's New
 ==========
 
+**Version 2.2.0rc1**
+
+* **Correct ``baseCurrency`` in multi-currency reports**: the base currency is no longer taken from the first ``iso4217`` unit declared in the instance — a choice that depended on the order of the ``xbrli:unit`` declarations — but from the facts whose datapoint takes its unit from the parameter (``"unit": "$baseCurrency"`` in the taxonomy JSON). Facts of datapoints that report their unit explicitly (``"unit": "$unit"``) hold the breakdown by significant currency and no longer influence the parameter (#123)
+* **New exception ``MultipleBaseCurrenciesError``**: an instance whose base-currency facts are reported in more than one currency is erroneous and is no longer converted with an arbitrary currency; the error names the conflicting currencies, their fact counts and an example datapoint (#123)
+* **New validation rule EBA-CUR-004** (ERROR, XML): reports the same conflict *before* conversion, so ``validate(..., eba=True)`` and ``convert_instance(..., validate=True, eba=True)`` surface it as a validation error instead of a conversion failure (#123)
+
 **Version 2.1.0**
 
 * **EBA Taxonomy 4.4 Support (phase 1, draft)**: Ten new modules from the 4.4 phase 1 draft — ``ifrs18`` (FINREP under IFRS 18), ``codis``, ``esgdis``, ``findis``, ``gsiidis`` and ``p3dh`` (Pillar 3 disclosures), ``resol1`` / ``resol2`` (resolution planning), ``mrel_decisions`` (MREL) and ``aml_eligibility`` (AMLA)
