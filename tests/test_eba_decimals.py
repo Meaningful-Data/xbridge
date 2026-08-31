@@ -8,9 +8,12 @@ import sys
 import zipfile
 from tempfile import NamedTemporaryFile
 
+import pytest
+
 from xbridge.validation._engine import run_validation
 from xbridge.validation._models import Severity
 from xbridge.validation._registry import _impl_registry
+from xbridge.validation.rules._helpers import is_infinite_decimals
 
 _MOD = "xbridge.validation.rules.eba_decimals"
 
@@ -418,6 +421,11 @@ class TestEBADEC001MonetaryDecimalsCSV:
         assert len(findings) == 1
         assert findings[0].severity == Severity.ERROR
 
+    def test_none_not_flagged(self) -> None:
+        """Infinity is >= any threshold — no finding from DEC-001."""
+        data = _csv_zip(decimals_monetary="#none")
+        assert _run_csv(data, "EBA-DEC-001") == []
+
     def test_missing_param_no_findings(self) -> None:
         """Missing decimalsMonetary is handled by CSV-025, not DEC-001."""
         data = _csv_zip(omit="decimalsMonetary")
@@ -455,6 +463,11 @@ class TestEBADEC002PercentageDecimalsCSV:
         assert len(findings) == 1
         assert findings[0].severity == Severity.ERROR
 
+    def test_none_not_flagged(self) -> None:
+        """Infinity is >= any threshold — no finding from DEC-002."""
+        data = _csv_zip(decimals_percentage="#none")
+        assert _run_csv(data, "EBA-DEC-002") == []
+
     def test_missing_param_no_findings(self) -> None:
         data = _csv_zip(omit="decimalsPercentage")
         assert _run_csv(data, "EBA-DEC-002") == []
@@ -486,6 +499,14 @@ class TestEBADEC003IntegerDecimalsCSV:
         assert len(findings) == 1
         assert findings[0].severity == Severity.ERROR
         assert "INF" in findings[0].message
+
+    def test_decimals_none_error(self) -> None:
+        """'#none' is the xBRL-CSV spelling of infinity and must behave as INF."""
+        data = _csv_zip(decimals_integer="#none")
+        findings = _run_csv(data, "EBA-DEC-003")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "#none" in findings[0].message
 
     def test_decimals_negative_error(self) -> None:
         data = _csv_zip(decimals_integer="-2")
@@ -538,6 +559,13 @@ class TestEBADEC004RealisticDecimalsCSV:
         findings = _run_csv(data, "EBA-DEC-004")
         assert len(findings) >= 1
         assert any(f.severity == Severity.WARNING and "INF" in f.message for f in findings)
+
+    def test_none_warning(self) -> None:
+        """'#none' expresses the same infinity and must warn identically."""
+        data = _csv_zip(decimals_percentage="#none")
+        findings = _run_csv(data, "EBA-DEC-004")
+        assert len(findings) >= 1
+        assert any(f.severity == Severity.WARNING and "#none" in f.message for f in findings)
 
     def test_multiple_unrealistic(self) -> None:
         """Multiple unrealistic values — multiple findings."""
@@ -814,3 +842,20 @@ class TestLookupMetricTypeFallbackLogging:
             )
         assert out == "$decimalsInteger"
         assert not any("falling back" in r.message for r in caplog.records)
+
+
+# ===================================================================
+# Shared infinity-spelling helper
+# ===================================================================
+
+
+class TestIsInfiniteDecimals:
+    """``is_infinite_decimals`` must accept both formats' spellings."""
+
+    @pytest.mark.parametrize("raw", ["INF", " INF ", "inf", "Inf", "#none", " #none "])
+    def test_infinite(self, raw: str) -> None:
+        assert is_infinite_decimals(raw) is True
+
+    @pytest.mark.parametrize("raw", [None, "", "0", "-3", "4", "#nil", "#empty", "none", "#NONE"])
+    def test_not_infinite(self, raw) -> None:
+        assert is_infinite_decimals(raw) is False

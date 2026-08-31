@@ -507,7 +507,7 @@ class TestCSV025DecimalsParametersPresent:
         assert _findings_for(results, "CSV-025") == []
 
 
-# ── CSV-026: decimals values MUST be valid integers or 'INF' ─────────
+# ── CSV-026: decimals values MUST be valid integers or '#none' ───────
 
 
 class TestCSV026DecimalsValues:
@@ -518,11 +518,34 @@ class TestCSV026DecimalsValues:
         results = _write_and_validate(_csv_zip())
         assert _findings_for(results, "CSV-026") == []
 
-    def test_valid_inf(self):
-        params = "name,value\nentityID,X\nrefPeriod,2025-12-31\ndecimalsMonetary,INF\n"
+    def test_valid_none_special_value(self):
+        """'#none' is the xBRL-CSV encoding of infinite precision (REC 3.1.9)."""
+        params = "name,value\nentityID,X\nrefPeriod,2025-12-31\ndecimalsMonetary,#none\n"
         data = _csv_zip(parameters=params)
         results = _write_and_validate(data)
         assert _findings_for(results, "CSV-026") == []
+
+    def test_none_accepted_for_every_decimals_parameter(self):
+        params = (
+            "name,value\nentityID,X\nrefPeriod,2025-12-31\n"
+            "decimalsMonetary,#none\ndecimalsPercentage,#none\n"
+            "decimalsInteger,#none\ndecimalsDecimal,#none\n"
+        )
+        data = _csv_zip(parameters=params)
+        results = _write_and_validate(data)
+        assert _findings_for(results, "CSV-026") == []
+
+    def test_inf_rejected(self):
+        """'INF' is the xBRL-XML spelling and is not valid in xBRL-CSV."""
+        params = "name,value\nentityID,X\nrefPeriod,2025-12-31\ndecimalsMonetary,INF\n"
+        data = _csv_zip(parameters=params)
+        results = _write_and_validate(data)
+        findings = _findings_for(results, "CSV-026")
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.ERROR
+        assert "decimalsMonetary" in findings[0].message
+        # The message must name the encoding to use instead.
+        assert "#none" in findings[0].message
 
     def test_valid_negative_integer(self):
         params = "name,value\nentityID,X\nrefPeriod,2025-12-31\ndecimalsMonetary,-6\n"
@@ -558,6 +581,14 @@ class TestCSV026DecimalsValues:
         results = _write_and_validate(data)
         findings = _findings_for(results, "CSV-026")
         assert len(findings) == 1
+        assert "#none" in findings[0].message
+
+    def test_uppercase_none_rejected(self):
+        """The special value is case-sensitive: only '#none' is valid."""
+        params = "name,value\nentityID,X\nrefPeriod,2025-12-31\ndecimalsMonetary,#NONE\n"
+        data = _csv_zip(parameters=params)
+        results = _write_and_validate(data)
+        assert len(_findings_for(results, "CSV-026")) == 1
 
     def test_multiple_invalid(self):
         params = (

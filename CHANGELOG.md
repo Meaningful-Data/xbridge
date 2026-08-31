@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`#none` accepted as a decimals parameter value (xBRL-CSV infinite precision)**: validation rejected `decimalsMonetary,#none` (and the other `decimals*` parameters) as invalid, even though `#none` is the *only* legal way to express infinite precision in xBRL-CSV. Per [xBRL-CSV 1.0 REC §3.1.9](https://www.xbrl.org/Specification/xbrl-csv/REC-2021-10-13/xbrl-csv-REC-2021-10-13.html) a decimals value must be an integer or the special value `#none`; `INF` is the xBRL-XML lexical form and a conformant processor rejects it with `xbrlce:invalidDecimalsValue`. CSV-026 had the two spellings inverted — it accepted `INF` and rejected `#none` — so `xbridge validate` reported a false-positive ERROR on spec-conformant packages. CSV-026 now accepts an integer or `#none` and flags `INF` with a message naming the encoding to use instead. The EBA decimals rules (EBA-DEC-001..004) previously recognised only `INF`, so a `#none` parameter bypassed them entirely; they now treat both spellings identically via the new `is_infinite_decimals()` helper.
+- **Converter no longer emits `INF` into `parameters.csv`**: when a source XBRL-XML instance reported `@decimals="INF"` — legal in xBRL-XML and endorsed by the EBA Filing Rules (v5.9, §2.18) — the converter propagated the literal `INF` into the generated `parameters.csv`, producing output that conformant xBRL-CSV processors reject. `Converter._normalize_decimals_value()` now canonicalises both spellings of infinity to `#none`, so the xBRL-XML form never reaches the xBRL-CSV output. Both spellings are still accepted on input.
+
+
 ## [2.1.0] - 2026-07-29
 
 ### Added

@@ -38,6 +38,14 @@ if not INDEX_FILE.exists():
 with open(INDEX_FILE, "r", encoding="utf-8") as fl:
     index: Dict[str, str] = json.load(fl)
 
+# Infinite precision has two spellings across the XBRL formats.  xBRL-CSV 1.0
+# REC section 3.1.9 accepts only an integer or the special value "#none"
+# (meaning infinity); "INF" is the xBRL-XML lexical form and is rejected by a
+# conformant xBRL-CSV processor with xbrlce:invalidDecimalsValue.  Source
+# instances are xBRL-XML, so "INF" is canonicalised to "#none" on the way out.
+XML_INFINITE_DECIMALS = "INF"
+CSV_INFINITE_DECIMALS = "#none"
+
 
 @dataclass
 class FactReconciliation:
@@ -436,13 +444,13 @@ class Converter:
                 if data_type not in self._decimals_parameters:
                     self._decimals_parameters[data_type] = normalized_decimals
                 else:
-                    # Skip special values when we already have an entry,
+                    # Skip infinity when we already have an entry,
                     # as numeric values take precedence.
-                    if normalized_decimals in {"INF", "#none"}:
+                    if normalized_decimals == CSV_INFINITE_DECIMALS:
                         continue
 
                     existing_value = self._decimals_parameters[data_type]
-                    if existing_value in {"INF", "#none"} or (
+                    if existing_value == CSV_INFINITE_DECIMALS or (
                         isinstance(existing_value, int)
                         and isinstance(normalized_decimals, int)
                         and normalized_decimals < existing_value
@@ -476,19 +484,26 @@ class Converter:
         return table_df
 
     def _normalize_decimals_value(self, decimals: Any) -> Union[int, str]:
-        """Return a validated decimals value or raise a DecimalValueError."""
+        """Return a validated decimals value or raise a DecimalValueError.
+
+        Both spellings of infinity are accepted on input, but infinity is
+        always returned as the xBRL-CSV special value ``#none`` so that the
+        rest of the conversion — and the generated ``parameters.csv`` — never
+        carries the xBRL-XML ``INF`` spelling.
+        """
         candidate = decimals
         if isinstance(candidate, str):
             candidate = candidate.strip()
 
-        if candidate in {"INF", "#none"}:
-            return candidate
+        if candidate in {XML_INFINITE_DECIMALS, CSV_INFINITE_DECIMALS}:
+            return CSV_INFINITE_DECIMALS
 
         try:
             return int(candidate)
         except (TypeError, ValueError) as exc:
             raise DecimalValueError(
-                f"Invalid decimals value: {decimals}, should be integer, 'INF' or '#none'",
+                f"Invalid decimals value: {decimals}, should be integer, "
+                f"'{XML_INFINITE_DECIMALS}' or '{CSV_INFINITE_DECIMALS}'",
                 offending_value=decimals,
             ) from exc
 
