@@ -113,6 +113,11 @@ For programmatic use, import and use the Python API:
 What's New
 ==========
 
+**Version 2.2.0rc2**
+
+* **``#none`` accepted as a decimals parameter value**: ``#none`` is the only way xBRL-CSV expresses infinite precision (`xBRL-CSV 1.0 REC §3.1.9 <https://www.xbrl.org/Specification/xbrl-csv/REC-2021-10-13/xbrl-csv-REC-2021-10-13.html>`_), yet **CSV-026** had the two spellings inverted — accepting the xBRL-XML form ``INF`` and rejecting ``#none`` — so ``xbridge validate`` reported a false-positive error on spec-conformant packages. It now accepts an integer or ``#none``, and flags ``INF`` naming the encoding to use instead. **EBA-DEC-001..004** recognised only ``INF``, so a ``#none`` parameter bypassed them entirely; both spellings are now treated identically
+* **Converter no longer emits ``INF`` into ``parameters.csv``**: a source instance reporting ``@decimals="INF"`` — valid in xBRL-XML — produced xBRL-CSV output that conformant processors reject with ``xbrlce:invalidDecimalsValue``. Infinity is now canonicalised to ``#none`` on the way out; both spellings remain accepted on input
+
 **Version 2.2.0rc1**
 
 * **Correct ``baseCurrency`` in multi-currency reports**: the base currency is no longer taken from the first ``iso4217`` unit declared in the instance — a choice that depended on the order of the ``xbrli:unit`` declarations — but from the facts whose datapoint takes its unit from the parameter (``"unit": "$baseCurrency"`` in the taxonomy JSON). Facts of datapoints that report their unit explicitly (``"unit": "$unit"``) hold the breakdown by significant currency and no longer influence the parameter (#123)
