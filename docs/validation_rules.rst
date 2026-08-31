@@ -307,7 +307,7 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
    CSV-023|ERROR|Yes|2.10|No|``refPeriod`` parameter MUST be present, valid ``xs:date``, and without timezone.
    CSV-024|ERROR|Yes|--|No|``baseCurrency`` parameter MUST be present if any fact references base currency.
    CSV-025|ERROR|Yes|--|No|Decimals parameters MUST be present for each type of metric in the package.
-   CSV-026|ERROR|Yes|--|No|Decimals values MUST be valid integers or "INF".
+   CSV-026|ERROR|Yes|2.18|No|Decimals values MUST be valid integers or the special value ``#none`` (infinity). The xBRL-XML spelling ``INF`` is not valid in xBRL-CSV.
 
 2.4 Filing Indicators File (FilingIndicators.csv)
 --------------------------------------------------
