@@ -390,6 +390,16 @@
     "eba_ref": "3.1"
   },
   {
+    "code": "EBA-CUR-004",
+    "message": "All facts whose datapoint takes its unit from the baseCurrency parameter MUST use a single reporting currency: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": true,
+    "post_conversion": false,
+    "eba_ref": "3.1"
+  },
+  {
     "code": "EBA-UNIT-001",
     "message": "Non-monetary numeric values MUST use the pure unit: {detail}",
     "severity": "ERROR",
@@ -881,7 +891,7 @@
   },
   {
     "code": "CSV-026",
-    "message": "Decimals values MUST be valid integers or 'INF': {detail}",
+    "message": "Decimals values MUST be valid integers or '#none': {detail}",
     "severity": "ERROR",
     "xml": false,
     "csv": true,

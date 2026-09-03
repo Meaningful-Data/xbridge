@@ -22,6 +22,7 @@ from xbridge.exceptions import (
     FactReconciliationWarning,
     FilingIndicatorValueError,
     FilingIndicatorWarning,
+    MultipleBaseCurrenciesError,
 )
 from xbridge.instance import CsvInstance, Instance, XmlInstance
 from xbridge.modules import Module, Table
@@ -37,6 +38,14 @@ if not INDEX_FILE.exists():
 
 with open(INDEX_FILE, "r", encoding="utf-8") as fl:
     index: Dict[str, str] = json.load(fl)
+
+# Infinite precision has two spellings across the XBRL formats.  xBRL-CSV 1.0
+# REC section 3.1.9 accepts only an integer or the special value "#none"
+# (meaning infinity); "INF" is the xBRL-XML lexical form and is rejected by a
+# conformant xBRL-CSV processor with xbrlce:invalidDecimalsValue.  Source
+# instances are xBRL-XML, so "INF" is canonicalised to "#none" on the way out.
+XML_INFINITE_DECIMALS = "INF"
+CSV_INFINITE_DECIMALS = "#none"
 
 
 @dataclass
@@ -86,6 +95,32 @@ class FactReconciliation:
         return self.unmatched > 0 or bool(self.unrecognized_elements)
 
 
+#: Value of the ``unit`` dimension of a datapoint whose unit is taken from the
+#: ``baseCurrency`` report parameter instead of the table's ``unit`` column.
+BASE_CURRENCY_UNIT_REF = "$baseCurrency"
+
+#: Prefix of the unit measures that denote an ISO 4217 currency.
+_ISO_CURRENCY_PREFIX = "iso4217:"
+
+
+@dataclass
+class BaseCurrencyEvidence:
+    """Facts that pin the ``baseCurrency`` parameter to one currency.
+
+    Attributes:
+        currency: The unit measure of the facts (e.g. ``"iso4217:EUR"``).
+        fact_count: How many facts were reported in this currency.
+        example_table: Code of a table where such a fact was found.
+        example_datapoint: Code of one of those datapoints, to ease
+            locating the offending facts in the source instance.
+    """
+
+    currency: str
+    fact_count: int = 0
+    example_table: Optional[str] = None
+    example_datapoint: Optional[str] = None
+
+
 class Converter:
     """Converter different types of files into others, using the EBA
     :obj:`taxonomy <xbridge.taxonomy.Taxonomy>` and XBRL-instance. Each file is extracted and saved
@@ -125,6 +160,10 @@ class Converter:
         self.module = Module.from_serialized(module_path)
         self._reported_tables: list[str] = []
         self._decimals_parameters: dict[str, Union[int, str]] = {}
+        # Currencies of the reported facts that take their unit from the
+        # baseCurrency parameter, keyed by unit measure. Filled while the
+        # tables are converted; a well-formed instance yields exactly one.
+        self._base_currency_candidates: dict[str, BaseCurrencyEvidence] = {}
         # Populated by _validate_filing_indicators during an XML conversion so
         # callers can inspect exactly how many facts reached the output.
         self.reconciliation: Optional[FactReconciliation] = None
@@ -315,20 +354,20 @@ class Converter:
         )
 
         # Convert to list so Pandas won't complain
+        # "unit" is always kept: even when the table has no unit column, the
+        # unit of the facts is needed to determine the base currency.
         needed_columns = list(
-            variable_columns | open_keys | attributes | {"value", "decimals"} | not_relevant_dims
+            variable_columns
+            | open_keys
+            | attributes
+            | {"value", "decimals", "unit"}
+            | not_relevant_dims
         )
 
         # Intersect with instance_columns as a list
         needed_columns = list(set(needed_columns).intersection(instance_columns))
 
         instance_df = self.instance.instance_df[needed_columns].copy()
-
-        cols_to_drop = [
-            col for col in ["unit"] if col not in attributes and col in instance_df.columns
-        ]
-        if cols_to_drop:
-            instance_df.drop(columns=cols_to_drop, inplace=True)
 
         # Drop datapoints that have non-null values in not relevant dimensions
         # And drop the not relevant columns
@@ -397,6 +436,11 @@ class Converter:
         """
         instance_df = self._get_instance_df(table)
         if instance_df.empty or table.variable_df is None:
+            # The unit is kept by _get_instance_df for the base currency
+            # detection, but it is only an output column where the table
+            # declares it as an attribute.
+            if "unit" not in table.attributes and "unit" in instance_df.columns:
+                instance_df = instance_df.drop(columns=["unit"])
             return instance_df
 
         variable_columns = set(table.variable_columns or [])
@@ -436,13 +480,13 @@ class Converter:
                 if data_type not in self._decimals_parameters:
                     self._decimals_parameters[data_type] = normalized_decimals
                 else:
-                    # Skip special values when we already have an entry,
+                    # Skip infinity when we already have an entry,
                     # as numeric values take precedence.
-                    if normalized_decimals in {"INF", "#none"}:
+                    if normalized_decimals == CSV_INFINITE_DECIMALS:
                         continue
 
                     existing_value = self._decimals_parameters[data_type]
-                    if existing_value in {"INF", "#none"} or (
+                    if existing_value == CSV_INFINITE_DECIMALS or (
                         isinstance(existing_value, int)
                         and isinstance(normalized_decimals, int)
                         and normalized_decimals < existing_value
@@ -457,11 +501,22 @@ class Converter:
         if "allowed_values" in table_df.columns:
             drop_columns.append("allowed_values")
 
+        # The facts whose datapoint takes its unit from the baseCurrency
+        # parameter tell us which currency that parameter must hold.
+        self._collect_base_currency_evidence(table, table_df)
+
         # Clear unit for rows where variable didn't have unit in dimensions
         if "_has_unit_dim" in table_df.columns:
             if "unit" in table.attributes and "unit" in table_df.columns:
                 table_df.loc[~table_df["_has_unit_dim"], "unit"] = pd.NA
             drop_columns.append("_has_unit_dim")
+
+        if "_unit_ref" in table_df.columns:
+            drop_columns.append("_unit_ref")
+
+        # The unit is only an output column for tables that declare it
+        if "unit" not in table.attributes and "unit" in table_df.columns:
+            drop_columns.append("unit")
 
         table_df.drop(columns=drop_columns, inplace=True)
 
@@ -475,20 +530,104 @@ class Converter:
 
         return table_df
 
+    def _collect_base_currency_evidence(self, table: Table, table_df: pd.DataFrame) -> None:
+        """Records the currencies of the facts that fix the base currency.
+
+        The taxonomy JSON states, for every datapoint, where its unit comes
+        from: ``"unit": "$unit"`` means the unit is reported in the table's
+        ``unit`` column, ``"unit": "$baseCurrency"`` means it is taken from the
+        ``baseCurrency`` report parameter, and datapoints without a ``unit``
+        dimension are not monetary.  In XBRL-XML every monetary fact carries
+        its own unit, so the currency of the facts of the second kind is the
+        one the ``baseCurrency`` parameter has to hold.
+
+        :param table: The table being converted.
+        :param table_df: The facts of the table, joined with their datapoints.
+        """
+        if "_unit_ref" not in table_df.columns or "unit" not in table_df.columns:
+            return
+
+        units = self.instance.units or {}
+        base_currency_rows = table_df.loc[
+            (table_df["_unit_ref"] == BASE_CURRENCY_UNIT_REF) & table_df["unit"].notna()
+        ]
+        if base_currency_rows.empty:
+            return
+
+        for unit_id, fact_count in base_currency_rows["unit"].value_counts().items():
+            measure = units.get(str(unit_id), str(unit_id))
+            if not measure.lower().startswith(_ISO_CURRENCY_PREFIX):
+                continue
+            evidence = self._base_currency_candidates.get(measure)
+            if evidence is None:
+                example = base_currency_rows.loc[base_currency_rows["unit"] == unit_id].iloc[0]
+                evidence = BaseCurrencyEvidence(
+                    currency=measure,
+                    example_table=table.code,
+                    example_datapoint=str(example.get("datapoint")),
+                )
+                self._base_currency_candidates[measure] = evidence
+            evidence.fact_count += int(fact_count)
+
+    def _resolve_base_currency(self) -> Optional[str]:
+        """Returns the base currency of the instance, or ``None`` if unknown.
+
+        :raises MultipleBaseCurrenciesError: If the reported facts point to
+            more than one base currency, which makes the instance erroneous.
+        """
+        candidates = self._base_currency_candidates
+
+        if len(candidates) > 1:
+            detail = "; ".join(
+                (
+                    f"{evidence.currency} ({evidence.fact_count} facts, e.g. datapoint "
+                    f"{evidence.example_datapoint} in table {evidence.example_table})"
+                )
+                for evidence in sorted(candidates.values(), key=lambda item: item.currency)
+            )
+            raise MultipleBaseCurrenciesError(
+                (
+                    "The instance reports facts in more than one base currency: "
+                    f"{detail}. The facts whose datapoint takes its unit from the "
+                    "baseCurrency parameter must all use the reporting currency; "
+                    "amounts in other currencies belong to the datapoints that "
+                    "report their unit explicitly. The instance is erroneous and "
+                    "has not been converted."
+                ),
+                currencies=sorted(candidates),
+            )
+
+        if candidates:
+            return next(iter(candidates))
+
+        ##Workaround
+        # No reported fact pins the base currency (no monetary datapoint taking
+        # its unit from the parameter was reported). We fall back to the first
+        # currency declared in the instance units, which is what the parameter
+        # would have to be if such a datapoint were reported.
+        return self.instance.base_currency
+
     def _normalize_decimals_value(self, decimals: Any) -> Union[int, str]:
-        """Return a validated decimals value or raise a DecimalValueError."""
+        """Return a validated decimals value or raise a DecimalValueError.
+
+        Both spellings of infinity are accepted on input, but infinity is
+        always returned as the xBRL-CSV special value ``#none`` so that the
+        rest of the conversion — and the generated ``parameters.csv`` — never
+        carries the xBRL-XML ``INF`` spelling.
+        """
         candidate = decimals
         if isinstance(candidate, str):
             candidate = candidate.strip()
 
-        if candidate in {"INF", "#none"}:
-            return candidate
+        if candidate in {XML_INFINITE_DECIMALS, CSV_INFINITE_DECIMALS}:
+            return CSV_INFINITE_DECIMALS
 
         try:
             return int(candidate)
         except (TypeError, ValueError) as exc:
             raise DecimalValueError(
-                f"Invalid decimals value: {decimals}, should be integer, 'INF' or '#none'",
+                f"Invalid decimals value: {decimals}, should be integer, "
+                f"'{XML_INFINITE_DECIMALS}' or '{CSV_INFINITE_DECIMALS}'",
                 offending_value=decimals,
             ) from exc
 
@@ -725,8 +864,9 @@ class Converter:
         }
 
         # Only include baseCurrency if it is present in the instance
-        if self.instance.base_currency is not None:
-            parameters["baseCurrency"] = self.instance.base_currency
+        base_currency = self._resolve_base_currency()
+        if base_currency is not None:
+            parameters["baseCurrency"] = base_currency
 
         for data_type, decimals in self._decimals_parameters.items():
             parameters[data_type] = decimals
