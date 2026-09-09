@@ -390,7 +390,7 @@ Module Structure
         ├── csv_taxonomy.py       # CSV-060 – CSV-062
         ├── eba_entity.py         # EBA-ENTITY-001/002 (shared)
         ├── eba_decimals.py       # EBA-DEC-001 – EBA-DEC-004 (shared)
-        ├── eba_currency.py       # EBA-CUR-001 – EBA-CUR-003 (shared)
+        ├── eba_currency.py       # EBA-CUR-001 – EBA-CUR-004 (shared)
         ├── eba_units.py          # EBA-UNIT-001/002 (shared)
         ├── eba_additional.py     # EBA-2.5, EBA-2.16.1, EBA-2.24, EBA-2.25
         └── eba_guidance.py       # EBA-GUIDE-001 – EBA-GUIDE-007

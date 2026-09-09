@@ -113,6 +113,14 @@ For programmatic use, import and use the Python API:
 What's New
 ==========
 
+**Version 2.2.0**
+
+* **Correct ``baseCurrency`` in multi-currency reports**: the base currency is no longer taken from the first ``iso4217`` unit declared in the instance — a choice that depended on the order of the ``xbrli:unit`` declarations — but from the facts whose datapoint takes its unit from the parameter (``"unit": "$baseCurrency"`` in the taxonomy JSON). Facts of datapoints that report their unit explicitly (``"unit": "$unit"``) hold the breakdown by significant currency and no longer influence the parameter (#123)
+* **New exception ``MultipleBaseCurrenciesError``**: an instance whose base-currency facts are reported in more than one currency is erroneous and is no longer converted with an arbitrary currency; the error names the conflicting currencies, their fact counts and an example datapoint (#123)
+* **New validation rule EBA-CUR-004** (ERROR, XML): reports the same conflict *before* conversion, so ``validate(..., eba=True)`` and ``convert_instance(..., validate=True, eba=True)`` surface it as a validation error instead of a conversion failure (#123)
+* **``#none`` accepted as a decimals parameter value**: ``#none`` is the only way xBRL-CSV expresses infinite precision (`xBRL-CSV 1.0 REC §3.1.9 <https://www.xbrl.org/Specification/xbrl-csv/REC-2021-10-13/xbrl-csv-REC-2021-10-13.html>`_), yet **CSV-026** had the two spellings inverted — accepting the xBRL-XML form ``INF`` and rejecting ``#none`` — so ``xbridge validate`` reported a false-positive error on spec-conformant packages. It now accepts an integer or ``#none``, and flags ``INF`` naming the encoding to use instead. **EBA-DEC-001..004** recognised only ``INF``, so a ``#none`` parameter bypassed them entirely; both spellings are now treated identically
+* **Converter no longer emits ``INF`` into ``parameters.csv``**: a source instance reporting ``@decimals="INF"`` — valid in xBRL-XML — produced xBRL-CSV output that conformant processors reject with ``xbrlce:invalidDecimalsValue``. Infinity is now canonicalised to ``#none`` on the way out; both spellings remain accepted on input
+
 **Version 2.1.0**
 
 * **EBA Taxonomy 4.4 Support (phase 1, draft)**: Ten new modules from the 4.4 phase 1 draft — ``ifrs18`` (FINREP under IFRS 18), ``codis``, ``esgdis``, ``findis``, ``gsiidis`` and ``p3dh`` (Pillar 3 disclosures), ``resol1`` / ``resol2`` (resolution planning), ``mrel_decisions`` (MREL) and ``aml_eligibility`` (AMLA)

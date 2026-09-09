@@ -22,6 +22,40 @@ INFRA_NS = frozenset({XBRLI_NS, LINK_NS, FIND_NS})
 # The dimensionless "pure" unit measure values.
 PURE_VALUES = frozenset({"xbrli:pure", "pure"})
 
+# ---------------------------------------------------------------------------
+# Infinite precision
+# ---------------------------------------------------------------------------
+# The two format-specific spellings of "reported to infinite precision".
+#
+# xBRL-CSV 1.0 REC section 3.1.9 accepts a decimals value only as an integer or
+# as the special value "#none" (meaning infinity).  "INF" is the xBRL-XML
+# lexical form and a conformant xBRL-CSV processor rejects it with
+# xbrlce:invalidDecimalsValue.  The EBA Filing Rules (v5.9, section 2.18)
+# endorse the semantics for every numeric type but only ever write the XML
+# spelling, which is the source of the confusion between the two.
+XML_INFINITE_DECIMALS = "INF"
+CSV_INFINITE_DECIMALS = "#none"
+
+
+def is_infinite_decimals(value: str | None) -> bool:
+    """Return True when *value* expresses infinite precision.
+
+    Accepts either format's spelling, so the EBA semantic rules treat an
+    xBRL-XML ``@decimals="INF"`` and an xBRL-CSV ``#none`` parameter
+    identically.
+
+    ``INF`` is matched case-insensitively (preserving long-standing
+    behaviour: a misspelled-but-clearly-infinite value should still get the
+    semantic finding rather than slip through), whereas ``#none`` is matched
+    exactly, because the xBRL-CSV special values are literal lowercase
+    tokens.  Enforcing the *spelling* is the job of XML-041 and CSV-026,
+    not of this helper.
+    """
+    if value is None:
+        return False
+    stripped = value.strip()
+    return stripped.upper() == XML_INFINITE_DECIMALS or stripped == CSV_INFINITE_DECIMALS
+
 
 # ---------------------------------------------------------------------------
 # Fact helpers

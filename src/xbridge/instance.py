@@ -572,9 +572,12 @@ class Instance:
             # We are assuming that currencies always start as iso4217
             if unit_value[:8].lower() == "iso4217:":  # noqa: SIM102
                 ##Workaround
-                # For the XBRL-CSV, we assume one currency for the whole instance
-                # We take the first currency we find, because we assume that,
-                # in the current EBA architecture, all the facts have the same currency
+                # For the XBRL-CSV, we assume one currency for the whole instance.
+                # The first currency declared is only a fallback: the converter
+                # determines the base currency from the facts whose datapoint takes
+                # its unit from the baseCurrency parameter, which is the only
+                # reliable source in reports with a currency breakdown
+                # (see Converter._collect_base_currency_evidence).
                 if self._base_currency is None:
                     self._base_currency = unit_value
                     self._base_currency_unit = unit_name

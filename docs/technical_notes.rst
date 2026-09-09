@@ -42,7 +42,13 @@ Workarounds
 Due to the design of XBRL-CSV, some workarounds had to be made in the ``parameters`` file:
 
 
-- baseCurrency: It can only be one (e.g: EUR). It is taken from the first value of the instance.
+- baseCurrency: It can only be one (e.g: EUR). It is determined from the facts that take
+  their unit from this parameter, i.e. the facts of the datapoints declared in the taxonomy
+  JSON with ``"unit": "$baseCurrency"``; the facts of the datapoints that report their unit
+  explicitly (``"unit": "$unit"``) hold currency breakdowns and are ignored. When the reported
+  facts point to more than one base currency, the instance is erroneous and the conversion
+  raises ``MultipleBaseCurrenciesError`` instead of picking one currency. If no reported fact
+  takes its unit from the parameter, the first currency declared in the instance units is used.
 
 - decimalsInteger: It will take te maximum value from the ones reported. Default value is 0.
 

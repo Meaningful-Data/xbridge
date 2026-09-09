@@ -203,6 +203,7 @@ Structural and compliance checks on xBRL-XML instances.
    EBA-CUR-001|ERROR|Yes|3.1|All monetary facts without CCA dimension ``eba_CA:x1`` (or qAEA ``eba_qCA:qx2000``) MUST use a single "reporting currency". *(multipleReportingCurrencies)*
    EBA-CUR-002|ERROR|Yes|3.1|Facts with CCA ``eba_CA:x1`` (or qAEA ``eba_qCA:qx2000``) MUST be expressed in their currency of denomination. *(currencyOfDenomination)*
    EBA-CUR-003|ERROR|Yes|3.1|For facts with CUS or CUA dimension, the unit currency MUST be consistent with the dimension value. *(inconsistentCurrencyUnitAndDimension)*
+   EBA-CUR-004|ERROR|Yes|3.1|All facts whose datapoint takes its unit from the ``baseCurrency`` parameter (``"unit": "$baseCurrency"`` in the taxonomy JSON) MUST use a single reporting currency; currency breakdowns belong to the datapoints reporting their unit explicitly (``"unit": "$unit"``). *(multipleBaseCurrencies)*
 
 1.13 Non-monetary Numeric Values
 ---------------------------------
@@ -306,7 +307,7 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
    CSV-023|ERROR|Yes|2.10|No|``refPeriod`` parameter MUST be present, valid ``xs:date``, and without timezone.
    CSV-024|ERROR|Yes|--|No|``baseCurrency`` parameter MUST be present if any fact references base currency.
    CSV-025|ERROR|Yes|--|No|Decimals parameters MUST be present for each type of metric in the package.
-   CSV-026|ERROR|Yes|--|No|Decimals values MUST be valid integers or "INF".
+   CSV-026|ERROR|Yes|2.18|No|Decimals values MUST be valid integers or the special value ``#none`` (infinity). The xBRL-XML spelling ``INF`` is not valid in xBRL-CSV.
 
 2.4 Filing Indicators File (FilingIndicators.csv)
 --------------------------------------------------
@@ -400,6 +401,7 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
    EBA-CUR-001|ERROR|Yes|3.1|No|All monetary facts without CCA dimension MUST use a single "reporting currency". *(multipleReportingCurrencies)*
    EBA-CUR-002|ERROR|Yes|3.1|No|Facts with CCA dimension MUST be expressed in their currency of denomination. *(currencyOfDenomination)*
    EBA-CUR-003|ERROR|Yes|3.1|No|For facts with CUS or CUA dimension, the currency MUST be consistent with the dimension value. *(inconsistentCurrencyUnitAndDimension)*
+   EBA-CUR-004|ERROR|Yes|3.1|No|XML only. All facts whose datapoint takes its unit from the ``baseCurrency`` parameter MUST use a single reporting currency. *(multipleBaseCurrencies)*
 
 2.11 Non-monetary Numeric Values
 ---------------------------------

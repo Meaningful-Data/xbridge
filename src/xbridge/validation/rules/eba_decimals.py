@@ -11,6 +11,10 @@ The checks rely on the taxonomy Module to classify each metric as
 monetary, percentage, integer, or decimal.  When no Module is
 available a unit-based fallback is used (iso4217:* → monetary,
 xbrli:pure → percentage).
+
+Infinite precision is spelled ``INF`` in xBRL-XML and ``#none`` in
+xBRL-CSV.  Both are recognised (see ``is_infinite_decimals``) so these
+rules behave identically whichever format the report arrives in.
 """
 
 from __future__ import annotations
@@ -20,7 +24,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
-from xbridge.validation.rules._helpers import PURE_VALUES
+from xbridge.validation.rules._helpers import PURE_VALUES, is_infinite_decimals
 from xbridge.validation.rules.csv_parameters import _parse_parameters
 
 _logger = logging.getLogger(__name__)
@@ -138,25 +142,21 @@ def _monetary_threshold(ctx: ValidationContext) -> int:
 
 
 def _parse_decimals(raw: Optional[str]) -> Optional[int]:
-    """Parse a ``@decimals`` attribute value.
+    """Parse a ``@decimals`` attribute or decimals parameter value.
 
-    Returns ``None`` for non-numeric facts (no decimals attribute) or
-    for the special ``INF`` value, which is handled separately.
+    Returns ``None`` for non-numeric facts (no decimals attribute) and for
+    either spelling of infinity (``INF`` / ``#none``), which is handled
+    separately by :func:`is_infinite_decimals`.
     """
     if raw is None:
         return None
     raw = raw.strip()
-    if raw.upper() == "INF":
+    if is_infinite_decimals(raw):
         return None  # handled separately
     try:
         return int(raw)
     except ValueError:
         return None
-
-
-def _is_inf(raw: Optional[str]) -> bool:
-    """Return True when ``@decimals`` is ``INF``."""
-    return raw is not None and raw.strip().upper() == "INF"
 
 
 def _infer_type_from_unit(unit_measure: str) -> Optional[str]:
@@ -283,13 +283,14 @@ def check_integer_decimals_xml(ctx: ValidationContext) -> None:
         if metric_type != _TYPE_INTEGER:
             continue
 
-        # INF is not 0
-        if _is_inf(fact.decimals):
+        # Infinite precision is not 0
+        if is_infinite_decimals(fact.decimals):
             ctx.add_finding(
                 location=f"fact:{metric}:context:{fact.context}",
                 context={
                     "detail": (
-                        f"Fact '{metric}' has @decimals=INF but integer facts MUST use @decimals=0."
+                        f"Fact '{metric}' has @decimals={fact.decimals} (infinite precision) "
+                        f"but integer facts MUST use @decimals=0."
                     )
                 },
             )
@@ -329,12 +330,12 @@ def check_realistic_decimals_xml(ctx: ValidationContext) -> None:
 
         metric = fact.metric_qname or fact.metric or "?"
 
-        if _is_inf(fact.decimals):
+        if is_infinite_decimals(fact.decimals):
             ctx.add_finding(
                 location=f"fact:{metric}:context:{fact.context}",
                 context={
                     "detail": (
-                        f"Fact '{metric}' uses @decimals=INF "
+                        f"Fact '{metric}' uses @decimals={fact.decimals} (infinite precision) "
                         f"which is not a realistic indication of accuracy."
                     )
                 },
@@ -423,10 +424,15 @@ def check_integer_decimals_csv(ctx: ValidationContext) -> None:
     if raw is None:
         return
 
-    if _is_inf(raw):
+    if is_infinite_decimals(raw):
         ctx.add_finding(
             location=_PARAMETERS_CSV,
-            context={"detail": "decimalsInteger=INF but integer facts MUST use decimals=0."},
+            context={
+                "detail": (
+                    f"decimalsInteger={raw} (infinite precision) "
+                    f"but integer facts MUST use decimals=0."
+                )
+            },
         )
         return
 
@@ -450,11 +456,14 @@ def check_realistic_decimals_csv(ctx: ValidationContext) -> None:
         if raw is None:
             continue
 
-        if _is_inf(raw):
+        if is_infinite_decimals(raw):
             ctx.add_finding(
                 location=_PARAMETERS_CSV,
                 context={
-                    "detail": (f"{param_name}=INF is not a realistic indication of accuracy.")
+                    "detail": (
+                        f"{param_name}={raw} (infinite precision) "
+                        f"is not a realistic indication of accuracy."
+                    )
                 },
             )
             continue

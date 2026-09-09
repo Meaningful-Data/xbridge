@@ -10,6 +10,10 @@ from zipfile import BadZipFile, ZipFile
 
 from xbridge.validation._context import ValidationContext
 from xbridge.validation._registry import rule_impl
+from xbridge.validation.rules._helpers import (
+    CSV_INFINITE_DECIMALS,
+    XML_INFINITE_DECIMALS,
+)
 
 _PARAMETERS_CSV = "reports/parameters.csv"
 
@@ -366,21 +370,29 @@ def check_decimals_parameters_present(ctx: ValidationContext) -> None:
 
 @rule_impl("CSV-026")
 def check_decimals_values_valid(ctx: ValidationContext) -> None:
-    """Decimals values MUST be valid integers or 'INF'."""
+    """Decimals values MUST be valid integers or the special value '#none'.
+
+    Per xBRL-CSV 1.0 REC section 3.1.9 a decimals value is an integer or
+    ``#none`` (infinity).  The xBRL-XML spelling ``INF`` is *not* valid here
+    and is reported with a hint naming the encoding to use instead.
+    """
     params = _parse_parameters(ctx)
     if params is None:
         return  # CSV-020 handles
 
     for name, value in _find_decimals_params(params):
         stripped = value.strip()
-        if stripped == "INF":
+        if stripped == CSV_INFINITE_DECIMALS:
             continue
         try:
             int(stripped)
         except ValueError:
-            ctx.add_finding(
-                location=_PARAMETERS_CSV,
-                context={
-                    "detail": f"{name}={value!r} is not a valid integer or 'INF'",
-                },
-            )
+            if stripped.upper() == XML_INFINITE_DECIMALS:
+                detail = (
+                    f"{name}={value!r} uses the xBRL-XML spelling of infinity; "
+                    f"xBRL-CSV expresses infinite precision as "
+                    f"{CSV_INFINITE_DECIMALS!r} (xbrlce:invalidDecimalsValue)"
+                )
+            else:
+                detail = f"{name}={value!r} is not a valid integer or {CSV_INFINITE_DECIMALS!r}"
+            ctx.add_finding(location=_PARAMETERS_CSV, context={"detail": detail})

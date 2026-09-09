@@ -92,3 +92,22 @@ class FactReconciliationError(ValueError):
 
 class FactReconciliationWarning(XbridgeWarning):
     """Some source facts were not converted; the output may be incomplete."""
+
+
+class MultipleBaseCurrenciesError(ValueError):
+    """Raised when an instance pins the ``baseCurrency`` parameter to more than one currency.
+
+    The base currency is the currency of the facts whose datapoint takes its
+    unit from the ``baseCurrency`` parameter in the taxonomy JSON.  An instance
+    that reports such facts in two or more currencies cannot be expressed as a
+    single XBRL-CSV report and is therefore rejected instead of converted with
+    an arbitrary currency.
+
+    Attributes:
+        currencies: The conflicting unit measures, sorted (e.g.
+            ``["iso4217:AED", "iso4217:EUR"]``).
+    """
+
+    def __init__(self, error_message: str, currencies: Optional[list[str]] = None) -> None:
+        super().__init__(error_message)
+        self.currencies = currencies or []
