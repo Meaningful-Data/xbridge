@@ -113,6 +113,10 @@ For programmatic use, import and use the Python API:
 What's New
 ==========
 
+**Version 2.2.1**
+
+* **Security — lxml 6.x allowed**: the ``lxml`` constraint is widened to ``>=5.2.1,<7.0`` so installations can pick up lxml 6.1.0+, which fixes CVE-2026-41066 (XXE through the default configuration of ``iterparse()`` / ``ETCompatXMLParser()``). xbridge's own parsing was not affected, but the previous ``<6.0`` cap prevented users from installing the patched release. The ``5.2.1`` floor is kept for Ubuntu 24.04 APT compatibility
+
 **Version 2.2.0**
 
 * **Correct ``baseCurrency`` in multi-currency reports**: the base currency is no longer taken from the first ``iso4217`` unit declared in the instance — a choice that depended on the order of the ``xbrli:unit`` declarations — but from the facts whose datapoint takes its unit from the parameter (``"unit": "$baseCurrency"`` in the taxonomy JSON). Facts of datapoints that report their unit explicitly (``"unit": "$unit"``) hold the breakdown by significant currency and no longer influence the parameter (#123)

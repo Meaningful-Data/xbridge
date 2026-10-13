@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-10-13
+
+### Security
+- **Allow lxml 6.x to pick up the fix for CVE-2026-41066**: the `lxml` constraint is widened from `>=5.2.1,<6.0` to `>=5.2.1,<7.0`, so installations can resolve lxml 6.1.0 or later. CVE-2026-41066 (GHSA-vfmq-68hx-4jfw, HIGH) lets `iterparse()` and `ETCompatXMLParser()` resolve external entities with their default configuration (XXE, reading local files); it is fixed only in lxml 6.1.0. xbridge itself parses XML with `etree.parse()` / `etree.fromstring()`, which already block external entities in lxml 5.x, so its own code paths were not exploitable — but the previous upper bound prevented users from installing the patched lxml at all. The `5.2.1` floor is unchanged, preserving compatibility with the Ubuntu 24.04 APT packages.
+- Updated development and documentation dependencies to patched releases: `pytest` ^9.0.3 (CVE-2025-71176), `urllib3` 2.8.0 (CVE-2026-97687, CVE-2026-97688, CVE-2026-97689), `requests` 2.34.2 (CVE-2024-47081, CVE-2026-25645), `idna` 3.20 (CVE-2026-45409) and `pygments` 2.21.0 (CVE-2026-4539). These are not runtime dependencies of the package.
+- Added XXE regression tests (`tests/test_xxe_protection.py`) asserting that `load_instance()`, `convert_instance()` and `validate()` reject XBRL-XML instances declaring external general or parameter entities without disclosing the referenced file, so a future parser change cannot silently reintroduce the vulnerability.
+
 ## [2.2.0] - 2026-09-03
 
 ### Added
