@@ -17,9 +17,11 @@ from xbridge.api import convert_instance, load_instance
 from xbridge.validation import validate
 
 LEAK_MARKER = "XXE-LEAK-MARKER-6f1c2a"
-# Depending on the payload and lxml version, parsing stops at the parameter entity
-# (``ext``) or at the general entity it would declare (``xxe``).
-_ENTITY_BLOCKED = r"Entity '(xxe|ext)' not defined"
+# Parsing must stop at the parameter entity (``ext``) or at the general entity it would
+# declare (``xxe``). The wording varies across libxml2 builds and platforms (e.g.
+# "Entity 'xxe' not defined" vs "PEReference: %ext; not found"), so only the entity
+# name is matched.
+_ENTITY_BLOCKED = r"\b(xxe|ext)\b"
 
 _INSTANCE_BODY = """
 <xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"
@@ -37,7 +39,7 @@ _INSTANCE_BODY = """
 """
 
 
-def _general_entity(tmp_path: Path, secret_uri: str) -> str:
+def _general_entity(_tmp_path: Path, secret_uri: str) -> str:
     """External general entity declared directly in the internal DTD subset."""
     return f'<!DOCTYPE xbrli:xbrl [<!ENTITY xxe SYSTEM "{secret_uri}">]>'
 
