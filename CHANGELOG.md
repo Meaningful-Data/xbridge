@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Empty `decimals` column with `headers_as_datapoints=True`**: converting an XBRL-XML instance of a headers-architecture module (e.g. DORA 4.0) with `headers_as_datapoints=True` wrote every table as `datapoint,ERI,decimals,factValue`, with an empty `decimals` column that consumers expecting `datapoint,ERI,factValue` (the output of the CSV conversion for the same data) reject. The facts' `decimals` was only dropped for tables carrying a `data_type` column, which DORA tables don't; it is now dropped for every table. The default `headers_as_datapoints=False` output is unchanged (#127).
+
 ## [2.2.1] - 2026-10-13
 
 ### Security

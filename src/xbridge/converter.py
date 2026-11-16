@@ -496,6 +496,10 @@ class Converter:
             drop_columns = merge_cols + ["data_type", "decimals"]
         else:
             drop_columns = merge_cols
+            # Tables without data_type (e.g. DORA headers-architecture tables) still
+            # carry the facts' decimals, which is never an output column
+            if "decimals" in table_df.columns:
+                drop_columns.append("decimals")
 
         # Also drop allowed_values if present (it's metadata, not data)
         if "allowed_values" in table_df.columns:
