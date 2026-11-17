@@ -167,6 +167,8 @@ Structural and compliance checks on xBRL-XML instances.
    XML-070|ERROR|No|--|All fact element names (concepts) MUST be defined in the taxonomy for the referenced entry point.
    XML-071|ERROR|No|--|All explicit dimension QNames used in contexts MUST be defined as dimensions in the taxonomy.
    XML-072|ERROR|No|--|All dimension member values MUST be valid members for their respective dimension as defined in the taxonomy.
+   XML-073|ERROR|No|--|Fact values MUST be valid for the data type of their concept (e.g. a decimal number for monetary, percent and decimal items, an integer, ``true``/``false``/``1``/``0`` for booleans, a valid ``YYYY-MM-DD`` date, a QName for enumerations, a non-empty value for ``model:notEmptyStringItemType``).
+   XML-074|ERROR|No|--|Enumeration fact values MUST be allowed values for their concept. Facts are not matched to a single datapoint, so any value allowed for the concept in the module is accepted.
 
 1.10 Entity Identification
 --------------------------
@@ -365,6 +367,8 @@ xBRL-CSV 1.0 specification (REC 2021-10-13, errata 2023-04-19).
    CSV-060|ERROR|No|--|No|All metric references in data tables MUST be defined in the taxonomy for the referenced entry point.
    CSV-061|ERROR|No|--|No|All dimension columns MUST correspond to dimensions defined in the taxonomy.
    CSV-062|ERROR|No|--|No|All dimension member values MUST be valid members for their respective dimension as defined in the taxonomy.
+   CSV-063|ERROR|No|--|No|Fact values MUST be valid for the data type of their concept (CSV equivalent of XML-073).
+   CSV-064|ERROR|No|--|No|Enumeration fact values MUST be allowed values for their datapoint (CSV equivalent of XML-074; checked per datapoint in datapoints-architecture tables).
 
 2.8 Entity Identification
 --------------------------
@@ -572,12 +576,12 @@ Rule Coverage Summary
    :widths: 30, 10, 60
    :delim: |
 
-   XML-only format rules|34|XML-001 -- XML-072
+   XML-only format rules|36|XML-001 -- XML-074
    XML-only EBA rules|7|EBA-2.5, EBA-2.25, EBA-GUIDE-001, -003, -005, -006
-   CSV-only format rules|40|CSV-001 -- CSV-062
+   CSV-only format rules|42|CSV-001 -- CSV-064
    Shared EBA rules|17|EBA-ENTITY, EBA-DEC, EBA-CUR, EBA-UNIT, EBA-REP, EBA-2.16.1, EBA-2.24, EBA-GUIDE-002/-004/-007
    Submission naming rules|14|EBA-NAME-001 -- EBA-NAME-071
-   **Total unique rules**|**98 + 14 naming**|
+   **Total unique rules**|**102 + 14 naming**|
 
 Effective rules per format:
 
@@ -586,6 +590,6 @@ Effective rules per format:
    :widths: 10, 10, 80
    :delim: |
 
-   XML|58|34 XML-only + 7 XML-only EBA + 17 shared EBA
-   CSV|57|40 CSV-only + 17 shared EBA
+   XML|60|36 XML-only + 7 XML-only EBA + 17 shared EBA
+   CSV|59|42 CSV-only + 17 shared EBA
    Naming|14|Applied to both formats when ``eba=True``

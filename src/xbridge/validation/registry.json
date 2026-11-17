@@ -340,6 +340,26 @@
     "eba_ref": null
   },
   {
+    "code": "XML-073",
+    "message": "Fact values MUST be valid for the data type of their concept: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "XML-074",
+    "message": "Enumeration fact values MUST be allowed values for their concept: {detail}",
+    "severity": "ERROR",
+    "xml": true,
+    "csv": false,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
     "code": "EBA-ENTITY-001",
     "message": "The entity identifier @scheme MUST be one of the accepted schemes: {detail}",
     "severity": "ERROR",
@@ -1102,6 +1122,26 @@
   {
     "code": "CSV-062",
     "message": "All dimension member values MUST be valid for their dimension: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-063",
+    "message": "Fact values MUST be valid for the data type of their concept: {detail}",
+    "severity": "ERROR",
+    "xml": false,
+    "csv": true,
+    "eba": false,
+    "post_conversion": false,
+    "eba_ref": null
+  },
+  {
+    "code": "CSV-064",
+    "message": "Enumeration fact values MUST be allowed values for their datapoint: {detail}",
     "severity": "ERROR",
     "xml": false,
     "csv": true,

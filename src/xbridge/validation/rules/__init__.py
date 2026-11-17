@@ -2,6 +2,7 @@
 
 from xbridge.validation.rules import (
     csv_data_tables,  # noqa: F401
+    csv_datatypes,  # noqa: F401
     csv_facts,  # noqa: F401
     csv_filing_indicators,  # noqa: F401
     csv_metadata,  # noqa: F401
@@ -17,6 +18,7 @@ from xbridge.validation.rules import (
     eba_naming,  # noqa: F401
     eba_units,  # noqa: F401
     xml_context,  # noqa: F401
+    xml_datatypes,  # noqa: F401
     xml_document,  # noqa: F401
     xml_encoding,  # noqa: F401
     xml_facts,  # noqa: F401

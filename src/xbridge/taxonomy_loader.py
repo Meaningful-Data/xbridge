@@ -20,11 +20,28 @@ from zipfile import ZipFile
 
 from lxml import etree
 
+from xbridge.instance import _derive_metric_prefix
 from xbridge.modules import Module
 
 MODULES_FOLDER = Path(__file__).parent / "modules"
 INDEX_PATH = MODULES_FOLDER / "index.json"
 DIM_DOM_MAPPING_PATH = MODULES_FOLDER / "dim_dom_mapping.json"
+METRIC_TYPES_PATH = MODULES_FOLDER / "metric_types.json"
+
+_XS_ELEMENT = "{http://www.w3.org/2001/XMLSchema}element"
+
+# Canonical prefixes for the namespaces that define XBRL item types, so the
+# stored type names do not depend on the prefixes declared in each schema.
+_TYPE_NAMESPACE_PREFIXES = {
+    "http://www.xbrl.org/2003/instance": "xbrli",
+    "http://www.xbrl.org/dtr/type/numeric": "num",
+    "http://www.xbrl.org/dtr/type/non-numeric": "nonnum",
+    "http://www.xbrl.org/dtr/type/2020-01-21": "dtr",
+    "http://www.xbrl.org/dtr/type/2022-03-31": "dtr",
+    "http://www.eurofiling.info/xbrl/ext/model": "model",
+    "http://xbrl.org/2014/extensible-enumerations": "enum",
+    "http://xbrl.org/2020/extensible-enumerations-2.0": "enum2",
+}
 
 
 def _extract_specific_files_7z(file_path: Path, target_path: Path) -> None:
@@ -35,6 +52,7 @@ def _extract_specific_files_7z(file_path: Path, target_path: Path) -> None:
         file_path,
         "*.json",
         "*dim-def.xml",
+        "*met.xsd",
         "-r",
     ]
     if not cmd[0]:
@@ -86,12 +104,48 @@ class Taxonomy:
             map_dom_mapping[dim] = dom
         return map_dom_mapping
 
+    @staticmethod
+    def _is_metric_schema(normalized_path: str) -> bool:
+        """Return True for the metric dictionary schemas (``dict/met/**/met.xsd``)."""
+        return normalized_path.endswith("/met.xsd") and "/dict/met" in normalized_path
+
+    @staticmethod
+    def _get_metric_types(root: Any) -> Dict[str, str]:
+        """Return ``{metric_qname: item_type}`` for the metrics in a ``met.xsd``.
+
+        Metric QNames use the prefix convention of the module JSON files
+        (``eba_met:mi53``, ``eba_met_4.2:qAZH``). Item types are written with
+        a canonical prefix (``xbrli:monetaryItemType``,
+        ``enum:enumerationItemType``), or in Clark notation when the type's
+        namespace is not one of the known ones.
+        """
+        target_ns = root.get("targetNamespace")
+        prefix = _derive_metric_prefix(target_ns) if target_ns else None
+        if prefix is None:
+            return {}
+
+        metric_types: Dict[str, str] = {}
+        for element in root.iter(_XS_ELEMENT):
+            name = element.get("name")
+            type_qname = element.get("type")
+            if not name or not type_qname:
+                continue
+            type_prefix, _, type_local = type_qname.rpartition(":")
+            type_ns = element.nsmap.get(type_prefix or None)
+            if type_ns is None:
+                continue
+            canonical = _TYPE_NAMESPACE_PREFIXES.get(type_ns)
+            item_type = f"{canonical}:{type_local}" if canonical else f"{{{type_ns}}}{type_local}"
+            metric_types[f"{prefix}:{name}"] = item_type
+        return metric_types
+
     def load_modules(self, input_path: Union[str, Path]) -> None:
         """Loads the modules in the taxonomy"""
         is_there_a_module = False
         index = {}
 
         dim_dom_mapping_loaded = False
+        metric_types: Dict[str, str] = {}
 
         if not MODULES_FOLDER.exists():
             MODULES_FOLDER.mkdir()
@@ -141,6 +195,13 @@ class Taxonomy:
                     ) as fl:
                         json.dump(dim_dom_mapping, fl, indent=4)
 
+                elif self._is_metric_schema(normalized_path):
+                    root = etree.fromstring(
+                        zip_file.read(file_path),
+                        etree.XMLParser(resolve_entities=False, no_network=True),
+                    )
+                    metric_types.update(self._get_metric_types(root))
+
                 if file_path_obj.suffix == ".json" and file_path_obj.parent.name == "mod":
                     is_there_a_module = True
                     print(f"Loading module {file_path_obj.stem.upper()}")
@@ -169,6 +230,13 @@ class Taxonomy:
 
         if not dim_dom_mapping_loaded:
             raise ImportError("dim_dom_mapping file was not loaded")
+
+        if not metric_types:
+            raise ImportError(
+                "No metric definitions (dict/met/**/met.xsd) were found in the taxonomy"
+            )
+        with open(METRIC_TYPES_PATH, "w", encoding="UTF-8") as fl:
+            json.dump(dict(sorted(metric_types.items())), fl, indent=4)
 
         with open(INDEX_PATH, "w", encoding="UTF-8") as fl:
             json.dump(index, fl, indent=4)

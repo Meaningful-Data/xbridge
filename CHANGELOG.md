@@ -8,6 +8,11 @@ Any change to the bundled EBA taxonomy increases the minor version (see [CONTRIB
 
 ## [Unreleased]
 
+### Added
+- **Fact value validation against the concept data type**: new rules XML-073 and CSV-063 check that every fact value is valid for the XBRL item type of its concept: a decimal number for monetary, percent and decimal items, an integer, a boolean, a valid `YYYY-MM-DD` date, a QName for enumerations, and a non-empty value for `model:notEmptyStringItemType`. Facts whose concept is not an EBA metric are not checked.
+- **Enumeration values against the taxonomy allowed values**: new rules XML-074 and CSV-064 check enumeration fact values against the `allowed_values` of the module. CSV checks each row against its datapoint; XML, where facts are not matched to a single datapoint, accepts any value allowed for the concept.
+- **Bundled metric data types** (`modules/metric_types.json`): the item type of every EBA metric, generated from the final EBA 4.4 (phase 1) Full taxonomy. The taxonomy loader now extracts it from the `dict/met/**/met.xsd` schemas when the taxonomy is loaded, and fails if the package contains none.
+
 ## [2.3.0] - 2026-11-17
 
 ### Added
