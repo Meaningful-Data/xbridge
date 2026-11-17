@@ -113,6 +113,13 @@ For programmatic use, import and use the Python API:
 What's New
 ==========
 
+**Version 2.3.0**
+
+* **EBA Taxonomy 4.4 (phase 1) final release**: the bundled 4.4 modules are regenerated from the final Full taxonomy, replacing the draft loaded in 2.1.0. The final release renumbers datapoints and changes dimensions and variables in ``aml_eligibility``, ``ifrs18``, ``codis``, ``esgdis``, ``findis``, ``gsiidis``, ``mrel_decisions``, ``resol1`` and ``resol2``. ``codis`` drops table K_29.02.c, and table F_02.01.dp moves from ``ifrs18`` to the new ``ifrs18dp`` module (#129)
+* **New 4.4 modules**: ``aml_ra`` (AMLA), ``ifrs18dp`` (FINREP, IFRS 18 data points) and ``tcb_liquidity`` (Third Country Branches) (#129)
+* **End dates for modules replaced by 4.4**: seventeen 4.2 modules, plus ``aml_ra`` and ``tcb_liquidity`` 4.3, now declare their ``to`` date, so **EBA-DATE-001** reports instances of these modules with a later reference date
+* **No empty ``decimals`` column with ``headers_as_datapoints=True``**: tables of headers-architecture modules (e.g. DORA 4.0) are now written as ``datapoint,ERI,factValue``, matching the CSV conversion of the same data (#127)
+
 **Version 2.2.1**
 
 * **Security — lxml 6.x allowed**: the ``lxml`` constraint is widened to ``>=5.2.1,<7.0`` so installations can pick up lxml 6.1.0+, which fixes CVE-2026-41066 (XXE through the default configuration of ``iterparse()`` / ``ETCompatXMLParser()``). xbridge's own parsing was not affected, but the previous ``<6.0`` cap prevented users from installing the patched release. The ``5.2.1`` floor is kept for Ubuntu 24.04 APT compatibility

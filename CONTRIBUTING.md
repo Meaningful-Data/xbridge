@@ -12,6 +12,7 @@ Thank you for your interest in contributing to XBridge! We welcome contributions
 - [Testing](#testing)
 - [Documentation](#documentation)
 - [Submitting Changes](#submitting-changes)
+- [Versioning](#versioning)
 - [Reporting Bugs](#reporting-bugs)
 - [Suggesting Enhancements](#suggesting-enhancements)
 
@@ -261,6 +262,23 @@ fix(instance): handle None values in decimals field
 
 docs(readme): update installation instructions
 ```
+
+## Versioning
+
+XBridge follows [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`):
+
+- **MAJOR**: backward-incompatible changes to the public API.
+- **MINOR**: new functionality that is backward compatible, and **any change to the bundled
+  EBA taxonomy**. This includes loading a new taxonomy version, replacing a draft release with
+  the final one, adding or regenerating modules, and amending module JSON files, applicability
+  dates or `dim_dom_mapping_*.json`. A release that changes the taxonomy is never a patch
+  release, even if it changes nothing else.
+- **PATCH**: backward-compatible bug fixes, security and dependency updates, and documentation
+  changes that leave the bundled taxonomy untouched.
+
+Release candidates take the next version with an `rcN` suffix (e.g. `2.3.0rc1`). Before you
+pick a number, check the versions already published on
+[PyPI](https://pypi.org/project/eba-xbridge/#history).
 
 ## Reporting Bugs
 

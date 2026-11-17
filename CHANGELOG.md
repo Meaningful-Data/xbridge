@@ -4,12 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Any change to the bundled EBA taxonomy increases the minor version (see [CONTRIBUTING.md](CONTRIBUTING.md#versioning)).
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-11-17
+
+### Added
+- **New EBA 4.4 modules**: `aml_ra` 4.4 (AMLA), `ifrs18dp` 4.4 (FINREP, IFRS 18 data points, split out of `ifrs18`) and `tcb_liquidity` 4.4 (Third Country Branches) (#129).
+
 ### Changed
 - **EBA Taxonomy 4.4 (phase 1) final release**: the bundled modules are regenerated from the final EBA 4.4 (phase 1) Full taxonomy, replacing the 4.4 phase 1 draft loaded in 2.1.0 (#129).
-  - New modules: `aml_ra` 4.4 (AMLA), `ifrs18dp` 4.4 (FINREP, IFRS 18 data points, split out of `ifrs18`) and `tcb_liquidity` 4.4 (Third Country Branches).
   - 4.4 modules updated from draft to final: `aml_eligibility`, `ifrs18`, `codis`, `esgdis`, `findis`, `gsiidis`, `mrel_decisions`, `resol1` and `resol2` (datapoint renumbering, dimension and variable changes; `codis` drops table K_29.02.c and `ifrs18` table F_02.01.dp moves to `ifrs18dp`). `dim_dom_mapping_4.4.json` regenerated.
   - Modules superseded by 4.4 now declare their applicability end date (`to`): seventeen 4.2 modules, plus `aml_ra` and `tcb_liquidity` 4.3.
   - `tcb_core` and `tcb_hu` 4.3: `allowed_values` amended, following the EBA re-upload of the Full taxonomy on 23/10/2026 that corrected the `AllowedValue` entries of the 4.3 release.
@@ -221,7 +226,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.2...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/Meaningful-Data/xbridge/compare/v2.2.1...v2.3.0
+[2.2.1]: https://github.com/Meaningful-Data/xbridge/compare/v2.2.0...v2.2.1
+[2.2.0]: https://github.com/Meaningful-Data/xbridge/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.2...v2.1.0
 [2.0.2]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/Meaningful-Data/xbridge/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/Meaningful-Data/xbridge/compare/v1.5.2...v2.0.0
