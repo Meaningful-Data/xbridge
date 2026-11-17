@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **EBA Taxonomy 4.4 (phase 1) final release**: the bundled modules are regenerated from the final EBA 4.4 (phase 1) Full taxonomy, replacing the 4.4 phase 1 draft loaded in 2.1.0 (#129).
+  - New modules: `aml_ra` 4.4 (AMLA), `ifrs18dp` 4.4 (FINREP, IFRS 18 data points, split out of `ifrs18`) and `tcb_liquidity` 4.4 (Third Country Branches).
+  - 4.4 modules updated from draft to final: `aml_eligibility`, `ifrs18`, `codis`, `esgdis`, `findis`, `gsiidis`, `mrel_decisions`, `resol1` and `resol2` (datapoint renumbering, dimension and variable changes; `codis` drops table K_29.02.c and `ifrs18` table F_02.01.dp moves to `ifrs18dp`). `dim_dom_mapping_4.4.json` regenerated.
+  - Modules superseded by 4.4 now declare their applicability end date (`to`): seventeen 4.2 modules, plus `aml_ra` and `tcb_liquidity` 4.3.
+  - `tcb_core` and `tcb_hu` 4.3: `allowed_values` amended, following the EBA re-upload of the Full taxonomy on 23/10/2026 that corrected the `AllowedValue` entries of the 4.3 release.
+
 ### Fixed
+- Taxonomy loader examples in the README and the technical notes used a non-existent `--input_path` option; the input path is a positional argument (`python -m xbridge.taxonomy_loader path/to/FullTaxonomy.7z`).
 - **Empty `decimals` column with `headers_as_datapoints=True`**: converting an XBRL-XML instance of a headers-architecture module (e.g. DORA 4.0) with `headers_as_datapoints=True` wrote every table as `datapoint,ERI,decimals,factValue`, with an empty `decimals` column that consumers expecting `datapoint,ERI,factValue` (the output of the CSV conversion for the same data) reject. The facts' `decimals` was only dropped for tables carrying a `data_type` column, which DORA tables don't; it is now dropped for every table. The default `headers_as_datapoints=False` output is unchanged (#127).
 
 ## [2.2.1] - 2026-10-13

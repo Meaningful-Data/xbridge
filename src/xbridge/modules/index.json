@@ -1,4 +1,5 @@
 {
+    "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/tcb/4.4/mod/tcb_liquidity.xsd": "tcb_liquidity_tcb_4.4.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/tcb/4.3/mod/tcb_liquidity.xsd": "tcb_liquidity_tcb_4.3.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/tcb/4.3/mod/tcb_hu.xsd": "tcb_hu_tcb_4.3.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/tcb/4.3/mod/tcb_core.xsd": "tcb_core_tcb_4.3.json",
@@ -213,6 +214,7 @@
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/cir-680-2014/2018-03-31/mod/finrep9_con_gaap.xsd": "finrep9_con_gaap_cir-680-2014_2018-03-31.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/cir-680-2014/2017-04-04/mod/finrep9_con_ifrs.xsd": "finrep9_con_ifrs_cir-680-2014_2017-04-04.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/cir-680-2014/2017-04-04/mod/finrep9_con_gaap.xsd": "finrep9_con_gaap_cir-680-2014_2017-04-04.json",
+    "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/4.4/mod/ifrs18dp.xsd": "ifrs18dp_finrep_4.4.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/4.4/mod/ifrs18.xsd": "ifrs18_finrep_4.4.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/4.2.1/mod/finrep9dp.xsd": "finrep9dp_finrep_4.2.1.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/finrep/4.2/mod/finrep9dp.xsd": "finrep9dp_finrep_4.2.json",
@@ -365,6 +367,7 @@
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/corep/4.2/mod/corep_alm.xsd": "corep_alm_corep_4.2.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/corep/4.0/mod/corep_of.xsd": "corep_of_corep_4.0.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/corep/4.0/mod/corep_lr.xsd": "corep_lr_corep_4.0.json",
+    "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/amla/4.4/mod/aml_ra.xsd": "aml_ra_amla_4.4.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/amla/4.4/mod/aml_eligibility.xsd": "aml_eligibility_amla_4.4.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/amla/4.3/mod/aml_ra.xsd": "aml_ra_amla_4.3.json",
     "http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/ae/its-2013-04/2016-11-15/mod/ae_ind.xsd": "ae_ind_its-2013-04_2016-11-15.json",
