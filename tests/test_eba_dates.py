@@ -188,7 +188,8 @@ class TestEBADATE001Csv:
 
 class TestModuleApplicabilityDates:
     def test_versioned_module_open_ended(self) -> None:
-        module = Module.from_serialized(_MODULES_DIR / "ae_ae_4.2.json")
+        # fc_fc_4.2 is not superseded by any later release, so it has no toDate.
+        module = Module.from_serialized(_MODULES_DIR / "fc_fc_4.2.json")
         assert module.from_date == "2026-03-31"
         assert module.to_date is None
         d = module.to_dict()

@@ -63,7 +63,7 @@ Firstly, EBA´s taxonomy is loaded by using the following function contained in 
 
 .. code:: bash
 
-    python taxonomy_loader.py --input_path FullTaxonomy.7z
+    python -m xbridge.taxonomy_loader FullTaxonomy.7z
 
 
 When it is loaded, the URL reference of the :obj:`modules <xbridge.taxonomy.Module>` contained within the :obj:`taxonomy <xbridge.taxonomy.Taxonomy>` are saved in a JSON file called ``index.json``,
