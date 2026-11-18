@@ -8,6 +8,8 @@ Any change to the bundled EBA taxonomy increases the minor version (see [CONTRIB
 
 ## [Unreleased]
 
+## [2.4.0rc1] - 2026-11-18
+
 ### Added
 - **Fact value validation against the concept data type**: new rules XML-073 and CSV-063 check that every fact value is valid for the XBRL item type of its concept: a decimal number for monetary, percent and decimal items, an integer, a boolean, a valid `YYYY-MM-DD` date, a QName for enumerations, and a non-empty value for `model:notEmptyStringItemType`. Facts whose concept is not an EBA metric are not checked.
 - **Enumeration values against the taxonomy allowed values**: new rules XML-074 and CSV-064 check enumeration fact values against the `allowed_values` of the module. CSV checks each row against its datapoint; XML, where facts are not matched to a single datapoint, accepts any value allowed for the concept.
@@ -231,7 +233,8 @@ Any change to the bundled EBA taxonomy increases the minor version (see [CONTRIB
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.4.0rc1...HEAD
+[2.4.0rc1]: https://github.com/Meaningful-Data/xbridge/compare/v2.3.0...v2.4.0rc1
 [2.3.0]: https://github.com/Meaningful-Data/xbridge/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/Meaningful-Data/xbridge/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/Meaningful-Data/xbridge/compare/v2.1.0...v2.2.0

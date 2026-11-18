@@ -113,6 +113,13 @@ For programmatic use, import and use the Python API:
 What's New
 ==========
 
+**Version 2.4.0rc1**
+
+* **Fact values validated against the concept's data type**: new rules **XML-073** and **CSV-063** (ERROR) check that every fact value is valid for the XBRL item type of its metric: a decimal number for monetary, percent and decimal items, an integer, ``true``/``false``/``1``/``0`` for booleans, a valid ``YYYY-MM-DD`` date, a QName for enumerations, and a non-empty value for ``model:notEmptyStringItemType``. Facts whose concept is not an EBA metric are not checked
+* **Enumeration values checked against the taxonomy**: new rules **XML-074** and **CSV-064** (ERROR) check enumeration values against the module's ``allowed_values``, per datapoint in xBRL-CSV and per concept in XBRL-XML
+* **Bundled metric data types**: ``modules/metric_types.json`` maps every EBA metric to its item type. The taxonomy loader now generates it from the ``dict/met/**/met.xsd`` schemas of the taxonomy package
+* These rules are not EBA-specific, so they run on every ``validate()`` call and every conversion with ``validate=True``. An instance that passed validation in 2.3.0 can now fail if a fact value does not match its data type
+
 **Version 2.3.0**
 
 * **EBA Taxonomy 4.4 (phase 1) final release**: the bundled 4.4 modules are regenerated from the final Full taxonomy, replacing the draft loaded in 2.1.0. The final release renumbers datapoints and changes dimensions and variables in ``aml_eligibility``, ``ifrs18``, ``codis``, ``esgdis``, ``findis``, ``gsiidis``, ``mrel_decisions``, ``resol1`` and ``resol2``. ``codis`` drops table K_29.02.c, and table F_02.01.dp moves from ``ifrs18`` to the new ``ifrs18dp`` module (#129)
