@@ -658,7 +658,7 @@ class CsvInstance(Instance):
         self._temp_dir_path = base
 
         self._report_file = base / "reports" / "report.json"
-        with open(self._report_file, "r") as f:
+        with open(self._report_file, "r", encoding="utf-8-sig") as f:
             extends = json.load(f)["documentInfo"]["extends"]
             if len(extends) > 1:
                 raise ValueError("More than one extension in the report.json file")
