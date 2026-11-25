@@ -113,6 +113,11 @@ For programmatic use, import and use the Python API:
 What's New
 ==========
 
+**Version 2.3.1**
+
+* **xBRL-CSV packages with a UTF-8 BOM**: ``reports/report.json`` is now read with ``utf-8-sig``. Packages whose files start with a byte order mark (as written by Excel and other Windows tools) previously failed structural validation with **CSV-005**, reporting every declared table as an extraneous file (#133)
+* **Security — certifi 2026.11.20**: the lock file is refreshed to fix the bundled emSign root CAs with compromised intermediate CA keys. Only the docs dependency group uses certifi, so installations of ``eba-xbridge`` are not affected (#132)
+
 **Version 2.3.0**
 
 * **EBA Taxonomy 4.4 (phase 1) final release**: the bundled 4.4 modules are regenerated from the final Full taxonomy, replacing the draft loaded in 2.1.0. The final release renumbers datapoints and changes dimensions and variables in ``aml_eligibility``, ``ifrs18``, ``codis``, ``esgdis``, ``findis``, ``gsiidis``, ``mrel_decisions``, ``resol1`` and ``resol2``. ``codis`` drops table K_29.02.c, and table F_02.01.dp moves from ``ifrs18`` to the new ``ifrs18dp`` module (#129)

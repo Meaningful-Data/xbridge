@@ -8,6 +8,14 @@ Any change to the bundled EBA taxonomy increases the minor version (see [CONTRIB
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-11-25
+
+### Fixed
+- **xBRL-CSV packages with a UTF-8 BOM**: `reports/report.json` is now read with `utf-8-sig`, so packages whose files start with a byte order mark (as written by Excel and other Windows tools) resolve their module. Previously the module could not be resolved and structural validation reported every declared table as an extraneous file (**CSV-005**) (#133).
+
+### Security
+- **certifi 2026.11.20** in the lock file (docs dependency group only), fixing the bundled emSign root CAs whose intermediate CA keys were compromised. The installed package is not affected (#132).
+
 ## [2.3.0] - 2026-11-17
 
 ### Added
@@ -226,7 +234,8 @@ Any change to the bundled EBA taxonomy increases the minor version (see [CONTRIB
 ### Added
 - Initial pre-release version
 
-[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/Meaningful-Data/xbridge/compare/v2.3.1...HEAD
+[2.3.1]: https://github.com/Meaningful-Data/xbridge/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/Meaningful-Data/xbridge/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/Meaningful-Data/xbridge/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/Meaningful-Data/xbridge/compare/v2.1.0...v2.2.0
