@@ -11,6 +11,7 @@ from zipfile import ZipFile
 
 from xbridge.converter import Converter
 from xbridge.instance import CsvInstance, Instance
+from xbridge.validation._engine import run_validation
 
 DORA_SAMPLE = Path(__file__).parent / "test_files" / "sample_dora" / "test2_in.zip"
 
@@ -67,6 +68,31 @@ def test_csv_instance_parses_core_fields_and_files():
     # ensure parameters/filing indicators are not misclassified as tables
     assert inst.parameters_file.name not in table_names
     assert inst.filing_indicators_file.name not in table_names
+
+
+def _with_utf8_bom(src: Path, dst: Path) -> Path:
+    """Copy a ZIP prefixing every JSON/CSV member with a UTF-8 BOM (as Windows tools do)."""
+    with ZipFile(src) as zin, ZipFile(dst, "w") as zout:
+        for info in zin.infolist():
+            data = zin.read(info)
+            if info.filename.endswith((".json", ".csv")):
+                data = b"\xef\xbb\xbf" + data
+            zout.writestr(info, data)
+    return dst
+
+
+def test_csv_instance_accepts_utf8_bom(tmp_path: Path):
+    """
+    A UTF-8 BOM at the start of report.json must not prevent resolving the module:
+    the BOM-prefixed package yields the same module_ref as the original, and the
+    structural validation does not flag the declared tables as extraneous (CSV-005).
+    """
+    bom_zip = _with_utf8_bom(DORA_SAMPLE, tmp_path / DORA_SAMPLE.name)
+
+    assert CsvInstance(bom_zip).module_ref == CsvInstance(DORA_SAMPLE).module_ref
+
+    results = run_validation(str(bom_zip))
+    assert [r for r in results if r.rule_id == "CSV-005"] == []
 
 
 def test_converter_preserves_name_root_and_manifests(tmp_path: Path):
